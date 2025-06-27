@@ -32,32 +32,33 @@ Generate and evaluate PyTorch kernels using Claude API:
 Run LLM evaluation on smoke test (relu operation):
 ```bash
 export ANTHROPIC_API_KEY=your_api_key_here
-python scripts/main.py --suite smoke --backend llm --llm-mode generate
+python scripts/main.py --suite smoke --backend llm
 ```
 
 Run LLM evaluation on specific operations:
 ```bash
-python scripts/main.py --suite opinfo --backend llm --ops "relu,add,mm" --llm-mode generate
+python scripts/main.py --suite opinfo --backend llm --ops "relu,add,mm"
 ```
 
-The `evaluate()` function provides the core interface:
+The `evaluate_llm_kernel()` function provides the core interface:
 ```python
-from BackendBench.llm_eval import evaluate
+from BackendBench.eval import evaluate_llm_kernel
 import torch
 
 # Test a kernel implementation
-correctness, speedup = evaluate(
+correctness, speedup = evaluate_llm_kernel(
     torch.ops.aten.relu.default, 
-    kernel_code_string
+    kernel_code_string,
+    test_cases
 )
 ```
 
-The `full_eval()` function evaluates an LLM across multiple operations:
+The `full_eval_with_suite()` function evaluates an LLM across multiple operations:
 ```python  
 from BackendBench.llm_client import ClaudeKernelGenerator
-from BackendBench.llm_eval import full_eval
+from BackendBench.eval import full_eval_with_suite
+from BackendBench.suite import SmokeTestSuite
 
 llm = ClaudeKernelGenerator()
-ops = [torch.ops.aten.relu.default, torch.ops.aten.add.Tensor]
-score = full_eval(llm, ops, aggregation="geomean")
+results = full_eval_with_suite(llm, SmokeTestSuite, aggregation="geomean")
 ```

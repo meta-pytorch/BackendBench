@@ -24,8 +24,8 @@ class ClaudeKernelGenerator:
         
         try:
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=4000,
+                model="Deepseek-R1",
+                # max_tokens=4000,
                 temperature=0.1,
                 messages=[
                     {

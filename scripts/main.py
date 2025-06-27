@@ -8,7 +8,6 @@ import torch
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator
-from BackendBench.llm_eval import full_eval
 
 logger = logging.getLogger(__name__)
 
@@ -32,19 +31,13 @@ logger = logging.getLogger(__name__)
     type=str,
     help="Comma-separated list of ops to run",
 )
-@click.option(
-    "--llm-mode",
-    default="generate",
-    type=click.Choice(["generate", "evaluate"]),
-    help="LLM mode: generate kernels and evaluate, or just evaluate existing kernels",
-)
-def cli(suite, backend, ops, llm_mode):
+def cli(suite, backend, ops):
     if ops:
         ops = ops.split(",")
 
     # Handle LLM backend differently
     if backend == "llm":
-        return run_llm_evaluation(suite, ops, llm_mode)
+        return run_llm_evaluation(suite, ops)
     
     backend = {
         "aten": backends.AtenBackend,
@@ -89,10 +82,7 @@ def cli(suite, backend, ops, llm_mode):
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
 
-def run_llm_evaluation(suite_name: str, ops_filter: list, llm_mode: str):
-    """Run LLM-based kernel generation and evaluation."""
-    
-    # Initialize Claude client
+def run_llm_evaluation(suite_name: str, ops_filter: list):
     try:
         llm_client = ClaudeKernelGenerator()
     except ValueError as e:
@@ -100,35 +90,17 @@ def run_llm_evaluation(suite_name: str, ops_filter: list, llm_mode: str):
         print("Please set ANTHROPIC_API_KEY environment variable")
         return
     
-    # Get list of operations to test
     if suite_name == "smoke":
-        # For smoke test, just use relu
-        test_ops = [torch.ops.aten.relu.default]
+        suite = SmokeTestSuite
+        results = eval.full_eval_with_suite(llm_client, suite, aggregation="geomean")
     elif suite_name == "opinfo":
-        # Get ops from opinfo suite
-        suite = OpInfoTestSuite("opinfo_cuda_bfloat16", "cuda", torch.bfloat16, filter=ops_filter)
-        test_ops = [test.op for test in suite]
+        results = eval.full_eval_opinfo(llm_client, device="cuda", dtype=torch.bfloat16, ops_filter=ops_filter, aggregation="geomean")
     else:
         print(f"Unknown suite: {suite_name}")
         return
-    
-    if ops_filter:
-        # Filter operations based on name
-        filtered_ops = []
-        for op in test_ops:
-            op_name = str(op).split('.')[-1]
-            if op_name in ops_filter:
-                filtered_ops.append(op)
-        test_ops = filtered_ops
-    
-    print(f"Running LLM evaluation on {len(test_ops)} operations...")
-    
-    if llm_mode == "generate":
-        # Generate and evaluate kernels
-        score = full_eval(llm_client, test_ops, aggregation="geomean")
-        print(f"LLM Backend Score (geomean speedup): {score:.2f}")
-    else:
-        print("Evaluate mode not yet implemented")
+        
+    print(f"LLM Backend Score (geomean speedup): {results['aggregated_score']:.2f}")
+    print(f"Operations passed: {results['passed_ops']}/{results['total_ops']}")
 
 
 if __name__ == "__main__":
