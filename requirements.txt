@@ -1,0 +1,10 @@
+# Core dependencies
+torch
+click
+
+# LLM evaluation dependencies  
+anthropic>=0.34.0
+triton>=2.0.0
+
+# Optional backend dependencies
+# Install flaggems separately if needed

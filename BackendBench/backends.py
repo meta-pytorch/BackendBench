@@ -1,3 +1,9 @@
+import tempfile
+import os
+import sys
+import importlib.util
+from typing import Dict, Callable, Optional
+
 class Backend:
     def __init__(self, name):
         self.name = name
@@ -278,3 +284,109 @@ class FlagGemsBackend(Backend):
 
     def __contains__(self, key):
         return key in self.ops
+
+
+class LLMBackend(Backend):
+    def __init__(self) -> None:
+        super().__init__("llm")
+        self.compiled_kernels: Dict[str, Callable] = {}
+        
+    def compile_kernel_from_string(self, kernel_code: str, op_name: str) -> Callable:
+        """Compile a kernel from string code and return a callable."""
+        try:
+            # Check if this is a Triton kernel
+            is_triton = 'triton.jit' in kernel_code or '@triton.jit' in kernel_code
+            
+            # Prepare the kernel code with necessary imports
+            if is_triton:
+                # Ensure triton imports are present
+                full_code = self._prepare_triton_code(kernel_code)
+            else:
+                # For regular PyTorch kernels, ensure torch is imported
+                full_code = self._prepare_torch_code(kernel_code)
+            
+            # Create a temporary module to execute the kernel code
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                f.write(full_code)
+                temp_file = f.name
+            
+            # Import the module
+            spec = importlib.util.spec_from_file_location(f"kernel_{op_name}", temp_file)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            
+            # Clean up temp file
+            os.unlink(temp_file)
+            
+            # Look for the main function
+            kernel_func = self._find_kernel_function(module, op_name)
+            
+            if is_triton:
+                # For Triton kernels, we need to create a wrapper that handles tensor operations
+                return self._create_triton_wrapper(kernel_func, op_name)
+            else:
+                return kernel_func
+                
+        except Exception as e:
+            raise RuntimeError(f"Failed to compile kernel for {op_name}: {str(e)}")
+    
+    def _prepare_triton_code(self, kernel_code: str) -> str:
+        """Prepare Triton kernel code with necessary imports."""
+        imports = """
+import torch
+import triton
+import triton.language as tl
+"""
+        if 'import torch' not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+    
+    def _prepare_torch_code(self, kernel_code: str) -> str:
+        """Prepare regular PyTorch kernel code with necessary imports."""
+        imports = """
+import torch
+import torch.nn.functional as F
+"""
+        if 'import torch' not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+    
+    def _find_kernel_function(self, module, op_name: str) -> Callable:
+        """Find the main kernel function in the compiled module."""
+        # Try different naming conventions
+        candidates = [op_name, 'kernel', f'{op_name}_kernel', f'{op_name}_triton']
+        
+        for name in candidates:
+            if hasattr(module, name):
+                return getattr(module, name)
+        
+        # Return the first callable that doesn't start with _
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if callable(attr) and not attr_name.startswith('_') and attr_name not in ['torch', 'triton']:
+                return attr
+                
+        raise ValueError(f"No callable function found in kernel code for {op_name}")
+    
+    def _create_triton_wrapper(self, triton_kernel: Callable, op_name: str) -> Callable:
+        """Create a wrapper for Triton kernels to handle PyTorch tensor operations."""
+        def wrapper(*args, **kwargs):
+            # This is a placeholder - actual Triton wrapper would need to handle
+            # grid calculation, memory allocation, and kernel launching
+            # For now, we'll assume the kernel is already properly wrapped
+            return triton_kernel(*args, **kwargs)
+        return wrapper
+    
+    def add_kernel(self, op, kernel_code: str):
+        """Add a kernel implementation for a specific operator."""
+        op_name = str(op).split('.')[-1]  # Extract op name
+        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name)
+        self.compiled_kernels[op] = compiled_kernel
+        
+    def __getitem__(self, key):
+        if key in self.compiled_kernels:
+            return self.compiled_kernels[key]
+        raise KeyError(f"No kernel implementation found for {key}")
+        
+    def __contains__(self, key):
+        return key in self.compiled_kernels
