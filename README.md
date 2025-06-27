@@ -40,15 +40,6 @@ Run LLM evaluation on specific operations:
 python scripts/main.py --suite opinfo --backend llm --ops "relu,add,mm" --llm-mode generate
 ```
 
-## New Features
-
-This codebase now supports:
-
-1. **LLM Backend**: Dynamically compile and execute kernel code from strings
-2. **Claude Integration**: Generate optimized Triton/PyTorch kernels using Claude API
-3. **Evaluation Harness**: Test generated kernels for correctness and performance
-4. **Template System**: Sophisticated prompting templates for different operation types
-
 The `evaluate()` function provides the core interface:
 ```python
 from BackendBench.llm_eval import evaluate
