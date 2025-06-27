@@ -35,14 +35,16 @@ def cli(suite, backend, ops):
     if ops:
         ops = ops.split(",")
 
-    # Handle LLM backend differently
-    if backend == "llm":
-        return run_llm_evaluation(suite, ops)
-    
     backend = {
         "aten": backends.AtenBackend,
         "flag_gems": backends.FlagGemsBackend,
+        "llm": backends.LLMBackend,
     }[backend]()
+    
+    # For LLM backend, we need to generate kernels first
+    if backend.name == "llm":
+        llm_client = ClaudeKernelGenerator()
+        backend = setup_llm_backend(backend, llm_client, suite, ops)
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -82,25 +84,43 @@ def cli(suite, backend, ops):
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
 
-def run_llm_evaluation(suite_name: str, ops_filter: list):
+def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter):
+    """Setup LLM backend by generating kernels for all operations in the suite."""
     try:
-        llm_client = ClaudeKernelGenerator()
+        if suite_name == "smoke":
+            suite = SmokeTestSuite
+        elif suite_name == "opinfo":
+            suite = OpInfoTestSuite(
+                "opinfo_cuda_bfloat16",
+                "cuda", 
+                torch.bfloat16,
+                filter=ops_filter,
+            )
+        else:
+            raise ValueError(f"Unknown suite: {suite_name}")
+            
+        for op_test in suite:
+            op = op_test.op
+            op_name = str(op).split('.')[-1]
+            op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
+            op_description = f"PyTorch operation: {op_name}"
+            
+            logger.info(f"Generating kernel for {op_name}")
+            kernel_code = llm_client.generate_kernel(op_name, op_signature, op_description)
+            
+            try:
+                llm_backend.add_kernel(op, kernel_code)
+                logger.info(f"Successfully compiled kernel for {op_name}")
+            except Exception as e:
+                logger.error(f"Failed to compile kernel for {op_name}: {e}")
+                # Continue with other operations
+        
+        return llm_backend
+        
     except ValueError as e:
         print(f"Error: {e}")
         print("Please set ANTHROPIC_API_KEY environment variable")
-        return
-    
-    if suite_name == "smoke":
-        suite = SmokeTestSuite
-        results = eval.full_eval_with_suite(llm_client, suite, aggregation="geomean")
-    elif suite_name == "opinfo":
-        results = eval.full_eval_opinfo(llm_client, device="cuda", dtype=torch.bfloat16, ops_filter=ops_filter, aggregation="geomean")
-    else:
-        print(f"Unknown suite: {suite_name}")
-        return
-        
-    print(f"LLM Backend Score (geomean speedup): {results['aggregated_score']:.2f}")
-    print(f"Operations passed: {results['passed_ops']}/{results['total_ops']}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
