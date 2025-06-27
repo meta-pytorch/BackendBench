@@ -1,0 +1,165 @@
+"""
+Prompt templates for LLM-based kernel generation.
+"""
+
+TRITON_KERNEL_PROMPT = """You are an expert GPU kernel programmer specializing in Triton. Generate an efficient, production-ready Triton kernel for the PyTorch operation: {op_name}
+
+OPERATION DETAILS:
+- Signature: {op_signature}
+- Description: {op_description}
+
+REQUIREMENTS:
+1. Write a complete Triton kernel using @triton.jit decorator
+2. Include ALL necessary imports at the top
+3. Handle memory coalescing and vectorization properly
+4. Use appropriate BLOCK_SIZE for good occupancy (powers of 2, typically 256-1024)
+5. Include proper bounds checking to prevent out-of-bounds access
+6. The kernel must be functionally equivalent to PyTorch reference
+7. Include a wrapper function that launches the kernel with proper grid calculation
+8. Handle edge cases (empty tensors, broadcasting, etc.)
+
+OPTIMIZATION GUIDELINES:
+{optimizations}
+
+TEMPLATE STRUCTURE:
+{example}
+
+IMPORTANT:
+- Name the main wrapper function '{op_name}' or 'kernel'
+- Ensure the function signature matches PyTorch conventions
+- Include comprehensive error checking
+- Use efficient memory access patterns
+- Provide ONLY the complete, runnable code without explanations"""
+
+PYTORCH_KERNEL_PROMPT = """You are an expert PyTorch developer. Generate an efficient, vectorized PyTorch implementation for the operation: {op_name}
+
+OPERATION DETAILS:
+- Signature: {op_signature}  
+- Description: {op_description}
+
+REQUIREMENTS:
+1. Write pure PyTorch code using tensor operations
+2. Use vectorized operations - avoid explicit loops
+3. Handle broadcasting correctly
+4. Match the exact behavior of the reference PyTorch implementation
+5. Include proper error checking and input validation
+6. Use appropriate tensor creation and memory management
+7. Handle edge cases (empty tensors, different dtypes, etc.)
+
+OPTIMIZATION GUIDELINES:
+- Use in-place operations where appropriate
+- Minimize tensor copies and temporary allocations
+- Use torch.jit.script if beneficial for performance
+- Consider memory layout and access patterns
+- Handle different device types (CPU/GPU)
+
+IMPORTANT:
+- Name the main function '{op_name}' or 'kernel'
+- Ensure function signature accepts same arguments as PyTorch op
+- Include comprehensive input validation
+- Return tensors with correct shape, dtype, and device
+- Provide ONLY the complete, runnable code without explanations"""
+
+TRITON_OPTIMIZATIONS = {
+    "relu": """
+- Use vectorized operations (tl.load with mask, element-wise operations)
+- Combine load-compute-store into single kernel
+- Use BLOCK_SIZE that's a multiple of warp size (32)
+- Consider using tl.where for conditional operations""",
+    
+    "add": """
+- Handle broadcasting by checking tensor shapes
+- Use vectorized loads and stores
+- Coalesce memory access patterns
+- Consider using atomic operations for reduction if needed
+- Handle scalar addition efficiently""",
+    
+    "mm": """
+- Use tiled matrix multiplication approach
+- Load data into shared memory tiles
+- Use BLOCK_M, BLOCK_N, BLOCK_K for tiling
+- Minimize global memory accesses
+- Use float32 accumulation for numerical stability""",
+    
+    "softmax": """
+- Use numerically stable implementation (subtract max, then exp)
+- Implement in two passes: max reduction, then softmax
+- Use shared memory for reductions
+- Handle last dimension softmax efficiently
+- Consider using welford's algorithm for stability""",
+    
+    "default": """
+- Minimize global memory accesses
+- Use appropriate blocking strategies
+- Vectorize operations where possible
+- Handle boundary conditions carefully
+- Use shared memory for data reuse"""
+}
+
+TRITON_EXAMPLE_TEMPLATES = {
+    "relu": """
+```python
+import torch
+import triton
+import triton.language as tl
+
+@triton.jit
+def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    x = tl.load(x_ptr + offsets, mask=mask)
+    output = tl.maximum(x, 0.0)
+    tl.store(output_ptr + offsets, output, mask=mask)
+
+def relu(x):
+    output = torch.empty_like(x)
+    n_elements = x.numel()
+    grid = (triton.cdiv(n_elements, 1024),)
+    relu_kernel[grid](x, output, n_elements, BLOCK_SIZE=1024)
+    return output
+```""",
+    
+    "binary_ops": """
+```python
+import torch
+import triton
+import triton.language as tl
+
+@triton.jit
+def binary_op_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    x = tl.load(x_ptr + offsets, mask=mask)
+    y = tl.load(y_ptr + offsets, mask=mask)
+    # Replace with appropriate operation: +, -, *, /
+    output = x + y  
+    tl.store(output_ptr + offsets, output, mask=mask)
+
+def binary_op(x, y):
+    output = torch.empty_like(x)
+    n_elements = x.numel()
+    grid = (triton.cdiv(n_elements, 1024),)
+    binary_op_kernel[grid](x, y, output, n_elements, BLOCK_SIZE=1024)
+    return output
+```""",
+    
+    "default": """
+```python
+import torch
+import triton
+import triton.language as tl
+
+@triton.jit 
+def kernel_impl(input_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    # Implementation here
+    pass
+
+def kernel_wrapper(*args, **kwargs):
+    # Wrapper implementation here
+    pass
+```"""
+} 
