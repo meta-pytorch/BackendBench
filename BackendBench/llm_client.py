@@ -29,6 +29,10 @@ class ClaudeKernelGenerator:
             # Create initial prompt
             prompt = self.template_manager.create_prompt(op_name, op_signature, op_description, framework)
         
+        print(f"\n=== DEBUG: PROMPT SENT TO LLM ===")
+        print(prompt)
+        print(f"=== END PROMPT ===\n")
+        
         try:
             response = self.client.messages.create(
                 model="claude-3-5-sonnet-20241022",
@@ -44,7 +48,15 @@ class ClaudeKernelGenerator:
             )
             # Extract code from response
             content = response.content[0].text
-            return self._extract_code_from_response(content)
+            extracted_code = self._extract_code_from_response(content)
+            
+            print(f"\n=== DEBUG: RAW LLM RESPONSE ===")
+            print(content)
+            print(f"=== DEBUG: EXTRACTED CODE ===")
+            print(extracted_code)
+            print(f"=== END DEBUG ===\n")
+            
+            return extracted_code
             
         except Exception as e:
             raise RuntimeError(f"Failed to generate kernel for {op_name}: {str(e)}")
