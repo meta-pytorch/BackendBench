@@ -108,20 +108,40 @@ class KernelTemplateManager:
         
         # Add specific triton guidance if this is a triton refinement
         triton_specific_guidance = ""
-        if framework == "triton" and "tl.load" in feedback:
+        if framework == "triton" and ("tl.load" in feedback or "Unsupported ptr type" in feedback):
             triton_specific_guidance = """
 SPECIFIC TRITON ERROR FIXES:
-- If you see "Unsupported ptr type" in tl.load: ALWAYS add other=0.0 parameter
-- NEVER use: tl.load(ptr + offsets, mask=mask)
-- ALWAYS use: tl.load(ptr + offsets, mask=mask, other=0.0)
-- Use .data_ptr() for tensor pointers: x.data_ptr(), output.data_ptr()
-- Ensure output tensor is on correct device: device=x.device
+- If you see "Unsupported ptr type" error: This is a pointer arithmetic issue
+- Ensure input tensor is contiguous: x = x.contiguous()
+- Ensure input tensor is on CUDA: if not x.is_cuda: x = x.cuda()
+- Use proper triton pointer syntax: tl.load(ptr + offsets, mask=mask, other=0.0)
+- Make sure BLOCK_SIZE is defined consistently
+- Ensure all tensor arguments use .data_ptr()
 
-WORKING TRITON PATTERN:
+WORKING TRITON PATTERN (COPY EXACTLY):
 ```python
-x = tl.load(x_ptr + offsets, mask=mask, other=0.0)  # ✅ CORRECT
-output = tl.maximum(x, 0.0)
-tl.store(output_ptr + offsets, output, mask=mask)   # ✅ CORRECT
+@triton.jit
+def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+    x = tl.load(x_ptr + offsets, mask=mask, other=0.0)
+    output = tl.maximum(x, 0.0)
+    tl.store(output_ptr + offsets, output, mask=mask)
+
+def relu_kernel_impl(x):
+    if not x.is_cuda:
+        x = x.cuda()
+    x = x.contiguous()
+    output = torch.empty_like(x, device=x.device)
+    n_elements = x.numel()
+    if n_elements == 0:
+        return output
+    BLOCK_SIZE = 1024
+    grid = (triton.cdiv(n_elements, BLOCK_SIZE),)
+    relu_kernel[grid](x.data_ptr(), output.data_ptr(), n_elements, BLOCK_SIZE=BLOCK_SIZE)
+    return output
 ```"""
         
         # Add feedback section

@@ -137,20 +137,35 @@ def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     block_start = pid * BLOCK_SIZE
     offsets = block_start + tl.arange(0, BLOCK_SIZE)
     mask = offsets < n_elements
-    # CORRECT SYNTAX: Always include 'other' parameter in tl.load
+    # CORRECT TRITON POINTER SYNTAX: Use direct indexing
     x = tl.load(x_ptr + offsets, mask=mask, other=0.0)
     output = tl.maximum(x, 0.0)
     tl.store(output_ptr + offsets, output, mask=mask)
 
 def relu_kernel_impl(x):
-    # Ensure output is on same device as input
+    # Ensure input is contiguous and on CUDA
+    if not x.is_cuda:
+        x = x.cuda()
+    x = x.contiguous()
+    
+    # Create output tensor
     output = torch.empty_like(x, device=x.device)
     n_elements = x.numel()
+    
     if n_elements == 0:
         return output
-    grid = (triton.cdiv(n_elements, 1024),)
-    # Use .data_ptr() to get raw pointers for triton
-    relu_kernel[grid](x.data_ptr(), output.data_ptr(), n_elements, BLOCK_SIZE=1024)
+    
+    # Calculate grid size
+    BLOCK_SIZE = 1024
+    grid = (triton.cdiv(n_elements, BLOCK_SIZE),)
+    
+    # Launch kernel with proper casting
+    relu_kernel[grid](
+        x.data_ptr(),
+        output.data_ptr(), 
+        n_elements,
+        BLOCK_SIZE=BLOCK_SIZE
+    )
     return output
 ```""",
     
