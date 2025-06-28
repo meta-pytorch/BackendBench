@@ -2,7 +2,6 @@ name: Smoke Test
 
 on:
   push:
-  pull_request:
 
 jobs:
   smoke-test:
@@ -21,4 +20,4 @@ jobs:
     
     - name: Run smoke test
       run: |
-        python scripts/main.py --suite smoke --backend aten 
+        PYTHONPATH=. python scripts/main.py --suite smoke --backend aten 
