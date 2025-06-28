@@ -10,19 +10,15 @@ Operation: {op_signature}
 Requirements:
 - Triton kernel function MUST be named: {op_name}_triton_kernel  
 - Wrapper function MUST be named: {op_name}_kernel_impl
-- Pass tensors directly to kernel (modern Triton syntax)
-- Wrapper should handle device placement and return result on same device as input
-- Include all necessary imports
+- Use modern Triton syntax with proper grid computation
+- Handle device placement appropriately
+- Include all necessary imports (torch, triton, triton.language as tl)
 
-Example pattern:
-```python
-@triton.jit
-def my_triton_kernel(x, y, n_elements, BLOCK_SIZE: tl.constexpr):
-    # kernel implementation
-
-def my_kernel_impl(input_tensor):
-    # wrapper implementation that calls: my_triton_kernel[grid](input_tensor, output_tensor, ...)
-```
+Key syntax guidelines:
+- Grid computation: `grid = (triton.cdiv(n_elements, BLOCK_SIZE),)` (compute the tuple, don't use lambda)
+- Kernel invocation: `kernel_name[grid](args...)`
+- Use `tensor.data_ptr()` for tensor pointer arguments
+- Standard triton pattern: program_id, arange, load/store with masks
 
 Generate complete, runnable code only."""
 
