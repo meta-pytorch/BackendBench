@@ -2,7 +2,13 @@ import logging
 from typing import List, Dict, Optional, Callable
 
 import torch
-from triton.testing import do_bench
+
+try:
+    from triton.testing import do_bench
+    TRITON_AVAILABLE = True
+except ImportError:
+    TRITON_AVAILABLE = False
+    do_bench = None
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +65,7 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() and TRITON_AVAILABLE:
         base_times = [do_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
         test_times = [do_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
     else:

@@ -1,4 +1,5 @@
 import logging
+import sys
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
@@ -98,11 +99,18 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter):
             
         for op_test in suite:
             op = op_test.op
-            op_name = str(op).split('.')[-1]
+            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+            op_str = str(op)
+            if 'aten.' in op_str:
+                # Extract the operation name before any variant (like .default)
+                op_name = op_str.split('aten.')[-1].split('.')[0]
+            else:
+                op_name = op_str.split('.')[-1]
+            
             op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
             op_description = f"PyTorch operation: {op_name}"
             
-            logger.info(f"Generating kernel for {op_name}")
+            print(f"Generating kernel for {op_name} (full op: {op_str})")
             kernel_code = llm_client.generate_kernel(op_name, op_signature, op_description)
             
             try:
@@ -114,9 +122,10 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter):
         
         return llm_backend
         
-    except ValueError as e:
-        print(f"Error: {e}")
-        print("Please set ANTHROPIC_API_KEY environment variable")
+    except Exception as e:
+        print(f"Error setting up LLM backend: {e}")
+        if "ANTHROPIC_API_KEY" in str(e):
+            print("Please set ANTHROPIC_API_KEY environment variable")
         sys.exit(1)
 
 
