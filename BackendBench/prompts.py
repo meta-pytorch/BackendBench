@@ -11,8 +11,15 @@ Requirements:
 - Triton kernel function MUST be named: {op_name}_triton_kernel  
 - Wrapper function MUST be named: {op_name}_kernel_impl
 - Use modern Triton syntax with proper grid computation
-- Handle device placement appropriately
 - Include all necessary imports (torch, triton, triton.language as tl)
+
+The {op_name}_kernel_impl wrapper function MUST handle complete device management:
+- Move CPU tensors to GPU if needed (use .cuda() when torch.cuda.is_available())
+- Raise clear errors if CUDA is not available for GPU tensors
+- Call the triton kernel with GPU tensors
+- Move results back to original device of input tensors
+- Handle both args and kwargs properly
+- Preserve original tensor devices and restore them for outputs
 
 Key syntax guidelines:
 - Grid computation: `grid = (triton.cdiv(n_elements, BLOCK_SIZE),)` (compute the tuple, don't use lambda)
@@ -20,7 +27,7 @@ Key syntax guidelines:
 - Use `tensor.data_ptr()` for tensor pointer arguments
 - Standard triton pattern: program_id, arange, load/store with masks
 
-Generate complete, runnable code only."""
+Generate complete, runnable code only - no framework will add device handling wrapper code."""
 
 PYTORCH_KERNEL_PROMPT = """Generate a PyTorch implementation for: {op_name}
 

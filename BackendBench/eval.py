@@ -3,12 +3,8 @@ from typing import List, Dict, Optional, Callable
 
 import torch
 
-try:
-    from triton.testing import do_bench
-    TRITON_AVAILABLE = True
-except ImportError:
-    TRITON_AVAILABLE = False
-    do_bench = None
+from triton.testing import do_bench
+
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +61,7 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    if torch.cuda.is_available() and TRITON_AVAILABLE:
+    if torch.cuda.is_available():
         base_times = [do_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
         test_times = [do_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
     else:
@@ -73,7 +69,6 @@ def eval_performance(op, impl, tests):
         test_times = [cpu_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
 
     speedups = torch.tensor(test_times) / torch.tensor(base_times)
-    # geometric mean of speedups
     return speedups.log().mean().exp()
 
 

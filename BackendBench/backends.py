@@ -348,11 +348,8 @@ You can inspect these files to debug kernel generation, manually test implementa
             # Look for the main function
             kernel_func = self._find_kernel_function(module, op_name)
             
-            if is_triton:
-                # For Triton kernels, we need to create a wrapper that handles tensor operations
-                return self._create_triton_wrapper(kernel_func, op_name)
-            else:
-                return kernel_func
+            # LLM should generate complete kernel implementation including device handling
+            return kernel_func
                 
         except Exception as e:
             raise RuntimeError(f"Failed to compile kernel for {op_name}: {str(e)}")
@@ -396,60 +393,7 @@ import torch.nn.functional as F
             f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
         )
     
-    def _create_triton_wrapper(self, triton_kernel: Callable, op_name: str) -> Callable:
-        """Create a wrapper for Triton kernels to handle PyTorch tensor operations."""
-        def wrapper(*args, **kwargs):
-            import torch
-            
-            # Remember original devices for each tensor argument
-            original_devices = []
-            gpu_args = []
-            
-            for arg in args:
-                if isinstance(arg, torch.Tensor):
-                    original_devices.append(arg.device)
-                    if arg.device.type == 'cpu':
-                        if torch.cuda.is_available():
-                            gpu_args.append(arg.cuda())
-                        else:
-                            raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
-                                             f"Operation: {op_name}")
-                    else:
-                        gpu_args.append(arg)
-                else:
-                    original_devices.append(None)  # Non-tensor argument
-                    gpu_args.append(arg)
-            
-            # Move tensor values in kwargs to GPU and remember devices
-            original_kwargs_devices = {}
-            gpu_kwargs = {}
-            for key, value in kwargs.items():
-                if isinstance(value, torch.Tensor):
-                    original_kwargs_devices[key] = value.device
-                    if value.device.type == 'cpu':
-                        if torch.cuda.is_available():
-                            gpu_kwargs[key] = value.cuda()
-                        else:
-                            raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
-                                             f"Operation: {op_name}")
-                    else:
-                        gpu_kwargs[key] = value
-                else:
-                    original_kwargs_devices[key] = None
-                    gpu_kwargs[key] = value
-            
-            # Call the triton kernel
-            result = triton_kernel(*gpu_args, **gpu_kwargs)
-            
-            # Move result back to original device if needed
-            if isinstance(result, torch.Tensor) and len(original_devices) > 0:
-                # Use the device of the first tensor argument as the target device
-                first_tensor_device = next((dev for dev in original_devices if dev is not None), None)
-                if first_tensor_device is not None and result.device != first_tensor_device:
-                    result = result.to(first_tensor_device)
-            
-            return result
-        return wrapper
+
     
     def add_kernel(self, op, kernel_code: str, op_name: str = None):
         """Add a kernel implementation for a specific operator."""

@@ -90,6 +90,9 @@ class ClaudeKernelGenerator:
             else:
                 print(f"  ✗ Kernel failed on attempt {attempt + 1}: {feedback_info.get('summary', 'Unknown error')}")
                 feedback = self._format_feedback(feedback_info)
+                print(f"  📝 Formatted feedback length: {len(feedback)} chars")
+                if len(feedback) < 100:  # If feedback is very short, print it for debugging
+                    print(f"  📝 Short feedback: {repr(feedback)}")
         
         print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
         return kernel_code, max_attempts, False  # Failed!

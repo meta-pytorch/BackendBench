@@ -97,43 +97,18 @@ class KernelTemplateManager:
     def create_refinement_prompt(self, op_name: str, op_signature: str, op_description: str,
                                framework: str = "triton", feedback: str = "") -> str:
         """Create a refinement prompt with feedback from previous attempts."""
-        # Start with the original prompt
-        base_prompt = self.create_prompt(op_name, op_signature, op_description, framework)
+        base_prompt = self.create_prompt(op_name, op_signature, op_description, framework)        
         
-        # Add specific triton guidance if this is a triton refinement
-        triton_specific_guidance = ""
-        if framework == "triton":
-            # Check for the common grid syntax error
-            if ("generator" in feedback and "not subscriptable" in feedback) or "lambda" in feedback:
-                triton_specific_guidance = """
-GRID SYNTAX FIX NEEDED:
-The error suggests you're using lambda functions for grid computation. 
-Use: `grid = (triton.cdiv(n_elements, BLOCK_SIZE),)` instead of lambda functions.
-"""
-            elif any(error in feedback for error in ["compilation", "syntax", "import"]):
-                triton_specific_guidance = """
-COMMON TRITON FIXES:
-- Ensure proper imports: torch, triton, triton.language as tl
-- Use tensor.data_ptr() for pointer arguments
-- Make tensors contiguous and ensure they're on CUDA if needed
-- Follow standard triton patterns: program_id, arange, load/store with masks
-"""
-        
-        # Add feedback section
-        refinement_prompt = f"""{feedback}
+        if feedback and feedback.strip():
+            refinement_prompt = f"""{feedback}
 
-{triton_specific_guidance}
-
-ORIGINAL REQUIREMENTS:
 {base_prompt}
 
-Based on the error feedback above, please generate a CORRECTED version of the kernel that addresses all the identified issues. Focus specifically on:
-1. Fixing any compilation errors (especially triton syntax)
-2. Ensuring correctness for all test cases
-3. Handling edge cases properly
-4. Maintaining good performance
-5. Following exact triton syntax rules shown above
+Fix the above errors and generate corrected code."""
+        else:
+            # Fallback if no feedback
+            refinement_prompt = f"""{base_prompt}
 
-Provide ONLY the complete, corrected code without explanations."""
+The previous attempt failed. Please generate a corrected version."""
         
         return refinement_prompt
