@@ -401,31 +401,54 @@ import torch.nn.functional as F
         def wrapper(*args, **kwargs):
             import torch
             
-            # Move all tensor arguments to GPU if they're on CPU
+            # Remember original devices for each tensor argument
+            original_devices = []
             gpu_args = []
+            
             for arg in args:
-                if isinstance(arg, torch.Tensor) and arg.device.type == 'cpu':
-                    if torch.cuda.is_available():
-                        gpu_args.append(arg.cuda())
+                if isinstance(arg, torch.Tensor):
+                    original_devices.append(arg.device)
+                    if arg.device.type == 'cpu':
+                        if torch.cuda.is_available():
+                            gpu_args.append(arg.cuda())
+                        else:
+                            raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
+                                             f"Operation: {op_name}")
                     else:
-                        raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
-                                         f"Operation: {op_name}")
+                        gpu_args.append(arg)
                 else:
+                    original_devices.append(None)  # Non-tensor argument
                     gpu_args.append(arg)
             
-            # Move tensor values in kwargs to GPU
+            # Move tensor values in kwargs to GPU and remember devices
+            original_kwargs_devices = {}
             gpu_kwargs = {}
             for key, value in kwargs.items():
-                if isinstance(value, torch.Tensor) and value.device.type == 'cpu':
-                    if torch.cuda.is_available():
-                        gpu_kwargs[key] = value.cuda()
+                if isinstance(value, torch.Tensor):
+                    original_kwargs_devices[key] = value.device
+                    if value.device.type == 'cpu':
+                        if torch.cuda.is_available():
+                            gpu_kwargs[key] = value.cuda()
+                        else:
+                            raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
+                                             f"Operation: {op_name}")
                     else:
-                        raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
-                                         f"Operation: {op_name}")
+                        gpu_kwargs[key] = value
                 else:
+                    original_kwargs_devices[key] = None
                     gpu_kwargs[key] = value
             
-            return triton_kernel(*gpu_args, **gpu_kwargs)
+            # Call the triton kernel
+            result = triton_kernel(*gpu_args, **gpu_kwargs)
+            
+            # Move result back to original device if needed
+            if isinstance(result, torch.Tensor) and len(original_devices) > 0:
+                # Use the device of the first tensor argument as the target device
+                first_tensor_device = next((dev for dev in original_devices if dev is not None), None)
+                if first_tensor_device is not None and result.device != first_tensor_device:
+                    result = result.to(first_tensor_device)
+            
+            return result
         return wrapper
     
     def add_kernel(self, op, kernel_code: str, op_name: str = None):
