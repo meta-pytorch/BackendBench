@@ -1,12 +1,11 @@
 import logging
 from collections import defaultdict
 
-import torch
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
 from .eval import allclose
-from .suite import OpTest, Test, TestSuite
+from .suite import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)
 
