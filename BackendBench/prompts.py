@@ -24,11 +24,19 @@ import triton.language as tl
 def {op_name}_triton_kernel(x_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(0)
     block_start = pid * BLOCK_SIZE
-    offsets = block_start + tl.arange(0, BLOCK_SIZE)
-    mask = offsets < n_elements
-    x = tl.load(x_ptr + offsets, mask=mask, other=0.0)
-    # your operation here
-    tl.store(out_ptr + offsets, result, mask=mask)
+    offsets = tl.arange(0, BLOCK_SIZE)
+    
+    # Pre-calculate pointers (following official Triton tutorial pattern)
+    input_ptrs = x_ptr + block_start + offsets  
+    output_ptrs = out_ptr + block_start + offsets
+    
+    # Mask for bounds checking
+    mask = (block_start + offsets) < n_elements
+    
+    # Load, compute, store
+    x = tl.load(input_ptrs, mask=mask, other=0.0)
+    # your operation here (e.g., result = tl.maximum(x, 0.0) for relu)
+    tl.store(output_ptrs, result, mask=mask)
 
 def {op_name}_kernel_impl(x):
     x = x.cuda().contiguous()
