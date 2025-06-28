@@ -67,9 +67,7 @@ def build_op_tests(device, dtype, filter=None):
                     if allclose(ref, res):
                         op_indices[tracer.ops[0]].append(idx)
                 except Exception:
-                    logger.debug(
-                        f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}"
-                    )
+                    logger.debug(f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}")
             else:
                 logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
 

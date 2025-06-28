@@ -47,10 +47,10 @@ def eval_correctness(op, impl, tests):
 def cpu_bench(fn, num_runs=100):
     """Simple CPU benchmarking using time.perf_counter."""
     import time
-    
+
     for _ in range(10):
         fn()
-    
+
     start = time.perf_counter()
     for _ in range(num_runs):
         fn()
