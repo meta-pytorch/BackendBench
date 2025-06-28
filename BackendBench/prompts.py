@@ -21,11 +21,11 @@ import triton
 import triton.language as tl
 
 @triton.jit
-def {op_name}_triton_kernel(x_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
+def {op_name}_triton_kernel(x_ptr, out_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     pid = tl.program_id(0)
-    start = pid * BLOCK_SIZE
-    offsets = start + tl.arange(0, BLOCK_SIZE)
-    mask = offsets < n
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
     x = tl.load(x_ptr + offsets, mask=mask, other=0.0)
     # your operation here
     tl.store(out_ptr + offsets, result, mask=mask)
@@ -33,9 +33,9 @@ def {op_name}_triton_kernel(x_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
 def {op_name}_kernel_impl(x):
     x = x.cuda().contiguous()
     out = torch.empty_like(x, device=x.device)
-    n = x.numel()
-    grid = (triton.cdiv(n, 1024),)
-    {op_name}_triton_kernel[grid](x.data_ptr(), out.data_ptr(), n, 1024)
+    n_elements = x.numel()
+    grid = (triton.cdiv(n_elements, 1024),)
+    {op_name}_triton_kernel[grid](x.data_ptr(), out.data_ptr(), n_elements, 1024)
     return out
 ```
 
