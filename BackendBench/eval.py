@@ -45,9 +45,27 @@ def eval_correctness(op, impl, tests):
     return correct / total
 
 
+def cpu_bench(fn, num_runs=100):
+    """Simple CPU benchmarking using time.perf_counter."""
+    import time
+
+    for _ in range(10):
+        fn()
+
+    start = time.perf_counter()
+    for _ in range(num_runs):
+        fn()
+    return (time.perf_counter() - start) / num_runs
+
+
 def eval_performance(op, impl, tests):
-    base_times = [do_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
-    test_times = [do_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
+    if torch.cuda.is_available():
+        base_times = [do_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
+        test_times = [do_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
+    else:
+        base_times = [cpu_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
+        test_times = [cpu_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
+
     speedups = torch.tensor(test_times) / torch.tensor(base_times)
     # geometric mean of speedups
     return speedups.log().mean().exp()

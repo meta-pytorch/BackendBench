@@ -1,12 +1,11 @@
 import logging
 from collections import defaultdict
 
-import torch
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
 from .eval import allclose
-from .suite import OpTest, Test, TestSuite
+from .suite import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)
 
@@ -68,9 +67,7 @@ def build_op_tests(device, dtype, filter=None):
                     if allclose(ref, res):
                         op_indices[tracer.ops[0]].append(idx)
                 except Exception:
-                    logger.debug(
-                        f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}"
-                    )
+                    logger.debug(f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}")
             else:
                 logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
 

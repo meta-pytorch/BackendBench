@@ -42,10 +42,10 @@ SmokeTestSuite = TestSuite(
         OpTest(
             torch.ops.aten.relu.default,
             [
-                Test(randn(2, device="cuda")),
+                Test(randn(2, device="cpu")),
             ],
             [
-                Test(randn(2**28, device="cuda")),
+                Test(randn(2**28, device="cpu")),
             ],
         )
     ],
