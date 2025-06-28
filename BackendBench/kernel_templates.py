@@ -53,13 +53,7 @@ class TritonKernelTemplate(KernelTemplate):
     
     def _get_example_template(self, op_name: str) -> str:
         """Get operation-specific code template."""
-        
-        if op_name == "relu":
-            return TRITON_EXAMPLE_TEMPLATES["relu"]
-        elif op_name in ["add", "sub", "mul", "div"]:
-            return TRITON_EXAMPLE_TEMPLATES["binary_ops"]
-        else:
-            return TRITON_EXAMPLE_TEMPLATES["default"]
+        return TRITON_EXAMPLE_TEMPLATES["default"]
 
 
 class PyTorchKernelTemplate(KernelTemplate):
