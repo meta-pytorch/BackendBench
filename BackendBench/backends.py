@@ -542,7 +542,12 @@ import torch.nn.functional as F
                 except Exception as e:
                     print(f"    ✗ Runtime error during test:")
                     print(f"      Input: args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}")
-                    print(f"      Error: {str(e)}")
+                    print(f"      Full error: {repr(e)}")
+                    print(f"      Error type: {type(e).__name__}")
+                    
+                    # Print more details if it's a triton error
+                    if hasattr(e, '__cause__') and e.__cause__:
+                        print(f"      Cause: {repr(e.__cause__)}")
                     
                     feedback_info['correctness_errors'].append({
                         'input': f"args: {[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs: {kwargs}",

@@ -32,7 +32,7 @@ def kernel(x_ptr, out_ptr, n, BLOCK_SIZE: tl.constexpr):
 
 def {op_name}_kernel_impl(x):
     x = x.cuda().contiguous()
-    out = torch.empty_like(x)
+    out = torch.empty_like(x, device=x.device)
     n = x.numel()
     grid = (triton.cdiv(n, 1024),)
     kernel[grid](x.data_ptr(), out.data_ptr(), n, 1024)
