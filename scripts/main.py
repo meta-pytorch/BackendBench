@@ -70,9 +70,7 @@ def cli(suite, backend, ops):
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    print(
-        f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}"
-    )
+    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
 
