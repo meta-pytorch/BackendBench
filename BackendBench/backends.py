@@ -399,10 +399,33 @@ import torch.nn.functional as F
     def _create_triton_wrapper(self, triton_kernel: Callable, op_name: str) -> Callable:
         """Create a wrapper for Triton kernels to handle PyTorch tensor operations."""
         def wrapper(*args, **kwargs):
-            # This is a placeholder - actual Triton wrapper would need to handle
-            # grid calculation, memory allocation, and kernel launching
-            # For now, we'll assume the kernel is already properly wrapped
-            return triton_kernel(*args, **kwargs)
+            import torch
+            
+            # Move all tensor arguments to GPU if they're on CPU
+            gpu_args = []
+            for arg in args:
+                if isinstance(arg, torch.Tensor) and arg.device.type == 'cpu':
+                    if torch.cuda.is_available():
+                        gpu_args.append(arg.cuda())
+                    else:
+                        raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
+                                         f"Operation: {op_name}")
+                else:
+                    gpu_args.append(arg)
+            
+            # Move tensor values in kwargs to GPU
+            gpu_kwargs = {}
+            for key, value in kwargs.items():
+                if isinstance(value, torch.Tensor) and value.device.type == 'cpu':
+                    if torch.cuda.is_available():
+                        gpu_kwargs[key] = value.cuda()
+                    else:
+                        raise RuntimeError(f"Triton kernels require GPU tensors, but CUDA is not available. "
+                                         f"Operation: {op_name}")
+                else:
+                    gpu_kwargs[key] = value
+            
+            return triton_kernel(*gpu_args, **gpu_kwargs)
         return wrapper
     
     def add_kernel(self, op, kernel_code: str):
