@@ -35,10 +35,10 @@ class ClaudeKernelGenerator:
         
         try:
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=4000,  # Reduced for faster generation
-                temperature=0.1,
-                timeout=60.0,  # 60 second timeout
+                model="claude-sonnet-4-20250514",  # Latest Claude 4 Sonnet model
+                max_tokens=8000,  # Increased for more complex kernels
+                temperature=0.2,
+                timeout=120.0,  # Longer timeout for complex kernels
                 messages=[
                     {
                         "role": "user",
