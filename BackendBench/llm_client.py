@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Callable
 import anthropic
 from .kernel_templates import KernelTemplateManager
 
@@ -17,10 +17,17 @@ class ClaudeKernelGenerator:
         self.template_manager = KernelTemplateManager()
     
     def generate_kernel(self, op_name: str, op_signature: str, op_description: str, 
-                       framework: str = "triton") -> str:
-        """Generate kernel code for a PyTorch operation."""
+                       framework: str = "triton", feedback: Optional[str] = None) -> str:
+        """Generate kernel code for a PyTorch operation, optionally with feedback from previous attempts."""
         
-        prompt = self.template_manager.create_prompt(op_name, op_signature, op_description, framework)
+        if feedback:
+            # Create refinement prompt with feedback
+            prompt = self.template_manager.create_refinement_prompt(
+                op_name, op_signature, op_description, framework, feedback
+            )
+        else:
+            # Create initial prompt
+            prompt = self.template_manager.create_prompt(op_name, op_signature, op_description, framework)
         
         try:
             response = self.client.messages.create(
@@ -41,6 +48,63 @@ class ClaudeKernelGenerator:
             
         except Exception as e:
             raise RuntimeError(f"Failed to generate kernel for {op_name}: {str(e)}")
+    
+    def generate_kernel_with_retry(self, op_name: str, op_signature: str, op_description: str,
+                                 framework: str = "triton", max_attempts: int = 5,
+                                 feedback_callback: Optional[Callable] = None) -> tuple[str, int]:
+        """Generate kernel with iterative refinement based on feedback.
+        
+        Returns:
+            tuple: (final_kernel_code, attempts_used)
+        """
+        feedback = None
+        
+        for attempt in range(max_attempts):
+            print(f"  Attempt {attempt + 1}/{max_attempts}")
+            
+            # Generate kernel (with feedback if this is a retry)
+            kernel_code = self.generate_kernel(op_name, op_signature, op_description, framework, feedback)
+            
+            # If no feedback callback provided, return first attempt
+            if feedback_callback is None:
+                return kernel_code, 1
+            
+            # Test the kernel and get feedback (pass attempt number)
+            is_correct, feedback_info = feedback_callback(kernel_code, attempt + 1)
+            
+            if is_correct:
+                print(f"  ✓ Kernel correct on attempt {attempt + 1}")
+                return kernel_code, attempt + 1
+            else:
+                print(f"  ✗ Kernel failed on attempt {attempt + 1}: {feedback_info.get('summary', 'Unknown error')}")
+                feedback = self._format_feedback(feedback_info)
+        
+        print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
+        return kernel_code, max_attempts  # Return last attempt
+    
+    def _format_feedback(self, feedback_info: Dict) -> str:
+        """Format feedback information for the LLM."""
+        feedback_parts = ["PREVIOUS ATTEMPT FAILED - Please fix the following issues:\n"]
+        
+        if feedback_info.get('compilation_error'):
+            feedback_parts.append(f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n")
+        
+        if feedback_info.get('correctness_errors'):
+            feedback_parts.append("CORRECTNESS ERRORS:")
+            for i, error in enumerate(feedback_info['correctness_errors'][:3]):  # Limit to 3 examples
+                feedback_parts.append(f"\nTest Case {i+1}:")
+                feedback_parts.append(f"Input: {error.get('input', 'Unknown')}")
+                feedback_parts.append(f"Expected: {error.get('expected', 'Unknown')}")
+                feedback_parts.append(f"Got: {error.get('actual', 'Unknown')}")
+                if error.get('error_msg'):
+                    feedback_parts.append(f"Error: {error['error_msg']}")
+        
+        if feedback_info.get('runtime_error'):
+            feedback_parts.append(f"\nRUNTIME ERROR:\n{feedback_info['runtime_error']}")
+        
+        feedback_parts.append("\nPlease analyze the errors above and generate a corrected version of the kernel.")
+        
+        return "\n".join(feedback_parts)
     
     def _extract_code_from_response(self, response: str) -> str:
         """Extract code from Claude's response."""

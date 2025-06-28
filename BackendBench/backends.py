@@ -1,7 +1,7 @@
 import os
 import sys
 import importlib.util
-from typing import Dict, Callable, Optional
+from typing import Dict, Callable, Optional, List
 
 class Backend:
     def __init__(self, name):
@@ -319,7 +319,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         
         print(f"Saving generated kernels to: {self.kernels_dir}")
         
-    def compile_kernel_from_string(self, kernel_code: str, op_name: str) -> Callable:
+    def compile_kernel_from_string(self, kernel_code: str, op_name: str, attempt: int = 1) -> Callable:
         """Compile a kernel from string code and return a callable."""
         try:
             # Check if this is a Triton kernel
@@ -333,8 +333,8 @@ You can inspect these files to debug kernel generation, manually test implementa
                 # For regular PyTorch kernels, ensure torch is imported
                 full_code = self._prepare_torch_code(kernel_code)
             
-            # Save kernel to persistent file for debugging
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
+            # Save kernel to persistent file for debugging - include attempt number
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
             with open(kernel_file, 'w') as f:
                 f.write(full_code)
             
@@ -428,17 +428,89 @@ import torch.nn.functional as F
             return triton_kernel(*gpu_args, **gpu_kwargs)
         return wrapper
     
-    def add_kernel(self, op, kernel_code: str):
+    def add_kernel(self, op, kernel_code: str, op_name: str = None):
         """Add a kernel implementation for a specific operator."""
-        # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+        if op_name is None:
+            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+            op_str = str(op)
+            if 'aten.' in op_str:
+                # Extract the operation name before any variant (like .default)
+                op_name = op_str.split('aten.')[-1].split('.')[0]
+            else:
+                op_name = op_str.split('.')[-1]
+        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+        self.compiled_kernels[op] = compiled_kernel
+    
+    def test_kernel_correctness(self, op, kernel_code: str, test_cases: List, attempt: int = 1) -> tuple[bool, Dict]:
+        """Test kernel correctness and return detailed feedback."""
+        # Extract op name
         op_str = str(op)
         if 'aten.' in op_str:
-            # Extract the operation name before any variant (like .default)
             op_name = op_str.split('aten.')[-1].split('.')[0]
         else:
             op_name = op_str.split('.')[-1]
-        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name)
-        self.compiled_kernels[op] = compiled_kernel
+        
+        feedback_info = {
+            'compilation_error': None,
+            'correctness_errors': [],
+            'runtime_error': None,
+            'summary': None
+        }
+        
+        try:
+            # Try to compile the kernel
+            compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt)
+            
+            # Test correctness against reference implementation
+            import torch
+            correct_count = 0
+            total_count = 0
+            
+            for test in test_cases[:3]:  # Limit to first 3 test cases for feedback
+                try:
+                    # Get test inputs
+                    args = test.args
+                    kwargs = test.kwargs
+                    
+                    # Get reference result
+                    ref_result = op(*args, **kwargs)
+                    
+                    # Get kernel result  
+                    kernel_result = compiled_kernel(*args, **kwargs)
+                    
+                    # Compare results
+                    try:
+                        torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
+                        correct_count += 1
+                    except Exception as e:
+                        feedback_info['correctness_errors'].append({
+                            'input': f"args: {[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs: {kwargs}",
+                            'expected': f"shape: {ref_result.shape if hasattr(ref_result, 'shape') else ref_result}, dtype: {ref_result.dtype if hasattr(ref_result, 'dtype') else type(ref_result)}",
+                            'actual': f"shape: {kernel_result.shape if hasattr(kernel_result, 'shape') else kernel_result}, dtype: {kernel_result.dtype if hasattr(kernel_result, 'dtype') else type(kernel_result)}",
+                            'error_msg': str(e)
+                        })
+                    
+                    total_count += 1
+                    
+                except Exception as e:
+                    feedback_info['correctness_errors'].append({
+                        'input': f"args: {[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs: {kwargs}",
+                        'expected': "N/A (runtime error)",
+                        'actual': "N/A (runtime error)",
+                        'error_msg': f"Runtime error: {str(e)}"
+                    })
+                    total_count += 1
+            
+            is_correct = correct_count == total_count and total_count > 0
+            if not is_correct:
+                feedback_info['summary'] = f"{correct_count}/{total_count} tests passed"
+            
+            return is_correct, feedback_info
+            
+        except Exception as e:
+            feedback_info['compilation_error'] = str(e)
+            feedback_info['summary'] = "Compilation failed"
+            return False, feedback_info
         
     def __getitem__(self, key):
         if key in self.compiled_kernels:

@@ -99,3 +99,25 @@ class KernelTemplateManager:
         """Create a prompt using the specified template."""
         template = self.get_template(framework)
         return template.create_prompt(op_name, op_signature, op_description)
+    
+    def create_refinement_prompt(self, op_name: str, op_signature: str, op_description: str,
+                               framework: str = "triton", feedback: str = "") -> str:
+        """Create a refinement prompt with feedback from previous attempts."""
+        # Start with the original prompt
+        base_prompt = self.create_prompt(op_name, op_signature, op_description, framework)
+        
+        # Add feedback section
+        refinement_prompt = f"""{feedback}
+
+ORIGINAL REQUIREMENTS:
+{base_prompt}
+
+Based on the error feedback above, please generate a CORRECTED version of the kernel that addresses all the identified issues. Focus specifically on:
+1. Fixing any compilation errors
+2. Ensuring correctness for all test cases
+3. Handling edge cases properly
+4. Maintaining good performance
+
+Provide ONLY the complete, corrected code without explanations."""
+        
+        return refinement_prompt
