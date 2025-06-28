@@ -1,5 +1,4 @@
 import logging
-import sys
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
