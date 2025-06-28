@@ -51,11 +51,11 @@ class ClaudeKernelGenerator:
     
     def generate_kernel_with_retry(self, op_name: str, op_signature: str, op_description: str,
                                  framework: str = "triton", max_attempts: int = 5,
-                                 feedback_callback: Optional[Callable] = None) -> tuple[str, int]:
+                                 feedback_callback: Optional[Callable] = None) -> tuple[str, int, bool]:
         """Generate kernel with iterative refinement based on feedback.
         
         Returns:
-            tuple: (final_kernel_code, attempts_used)
+            tuple: (final_kernel_code, attempts_used, success)
         """
         feedback = None
         
@@ -67,20 +67,20 @@ class ClaudeKernelGenerator:
             
             # If no feedback callback provided, return first attempt
             if feedback_callback is None:
-                return kernel_code, 1
+                return kernel_code, 1, True  # Assume success if no testing
             
             # Test the kernel and get feedback (pass attempt number)
             is_correct, feedback_info = feedback_callback(kernel_code, attempt + 1)
             
             if is_correct:
                 print(f"  ✓ Kernel correct on attempt {attempt + 1}")
-                return kernel_code, attempt + 1
+                return kernel_code, attempt + 1, True  # Success!
             else:
                 print(f"  ✗ Kernel failed on attempt {attempt + 1}: {feedback_info.get('summary', 'Unknown error')}")
                 feedback = self._format_feedback(feedback_info)
         
         print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
-        return kernel_code, max_attempts  # Return last attempt
+        return kernel_code, max_attempts, False  # Failed!
     
     def _format_feedback(self, feedback_info: Dict) -> str:
         """Format feedback information for the LLM."""

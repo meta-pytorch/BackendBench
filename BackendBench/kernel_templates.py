@@ -106,17 +106,38 @@ class KernelTemplateManager:
         # Start with the original prompt
         base_prompt = self.create_prompt(op_name, op_signature, op_description, framework)
         
+        # Add specific triton guidance if this is a triton refinement
+        triton_specific_guidance = ""
+        if framework == "triton" and "tl.load" in feedback:
+            triton_specific_guidance = """
+SPECIFIC TRITON ERROR FIXES:
+- If you see "Unsupported ptr type" in tl.load: ALWAYS add other=0.0 parameter
+- NEVER use: tl.load(ptr + offsets, mask=mask)
+- ALWAYS use: tl.load(ptr + offsets, mask=mask, other=0.0)
+- Use .data_ptr() for tensor pointers: x.data_ptr(), output.data_ptr()
+- Ensure output tensor is on correct device: device=x.device
+
+WORKING TRITON PATTERN:
+```python
+x = tl.load(x_ptr + offsets, mask=mask, other=0.0)  # ✅ CORRECT
+output = tl.maximum(x, 0.0)
+tl.store(output_ptr + offsets, output, mask=mask)   # ✅ CORRECT
+```"""
+        
         # Add feedback section
         refinement_prompt = f"""{feedback}
+
+{triton_specific_guidance}
 
 ORIGINAL REQUIREMENTS:
 {base_prompt}
 
 Based on the error feedback above, please generate a CORRECTED version of the kernel that addresses all the identified issues. Focus specifically on:
-1. Fixing any compilation errors
+1. Fixing any compilation errors (especially triton syntax)
 2. Ensuring correctness for all test cases
 3. Handling edge cases properly
 4. Maintaining good performance
+5. Following exact triton syntax rules shown above
 
 Provide ONLY the complete, corrected code without explanations."""
         
