@@ -380,7 +380,13 @@ import torch.nn.functional as F
     
     def add_kernel(self, op, kernel_code: str):
         """Add a kernel implementation for a specific operator."""
-        op_name = str(op).split('.')[-1]  # Extract op name
+        # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+        op_str = str(op)
+        if 'aten.' in op_str:
+            # Extract the operation name before any variant (like .default)
+            op_name = op_str.split('aten.')[-1].split('.')[0]
+        else:
+            op_name = op_str.split('.')[-1]
         compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name)
         self.compiled_kernels[op] = compiled_kernel
         
