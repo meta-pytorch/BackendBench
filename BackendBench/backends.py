@@ -458,8 +458,48 @@ import torch.nn.functional as F
         }
         
         try:
-            # Try to compile the kernel
-            compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt)
+            # Ensure kernel file is saved first
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            
+            # Save the kernel if it doesn't exist yet
+            if not os.path.exists(kernel_file):
+                # Prepare the kernel code with necessary imports
+                is_triton = 'triton.jit' in kernel_code or '@triton.jit' in kernel_code
+                if is_triton:
+                    full_code = self._prepare_triton_code(kernel_code)
+                else:
+                    full_code = self._prepare_torch_code(kernel_code)
+                
+                with open(kernel_file, 'w') as f:
+                    f.write(full_code)
+                print(f"Saved kernel to: {kernel_file}")
+            
+            # Try to import the kernel module directly (instead of using exec)
+            import sys
+            import importlib.util
+            
+            spec = importlib.util.spec_from_file_location(f"test_kernel_{op_name}_{attempt}", kernel_file)
+            module = importlib.util.module_from_spec(spec)
+            
+            # Add to sys.modules so triton can find it
+            sys.modules[f"test_kernel_{op_name}_{attempt}"] = module
+            
+            try:
+                spec.loader.exec_module(module)
+                
+                # Get the kernel function
+                expected_name = f"{op_name}_kernel_impl"
+                if hasattr(module, expected_name):
+                    compiled_kernel = getattr(module, expected_name)
+                else:
+                    available_functions = [name for name in dir(module) 
+                                         if callable(getattr(module, name)) and not name.startswith('_')]
+                    raise ValueError(f"Expected function '{expected_name}' not found. Available: {available_functions}")
+                
+            finally:
+                # Clean up sys.modules
+                if f"test_kernel_{op_name}_{attempt}" in sys.modules:
+                    del sys.modules[f"test_kernel_{op_name}_{attempt}"]
             
             # Test correctness against reference implementation
             import torch
