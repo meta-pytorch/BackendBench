@@ -24,12 +24,18 @@ OPTIMIZATION GUIDELINES:
 TEMPLATE STRUCTURE:
 {example}
 
+CRITICAL NAMING REQUIREMENT:
+- You MUST name the main wrapper function EXACTLY: '{op_name}_kernel_impl'
+- This is a strict requirement for the system to work
+- Do NOT use any other name for the main function
+- Example: if op_name is 'relu', the function MUST be named 'relu_kernel_impl'
+
 IMPORTANT:
-- Name the main wrapper function '{op_name}' or 'kernel'
 - Ensure the function signature matches PyTorch conventions
 - Include comprehensive error checking
 - Use efficient memory access patterns
-- Provide ONLY the complete, runnable code without explanations"""
+- Provide ONLY the complete, runnable code without explanations
+- The main function name MUST follow the pattern: {op_name}_kernel_impl"""
 
 PYTORCH_KERNEL_PROMPT = """You are an expert PyTorch developer. Generate an efficient, vectorized PyTorch implementation for the operation: {op_name}
 
@@ -53,12 +59,18 @@ OPTIMIZATION GUIDELINES:
 - Consider memory layout and access patterns
 - Handle different device types (CPU/GPU)
 
+CRITICAL NAMING REQUIREMENT:
+- You MUST name the main function EXACTLY: '{op_name}_kernel_impl'
+- This is a strict requirement for the system to work
+- Do NOT use any other name for the main function
+- Example: if op_name is 'relu', the function MUST be named 'relu_kernel_impl'
+
 IMPORTANT:
-- Name the main function '{op_name}' or 'kernel'
 - Ensure function signature accepts same arguments as PyTorch op
 - Include comprehensive input validation
 - Return tensors with correct shape, dtype, and device
-- Provide ONLY the complete, runnable code without explanations"""
+- Provide ONLY the complete, runnable code without explanations
+- The main function name MUST follow the pattern: {op_name}_kernel_impl"""
 
 TRITON_OPTIMIZATIONS = {
     "relu": """
@@ -113,7 +125,7 @@ def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     output = tl.maximum(x, 0.0)
     tl.store(output_ptr + offsets, output, mask=mask)
 
-def relu(x):
+def relu_kernel_impl(x):
     output = torch.empty_like(x)
     n_elements = x.numel()
     grid = (triton.cdiv(n_elements, 1024),)
@@ -139,7 +151,7 @@ def binary_op_kernel(x_ptr, y_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.conste
     output = x + y  
     tl.store(output_ptr + offsets, output, mask=mask)
 
-def binary_op(x, y):
+def add_kernel_impl(x, y):
     output = torch.empty_like(x)
     n_elements = x.numel()
     grid = (triton.cdiv(n_elements, 1024),)
@@ -158,7 +170,7 @@ def kernel_impl(input_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
     # Implementation here
     pass
 
-def kernel_wrapper(*args, **kwargs):
+def {{op_name}}_kernel_impl(*args, **kwargs):
     # Wrapper implementation here
     pass
 ```"""

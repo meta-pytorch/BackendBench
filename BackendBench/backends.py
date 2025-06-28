@@ -353,20 +353,21 @@ import torch.nn.functional as F
     
     def _find_kernel_function(self, module, op_name: str) -> Callable:
         """Find the main kernel function in the compiled module."""
-        # Try different naming conventions
-        candidates = [op_name, 'kernel', f'{op_name}_kernel', f'{op_name}_triton']
+        # Use the enforced naming convention: {op_name}_kernel_impl
+        expected_name = f"{op_name}_kernel_impl"
         
-        for name in candidates:
-            if hasattr(module, name):
-                return getattr(module, name)
+        if hasattr(module, expected_name):
+            return getattr(module, expected_name)
         
-        # Return the first callable that doesn't start with _
-        for attr_name in dir(module):
-            attr = getattr(module, attr_name)
-            if callable(attr) and not attr_name.startswith('_') and attr_name not in ['torch', 'triton']:
-                return attr
-                
-        raise ValueError(f"No callable function found in kernel code for {op_name}")
+        # If the expected name isn't found, provide a clear error message
+        available_functions = [name for name in dir(module) 
+                             if callable(getattr(module, name)) and not name.startswith('_')]
+        
+        raise ValueError(
+            f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
+            f"Available functions: {available_functions}. "
+            f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
+        )
     
     def _create_triton_wrapper(self, triton_kernel: Callable, op_name: str) -> Callable:
         """Create a wrapper for Triton kernels to handle PyTorch tensor operations."""

@@ -24,8 +24,8 @@ class ClaudeKernelGenerator:
         
         try:
             response = self.client.messages.create(
-                model="Deepseek-R1",
-                # max_tokens=4000,
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=128000, # max
                 temperature=0.1,
                 messages=[
                     {
@@ -34,7 +34,6 @@ class ClaudeKernelGenerator:
                     }
                 ]
             )
-            
             # Extract code from response
             content = response.content[0].text
             return self._extract_code_from_response(content)
