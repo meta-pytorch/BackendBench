@@ -1,7 +1,5 @@
 # BackendBench
 
-BackendBench is a comprehensive benchmarking framework for GPU kernels, supporting multiple backends including native PyTorch (aten), FlagGems, and LLM-generated kernels.
-
 ## Installation
 
 ```bash
@@ -99,7 +97,7 @@ To contribute kernels manually for evaluation:
 mkdir -p generated_kernels/evaluation_only/{op_name}
 ```
 
-**Important**: Use exact operation names:
+Use exact operation names:
 - `relu` → `torch.ops.aten.relu.default`
 - `add` → `torch.ops.aten.add.Tensor`
 - `mul` → `torch.ops.aten.mul.Tensor`
@@ -131,14 +129,7 @@ def relu_kernel_impl(*args, **kwargs):
     return result
 ```
 
-### 3. Key Requirements
-
-- **Directory**: `generated_kernels/evaluation_only/{op_name}/`
-- **File name**: `{op_name}.py` (exact match required)
-- **Function name**: `{op_name}_kernel_impl` (main entry point)
-- **Signature**: Must match PyTorch operation signature exactly
-
-### 4. Test Your Kernel
+### 3. Test Your Kernel
 
 ```bash
 python scripts/main.py run --backend pregenerated --kernels-dir generated_kernels/evaluation_only --ops {op_name}
@@ -167,7 +158,7 @@ python scripts/main.py generate --suite smoke --ops relu
 
 ## Example Workflows
 
-### Research Workflow (Separate Generation & Evaluation)
+### Research Workflow
 
 ```bash
 # 1. Generate kernels once
@@ -180,11 +171,4 @@ python scripts/main.py run --backend pregenerated --kernels-dir generated_kernel
 # 3. Compare with other backends
 python scripts/main.py run --backend aten --suite smoke
 python scripts/main.py run --backend flag_gems --suite smoke
-```
-
-### Quick Evaluation Workflow
-
-```bash
-# Generate and evaluate in one step
-python scripts/main.py run --backend llm --suite smoke --llm-max-attempts 5
 ```
