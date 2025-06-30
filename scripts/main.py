@@ -138,22 +138,24 @@ def generate(suite, ops, max_attempts, run_id):
     """Generate kernels for operations and save them to organized directory structure."""
     if ops:
         ops = ops.split(",")
-    
+
     generate_kernels_for_suite(suite, ops, max_attempts, run_id)
 
 
 def generate_kernels_for_suite(suite_name, ops_filter, max_attempts, run_id):
     """Generate kernels for all operations in a suite."""
     llm_client = ClaudeKernelGenerator()
-    
+
     # Create backend with organized structure
     backend = backends.LLMBackend(run_id=run_id)
-    
+
     return _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_attempts)
+
 
 def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
     """Setup LLM backend by generating kernels for all operations in the suite."""
     return _generate_kernels_impl(llm_backend, llm_client, suite_name, ops_filter, max_attempts)
+
 
 def _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_attempts):
     """Core implementation for kernel generation."""

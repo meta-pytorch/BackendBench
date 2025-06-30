@@ -302,9 +302,10 @@ class LLMBackend(Backend):
                 self.run_id = run_id
             else:
                 import datetime
+
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 self.run_id = f"run_{timestamp}"
-            
+
             self.kernels_dir = f"generated_kernels/{self.run_id}"
             os.makedirs(self.kernels_dir, exist_ok=True)
 
@@ -356,7 +357,7 @@ generated_kernels/evaluation_only/
             return
 
         loaded_count = 0
-        
+
         for kernel_name in os.listdir(self.kernels_dir):
             kernel_dir = os.path.join(self.kernels_dir, kernel_name)
             if not os.path.isdir(kernel_dir):
@@ -373,26 +374,30 @@ generated_kernels/evaluation_only/
                 # Find corresponding PyTorch operation
                 op = self._find_pytorch_op_from_name(kernel_name)
                 if op:
-                    compiled_kernel = self._compile_pregenerated_kernel("", kernel_name, kernel_file)
+                    compiled_kernel = self._compile_pregenerated_kernel(
+                        "", kernel_name, kernel_file
+                    )
                     self.compiled_kernels[op] = compiled_kernel
                     print(f"✓ Loaded kernel for {kernel_name} from {os.path.basename(kernel_file)}")
                     loaded_count += 1
                 else:
-                    print(f"Warning: Could not map kernel name '{kernel_name}' to PyTorch operation")
+                    print(
+                        f"Warning: Could not map kernel name '{kernel_name}' to PyTorch operation"
+                    )
 
             except Exception as e:
                 print(f"Error loading kernel for {kernel_name}: {e}")
-        
+
         print(f"Successfully loaded {loaded_count} kernels")
 
     def _find_latest_kernel_file(self, kernel_dir: str, kernel_name: str) -> str:
         """Find the latest kernel file in the kernel directory.
-        
+
         For generated kernels: Looks for kernel_name_attempt_N.py and returns the highest N.
         For evaluation-only: Use kernel_name.py (users must name files exactly).
         """
         kernel_files = []
-        
+
         # Look for attempt files: kernel_name_attempt_N.py
         for filename in os.listdir(kernel_dir):
             if filename.startswith(f"{kernel_name}_attempt_") and filename.endswith(".py"):
@@ -401,20 +406,20 @@ generated_kernels/evaluation_only/
                     kernel_files.append((attempt_num, os.path.join(kernel_dir, filename)))
                 except (ValueError, IndexError):
                     continue
-        
+
         # For evaluation-only: Look for exact name kernel_name.py
         exact_name_path = os.path.join(kernel_dir, f"{kernel_name}.py")
         if os.path.exists(exact_name_path):
             kernel_files.append((999, exact_name_path))  # High priority
-        
+
         if not kernel_files:
-            available_files = [f for f in os.listdir(kernel_dir) if f.endswith('.py')]
+            available_files = [f for f in os.listdir(kernel_dir) if f.endswith(".py")]
             raise FileNotFoundError(
                 f"No valid kernel file found in {kernel_dir}. "
                 f"Expected: {kernel_name}_attempt_N.py or {kernel_name}.py. "
                 f"Available files: {available_files}"
             )
-            
+
         # Return the file with the highest attempt number
         kernel_files.sort(key=lambda x: x[0], reverse=True)
         return kernel_files[0][1]
@@ -422,33 +427,35 @@ generated_kernels/evaluation_only/
     def _find_pytorch_op_from_name(self, op_name: str):
         """Find PyTorch operation from folder name - users must name folders correctly."""
         import torch
-        
+
         # Try common operation patterns based on how the generate command extracts names
         try:
             # Most common: torch.ops.aten.{op_name}.default
             return getattr(torch.ops.aten, op_name).default
         except AttributeError:
             pass
-            
+
         try:
             # Try tensor variant: torch.ops.aten.{op_name}.Tensor
             return getattr(torch.ops.aten, op_name).Tensor
         except AttributeError:
             pass
-            
+
         try:
             # Try other common variants
             op_obj = getattr(torch.ops.aten, op_name)
             # Get first available variant
             for attr_name in dir(op_obj):
-                if not attr_name.startswith('_'):
+                if not attr_name.startswith("_"):
                     return getattr(op_obj, attr_name)
         except AttributeError:
             pass
-            
+
         return None
 
-    def _compile_pregenerated_kernel(self, kernel_code: str, op_name: str, kernel_file: str) -> Callable:
+    def _compile_pregenerated_kernel(
+        self, kernel_code: str, op_name: str, kernel_file: str
+    ) -> Callable:
         """Compile a pre-generated kernel from file."""
         try:
             spec = importlib.util.spec_from_file_location(f"pregenerated_{op_name}", kernel_file)
@@ -476,7 +483,7 @@ generated_kernels/evaluation_only/
             # Create organized directory structure: generated_kernels/run_ID/kernel_name/
             kernel_dir = os.path.join(self.kernels_dir, op_name)
             os.makedirs(kernel_dir, exist_ok=True)
-            
+
             kernel_file = os.path.join(kernel_dir, f"{op_name}_attempt_{attempt}.py")
             with open(kernel_file, "w") as f:
                 f.write(full_code)
@@ -559,7 +566,7 @@ import torch.nn.functional as F
             # Create organized directory structure: generated_kernels/run_ID/kernel_name/
             kernel_dir = os.path.join(self.kernels_dir, op_name)
             os.makedirs(kernel_dir, exist_ok=True)
-            
+
             kernel_file = os.path.join(kernel_dir, f"{op_name}_attempt_{attempt}.py")
 
             if not os.path.exists(kernel_file):
