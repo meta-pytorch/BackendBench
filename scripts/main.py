@@ -51,14 +51,20 @@ def cli():
     type=str,
     help="Directory containing pre-generated kernels (for pregenerated backend)",
 )
-def run(suite, backend, ops, llm_max_attempts, kernels_dir):
+@click.option(
+    "--run-id",
+    default=None,
+    type=str,
+    help="Run ID for kernel organization (auto-generated if not specified)",
+)
+def run(suite, backend, ops, llm_max_attempts, kernels_dir, run_id):
     if ops:
         ops = ops.split(",")
 
     backend = {
         "aten": backends.AtenBackend,
         "flag_gems": backends.FlagGemsBackend,
-        "llm": backends.LLMBackend,
+        "llm": lambda: backends.LLMBackend(run_id=run_id),
         "pregenerated": lambda: backends.LLMBackend(kernels_dir=kernels_dir, pregenerated=True),
     }[backend]()
 
@@ -123,40 +129,33 @@ def run(suite, backend, ops, llm_max_attempts, kernels_dir):
     help="Maximum attempts for LLM kernel generation with feedback",
 )
 @click.option(
-    "--output-dir",
-    default="generated_kernels",
+    "--run-id",
+    default=None,
     type=str,
-    help="Directory to save generated kernels",
+    help="Run ID for kernel organization (auto-generated if not specified)",
 )
-def generate(suite, ops, max_attempts, output_dir):
+def generate(suite, ops, max_attempts, run_id):
     """Generate kernels for operations and save them to organized directory structure."""
     if ops:
         ops = ops.split(",")
     
-    generate_kernels_for_suite(suite, ops, max_attempts, output_dir, organized_output=True)
+    generate_kernels_for_suite(suite, ops, max_attempts, run_id)
 
 
-def generate_kernels_for_suite(suite_name, ops_filter, max_attempts, output_dir, organized_output=False):
+def generate_kernels_for_suite(suite_name, ops_filter, max_attempts, run_id):
     """Generate kernels for all operations in a suite."""
-    # Create organized directory structure if needed
-    if organized_output:
-        os.makedirs(output_dir, exist_ok=True)
-    
     llm_client = ClaudeKernelGenerator()
     
-    # Create backend for compilation/testing
-    if organized_output:
-        temp_backend = backends.LLMBackend()  # Temporary backend for testing
-    else:
-        temp_backend = backends.LLMBackend()  # This will be the final backend
+    # Create backend with organized structure
+    backend = backends.LLMBackend(run_id=run_id)
     
-    return _generate_kernels_impl(temp_backend, llm_client, suite_name, ops_filter, max_attempts, output_dir, organized_output)
+    return _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_attempts)
 
 def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
     """Setup LLM backend by generating kernels for all operations in the suite."""
-    return _generate_kernels_impl(llm_backend, llm_client, suite_name, ops_filter, max_attempts, llm_backend.kernels_dir, organized_output=False)
+    return _generate_kernels_impl(llm_backend, llm_client, suite_name, ops_filter, max_attempts)
 
-def _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_attempts, output_dir, organized_output=False):
+def _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_attempts):
     """Core implementation for kernel generation."""
     try:
         if suite_name == "smoke":
@@ -210,67 +209,46 @@ def _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_atte
             )
 
             if success:
-                if organized_output:
-                    # Save to organized directory structure
-                    op_dir = os.path.join(output_dir, op_name)
-                    os.makedirs(op_dir, exist_ok=True)
-                    
-                    kernel_file = os.path.join(op_dir, f"{op_name}_kernel.py")
-                    with open(kernel_file, "w") as f:
-                        f.write(kernel_code)
-                    
-                    # Save metadata
-                    metadata_file = os.path.join(op_dir, "metadata.txt")
+                try:
+                    # Add the successful kernel to the backend
+                    backend.add_kernel(op, kernel_code, op_name)
+                    print(
+                        f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
+                    )
+                    successful_ops += 1
+
+                    # Save metadata in the kernel directory
+                    kernel_dir = os.path.join(backend.kernels_dir, op_name)
+                    metadata_file = os.path.join(kernel_dir, "metadata.txt")
                     with open(metadata_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
                         f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
                         f.write("Status: Success\n")
-                        f.write(f"Generated kernel file: {op_name}_kernel.py\n")
-                    
-                    print(f"✓ Generated kernel for {op_name} -> {kernel_file}")
-                    successful_ops += 1
-                else:
-                    # Original timestamped backend mode
-                    try:
-                        # Add the successful kernel to the backend
-                        backend.add_kernel(op, kernel_code, op_name)
-                        print(
-                            f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
-                        )
-                        successful_ops += 1
+                        f.write(f"Final kernel file: {op_name}_attempt_{attempts_used}.py\n")
 
-                        # Save summary of this operation
-                        summary_file = os.path.join(backend.kernels_dir, f"{op_name}_summary.txt")
-                        with open(summary_file, "w") as f:
-                            f.write(f"Operation: {op_name}\n")
-                            f.write(f"Full op: {op_str}\n")
-                            f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                            f.write("Final status: Success\n")
-                            f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
-
-                    except Exception as e:
-                        print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
-                        success = False
+                except Exception as e:
+                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
+                    success = False
 
             if not success:
                 print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
 
-                if not organized_output:
-                    # Save summary of this operation
-                    summary_file = os.path.join(backend.kernels_dir, f"{op_name}_summary.txt")
-                    with open(summary_file, "w") as f:
+                # Save metadata for failed operations
+                kernel_dir = os.path.join(backend.kernels_dir, op_name)
+                if os.path.exists(kernel_dir):  # Only save if we attempted generation
+                    metadata_file = os.path.join(kernel_dir, "metadata.txt")
+                    with open(metadata_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
                         f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                        f.write("Final status: Failed - All attempts failed correctness tests\n")
-                        f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                        f.write("Status: Failed - All attempts failed correctness tests\n")
+                        f.write(f"Last kernel file: {op_name}_attempt_{attempts_used}.py\n")
                 # Continue with other operations
 
         # Print summary
         print(f"\n{'=' * 60}")
-        summary_title = "KERNEL GENERATION SUMMARY" if organized_output else "LLM BACKEND SETUP SUMMARY"
-        print(summary_title)
+        print("KERNEL GENERATION SUMMARY")
         print(f"{'=' * 60}")
         print(f"Total operations: {total_ops}")
         print(f"Successful: {successful_ops}")
@@ -280,24 +258,24 @@ def _generate_kernels_impl(backend, llm_client, suite_name, ops_filter, max_atte
             if total_ops > 0
             else "Success rate: 0.0%"
         )
-        print(f"Generated kernels saved to: {output_dir}")
+        print(f"Generated kernels saved to: {backend.kernels_dir}")
         print(f"{'=' * 60}\n")
 
-        # Save overall summary for non-organized output
-        if not organized_output:
-            overall_summary_file = os.path.join(backend.kernels_dir, "OVERALL_SUMMARY.txt")
-            with open(overall_summary_file, "w") as f:
-                f.write("LLM Backend Generation Summary\n")
-                f.write(f"{'=' * 40}\n")
-                f.write(f"Total operations: {total_ops}\n")
-                f.write(f"Successful: {successful_ops}\n")
-                f.write(f"Failed: {total_ops - successful_ops}\n")
-                f.write(
-                    f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
-                    if total_ops > 0
-                    else "Success rate: 0.0%\n"
-                )
-                f.write(f"Max attempts per operation: {max_attempts}\n")
+        # Save overall summary
+        overall_summary_file = os.path.join(backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        with open(overall_summary_file, "w") as f:
+            f.write("Kernel Generation Summary\n")
+            f.write(f"{'=' * 40}\n")
+            f.write(f"Run ID: {backend.run_id}\n")
+            f.write(f"Total operations: {total_ops}\n")
+            f.write(f"Successful: {successful_ops}\n")
+            f.write(f"Failed: {total_ops - successful_ops}\n")
+            f.write(
+                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
+                if total_ops > 0
+                else "Success rate: 0.0%\n"
+            )
+            f.write(f"Max attempts per operation: {max_attempts}\n")
 
         return backend
 
