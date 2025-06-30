@@ -150,7 +150,7 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
                         f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                        f.write(f"Final status: Success\n")
+                        f.write("Final status: Success\n")
                         f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                         
                 except Exception as e:
@@ -166,13 +166,13 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                     f.write(f"Operation: {op_name}\n")
                     f.write(f"Full op: {op_str}\n")
                     f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                    f.write(f"Final status: Failed - All attempts failed correctness tests\n")
+                    f.write("Final status: Failed - All attempts failed correctness tests\n")
                     f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                 # Continue with other operations
         
         # Print summary
         print(f"\n{'='*60}")
-        print(f"LLM BACKEND SETUP SUMMARY")
+        print("LLM BACKEND SETUP SUMMARY")
         print(f"{'='*60}")
         print(f"Total operations: {total_ops}")
         print(f"Successful: {successful_ops}")
@@ -184,7 +184,7 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         # Save overall summary
         overall_summary_file = os.path.join(llm_backend.kernels_dir, "OVERALL_SUMMARY.txt")
         with open(overall_summary_file, 'w') as f:
-            f.write(f"LLM Backend Generation Summary\n")
+            f.write("LLM Backend Generation Summary\n")
             f.write(f"{'='*40}\n")
             f.write(f"Total operations: {total_ops}\n")
             f.write(f"Successful: {successful_ops}\n")

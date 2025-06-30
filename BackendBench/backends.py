@@ -1,7 +1,6 @@
 import os
-import sys
 import importlib.util
-from typing import Dict, Callable, Optional, List
+from typing import Dict, Callable, List
 
 class Backend:
     def __init__(self, name):
@@ -491,7 +490,7 @@ import torch.nn.functional as F
                         correct_count += 1
                         print(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
                     except Exception as e:
-                        print(f"    ✗ Test failed:")
+                        print("    ✗ Test failed:")
                         print(f"      Input: args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}")
                         print(f"      Expected: {ref_result.shape if hasattr(ref_result, 'shape') else ref_result} (dtype: {ref_result.dtype if hasattr(ref_result, 'dtype') else type(ref_result)})")
                         print(f"      Got:      {kernel_result.shape if hasattr(kernel_result, 'shape') else kernel_result} (dtype: {kernel_result.dtype if hasattr(kernel_result, 'dtype') else type(kernel_result)})")
@@ -507,7 +506,7 @@ import torch.nn.functional as F
                     total_count += 1
                     
                 except Exception as e:
-                    print(f"    ✗ Runtime error during test:")
+                    print("    ✗ Runtime error during test:")
                     print(f"      Input: args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}")
                     print(f"      Full error: {repr(e)}")
                     print(f"      Error type: {type(e).__name__}")
@@ -531,7 +530,7 @@ import torch.nn.functional as F
             return is_correct, feedback_info
             
         except Exception as e:
-            print(f"    ✗ Compilation failed:")
+            print("    ✗ Compilation failed:")
             print(f"      Error: {str(e)}")
             
             feedback_info['compilation_error'] = str(e)

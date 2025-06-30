@@ -2,8 +2,7 @@
 Kernel code templates and prompt engineering for LLM-based kernel generation.
 """
 
-from typing import Dict, List, Optional, Tuple
-import torch
+from typing import Dict
 from .prompts import (
     TRITON_KERNEL_PROMPT,
     PYTORCH_KERNEL_PROMPT,

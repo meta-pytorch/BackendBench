@@ -1,6 +1,5 @@
-import json
 import os
-from typing import Dict, List, Optional, Callable
+from typing import Dict, Optional, Callable
 import anthropic
 from .kernel_templates import KernelTemplateManager
 
@@ -29,9 +28,9 @@ class ClaudeKernelGenerator:
             # Create initial prompt
             prompt = self.template_manager.create_prompt(op_name, op_signature, op_description, framework)
         
-        print(f"\n=== DEBUG: PROMPT SENT TO LLM ===")
+        print("\n=== DEBUG: PROMPT SENT TO LLM ===")
         print(prompt)
-        print(f"=== END PROMPT ===\n")
+        print("=== END PROMPT ===\n")
         
         try:
             response = self.client.messages.create(
@@ -50,11 +49,11 @@ class ClaudeKernelGenerator:
             content = response.content[0].text
             extracted_code = self._extract_code_from_response(content)
             
-            print(f"\n=== DEBUG: RAW LLM RESPONSE ===")
+            print("\n=== DEBUG: RAW LLM RESPONSE ===")
             print(content)
-            print(f"=== DEBUG: EXTRACTED CODE ===")
+            print("=== DEBUG: EXTRACTED CODE ===")
             print(extracted_code)
-            print(f"=== END DEBUG ===\n")
+            print("=== END DEBUG ===\n")
             
             return extracted_code
             
