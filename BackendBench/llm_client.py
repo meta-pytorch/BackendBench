@@ -6,7 +6,6 @@ from .kernel_templates import KernelTemplateManager
 
 # This is where a KernelAgent would be plugged in, this is a toy one that 1 shots the problem
 class ClaudeKernelGenerator:
-    """Client for generating kernel code using Claude API."""
 
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -26,15 +25,12 @@ class ClaudeKernelGenerator:
         framework: str = "triton",
         feedback: Optional[str] = None,
     ) -> str:
-        """Generate kernel code for a PyTorch operation, optionally with feedback from previous attempts."""
 
         if feedback:
-            # Create refinement prompt with feedback
             prompt = self.template_manager.create_refinement_prompt(
                 op_name, op_signature, op_description, framework, feedback
             )
         else:
-            # Create initial prompt
             prompt = self.template_manager.create_prompt(
                 op_name, op_signature, op_description, framework
             )
@@ -45,13 +41,12 @@ class ClaudeKernelGenerator:
 
         try:
             response = self.client.messages.create(
-                model="claude-sonnet-4-20250514",  # Latest Claude 4 Sonnet model
-                max_tokens=8000,  # Increased for more complex kernels
+                model="claude-sonnet-4-20250514",
+                max_tokens=8000, 
                 temperature=0.2,
-                timeout=120.0,  # Longer timeout for complex kernels
+                timeout=120.0,
                 messages=[{"role": "user", "content": prompt}],
             )
-            # Extract code from response
             content = response.content[0].text
             extracted_code = self._extract_code_from_response(content)
 
@@ -85,32 +80,29 @@ class ClaudeKernelGenerator:
         for attempt in range(max_attempts):
             print(f"  Attempt {attempt + 1}/{max_attempts}")
 
-            # Generate kernel (with feedback if this is a retry)
             kernel_code = self.generate_kernel(
                 op_name, op_signature, op_description, framework, feedback
             )
 
-            # If no feedback callback provided, return first attempt
             if feedback_callback is None:
-                return kernel_code, 1, True  # Assume success if no testing
+                return kernel_code, 1, True
 
-            # Test the kernel and get feedback (pass attempt number)
             is_correct, feedback_info = feedback_callback(kernel_code, attempt + 1)
 
             if is_correct:
                 print(f"  ✓ Kernel correct on attempt {attempt + 1}")
-                return kernel_code, attempt + 1, True  # Success!
+                return kernel_code, attempt + 1, True
             else:
                 print(
                     f"  ✗ Kernel failed on attempt {attempt + 1}: {feedback_info.get('summary', 'Unknown error')}"
                 )
                 feedback = self._format_feedback(feedback_info)
                 print(f"  📝 Formatted feedback length: {len(feedback)} chars")
-                if len(feedback) < 100:  # If feedback is very short, print it for debugging
+                if len(feedback) < 100:
                     print(f"  📝 Short feedback: {repr(feedback)}")
 
         print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
-        return kernel_code, max_attempts, False  # Failed!
+        return kernel_code, max_attempts, False
 
     def _format_feedback(self, feedback_info: Dict) -> str:
         """Format feedback information for the LLM."""
@@ -123,7 +115,7 @@ class ClaudeKernelGenerator:
             feedback_parts.append("CORRECTNESS ERRORS:")
             for i, error in enumerate(
                 feedback_info["correctness_errors"][:3]
-            ):  # Limit to 3 examples
+            ):
                 feedback_parts.append(f"\nTest Case {i + 1}:")
                 feedback_parts.append(f"Input: {error.get('input', 'Unknown')}")
                 feedback_parts.append(f"Expected: {error.get('expected', 'Unknown')}")
@@ -141,8 +133,6 @@ class ClaudeKernelGenerator:
         return "\n".join(feedback_parts)
 
     def _extract_code_from_response(self, response: str) -> str:
-        """Extract code from Claude's response."""
-        # Look for code blocks
         if "```python" in response:
             start = response.find("```python") + len("```python")
             end = response.find("```", start)
@@ -154,6 +144,5 @@ class ClaudeKernelGenerator:
             end = response.find("```", start)
             if end != -1:
                 return response[start:end].strip()
-
-        # If no code blocks, return the whole response
+        
         return response.strip()
