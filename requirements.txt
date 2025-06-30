@@ -1,4 +1,5 @@
 torch
-click 
+click
 numpy
 expecttest
+anthropic>=0.34.0

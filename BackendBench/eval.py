@@ -1,7 +1,9 @@
 import logging
 
 import torch
+
 from triton.testing import do_bench
+
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,6 @@ def eval_performance(op, impl, tests):
         test_times = [cpu_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
 
     speedups = torch.tensor(test_times) / torch.tensor(base_times)
-    # geometric mean of speedups
     return speedups.log().mean().exp()
 
 
