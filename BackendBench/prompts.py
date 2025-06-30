@@ -1,7 +1,3 @@
-"""
-Prompt templates for LLM-based kernel generation.
-"""
-
 TRITON_KERNEL_PROMPT = """Generate a Triton kernel for: {op_name}
 
 Operation: {op_signature}
@@ -35,7 +31,6 @@ Requirements:
 
 Generate complete, runnable code only."""
 
-# Remove all the verbose optimization and template dictionaries
 TRITON_OPTIMIZATIONS = {
     "default": "Use efficient memory access patterns and appropriate block sizes."
 }
