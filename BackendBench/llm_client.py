@@ -111,20 +111,13 @@ class ClaudeKernelGenerator:
         if feedback_info.get("compilation_error"):
             feedback_parts.append(f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n")
 
-        if feedback_info.get("correctness_errors"):
-            feedback_parts.append("CORRECTNESS ERRORS:")
-            for i, error in enumerate(
-                feedback_info["correctness_errors"][:3]
-            ):
+        if feedback_info.get("test_errors"):
+            feedback_parts.append("TEST ERRORS:")
+            for i, error in enumerate(feedback_info["test_errors"]):
                 feedback_parts.append(f"\nTest Case {i + 1}:")
-                feedback_parts.append(f"Input: {error.get('input', 'Unknown')}")
-                feedback_parts.append(f"Expected: {error.get('expected', 'Unknown')}")
-                feedback_parts.append(f"Got: {error.get('actual', 'Unknown')}")
-                if error.get("error_msg"):
-                    feedback_parts.append(f"Error: {error['error_msg']}")
-
-        if feedback_info.get("runtime_error"):
-            feedback_parts.append(f"\nRUNTIME ERROR:\n{feedback_info['runtime_error']}")
+                feedback_parts.append(f"Input: {error['test_input']}")
+                feedback_parts.append(f"Error: {error['error']}")
+                feedback_parts.append(f"Full traceback:\n{error['traceback']}")
 
         feedback_parts.append(
             "\nPlease analyze the errors above and generate a corrected version of the kernel."

@@ -413,8 +413,7 @@ import torch.nn.functional as F
 
         feedback_info = {
             "compilation_error": None,
-            "correctness_errors": [],
-            "runtime_error": None,
+            "test_errors": [],
             "summary": None,
         }
 
@@ -473,57 +472,24 @@ import torch.nn.functional as F
                     kwargs = test.kwargs
 
                     ref_result = op(*args, **kwargs)
-
                     kernel_result = compiled_kernel(*args, **kwargs)
 
-                    try:
-                        torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
-                        correct_count += 1
-                        print(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
-                    except Exception as e:
-                        print("    ✗ Test failed:")
-                        print(
-                            f"      Input: args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}"
-                        )
-                        print(
-                            f"      Expected: {ref_result.shape if hasattr(ref_result, 'shape') else ref_result} (dtype: {ref_result.dtype if hasattr(ref_result, 'dtype') else type(ref_result)})"
-                        )
-                        print(
-                            f"      Got:      {kernel_result.shape if hasattr(kernel_result, 'shape') else kernel_result} (dtype: {kernel_result.dtype if hasattr(kernel_result, 'dtype') else type(kernel_result)})"
-                        )
-                        print(f"      Error: {str(e)}")
-
-                        feedback_info["correctness_errors"].append(
-                            {
-                                "input": f"args: {[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs: {kwargs}",
-                                "expected": f"shape: {ref_result.shape if hasattr(ref_result, 'shape') else ref_result}, dtype: {ref_result.dtype if hasattr(ref_result, 'dtype') else type(ref_result)}",
-                                "actual": f"shape: {kernel_result.shape if hasattr(kernel_result, 'shape') else kernel_result}, dtype: {kernel_result.dtype if hasattr(kernel_result, 'dtype') else type(kernel_result)}",
-                                "error_msg": str(e),
-                            }
-                        )
-
-                    total_count += 1
+                    torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
+                    correct_count += 1
+                    print(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
 
                 except Exception as e:
-                    print("    ✗ Runtime error during test:")
-                    print(
-                        f"      Input: args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}"
-                    )
-                    print(f"      Full error: {repr(e)}")
-                    print(f"      Error type: {type(e).__name__}")
+                    import traceback
+                    print(f"    ✗ Test failed: {str(e)}")
+                    
+                    feedback_info["test_errors"].append({
+                        "test_input": f"args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}",
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        "traceback": traceback.format_exc()
+                    })
 
-                    if hasattr(e, "__cause__") and e.__cause__:
-                        print(f"      Cause: {repr(e.__cause__)}")
-
-                    feedback_info["correctness_errors"].append(
-                        {
-                            "input": f"args: {[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs: {kwargs}",
-                            "expected": "N/A (runtime error)",
-                            "actual": "N/A (runtime error)",
-                            "error_msg": f"Runtime error: {str(e)}",
-                        }
-                    )
-                    total_count += 1
+                total_count += 1
 
             is_correct = correct_count == total_count and total_count > 0
             if not is_correct:
