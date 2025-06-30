@@ -21,12 +21,6 @@ The {op_name}_kernel_impl wrapper function MUST handle complete device managemen
 - Handle both args and kwargs properly
 - Preserve original tensor devices and restore them for outputs
 
-Key syntax guidelines:
-- Grid computation: `grid = (triton.cdiv(n_elements, BLOCK_SIZE),)` (compute the tuple, don't use lambda)
-- Kernel invocation: `kernel_name[grid](args...)`
-- Use `tensor.data_ptr()` for tensor pointer arguments
-- Standard triton pattern: program_id, arange, load/store with masks
-
 Generate complete, runnable code only - no framework will add device handling wrapper code."""
 
 PYTORCH_KERNEL_PROMPT = """Generate a PyTorch implementation for: {op_name}
@@ -36,8 +30,7 @@ Operation: {op_signature}
 
 Requirements:
 - Function name MUST be: {op_name}_kernel_impl
-- Use vectorized PyTorch operations
-- Handle broadcasting and edge cases
+- Handle edge cases
 - Match PyTorch reference behavior
 
 Generate complete, runnable code only."""
