@@ -126,16 +126,13 @@ class ClaudeKernelGenerator:
         return "\n".join(feedback_parts)
 
     def _extract_code_from_response(self, response: str) -> str:
-        if "```python" in response:
-            start = response.find("```python") + len("```python")
-            end = response.find("```", start)
-            if end != -1:
-                return response[start:end].strip()
-
-        if "```" in response:
-            start = response.find("```") + 3
-            end = response.find("```", start)
-            if end != -1:
-                return response[start:end].strip()
+        if "```python" not in response:
+            raise ValueError("No Python code block found in LLM response. Response should contain ```python...``` block.")
         
-        return response.strip()
+        start = response.find("```python") + len("```python")
+        end = response.find("```", start)
+        
+        if end == -1:
+            raise ValueError("Unclosed Python code block in LLM response.")
+        
+        return response[start:end].strip()

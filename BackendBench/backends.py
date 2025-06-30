@@ -389,15 +389,8 @@ import torch.nn.functional as F
             f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
         )
 
-    def add_kernel(self, op, kernel_code: str, op_name: str = None):
+    def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
-        if op_name is None:
-            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
-            op_str = str(op)
-            if "aten." in op_str:
-                op_name = op_str.split("aten.")[-1].split(".")[0]
-            else:
-                op_name = op_str.split(".")[-1]
         compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
         self.compiled_kernels[op] = compiled_kernel
 
