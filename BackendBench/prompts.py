@@ -47,6 +47,4 @@ TRITON_OPTIMIZATIONS = {
     "default": "Use efficient memory access patterns and appropriate block sizes."
 }
 
-TRITON_EXAMPLE_TEMPLATES = {
-    "default": "See main prompt for example structure."
-} 
+TRITON_EXAMPLE_TEMPLATES = {"default": "See main prompt for example structure."}

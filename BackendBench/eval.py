@@ -76,9 +76,3 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
-
-
-
-
-
-
