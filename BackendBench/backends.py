@@ -456,6 +456,7 @@ import torch.nn.functional as F
                     del sys.modules[f"test_kernel_{op_name}_{attempt}"]
 
             import torch
+
             correct_count = 0
             total_count = 0
 
@@ -473,14 +474,17 @@ import torch.nn.functional as F
 
                 except Exception as e:
                     import traceback
+
                     print(f"    ✗ Test failed: {str(e)}")
-                    
-                    feedback_info["test_errors"].append({
-                        "test_input": f"args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}",
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                        "traceback": traceback.format_exc()
-                    })
+
+                    feedback_info["test_errors"].append(
+                        {
+                            "test_input": f"args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}",
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                            "traceback": traceback.format_exc(),
+                        }
+                    )
 
                 total_count += 1
 

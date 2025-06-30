@@ -6,7 +6,6 @@ from .kernel_templates import KernelTemplateManager
 
 # This is where a KernelAgent would be plugged in, this is a toy one that 1 shots the problem
 class ClaudeKernelGenerator:
-
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -25,7 +24,6 @@ class ClaudeKernelGenerator:
         framework: str = "triton",
         feedback: Optional[str] = None,
     ) -> str:
-
         if feedback:
             prompt = self.template_manager.create_refinement_prompt(
                 op_name, op_signature, op_description, framework, feedback
@@ -42,7 +40,7 @@ class ClaudeKernelGenerator:
         try:
             response = self.client.messages.create(
                 model="claude-sonnet-4-20250514",
-                max_tokens=8000, 
+                max_tokens=8000,
                 temperature=0.2,
                 timeout=120.0,
                 messages=[{"role": "user", "content": prompt}],
@@ -127,12 +125,14 @@ class ClaudeKernelGenerator:
 
     def _extract_code_from_response(self, response: str) -> str:
         if "```python" not in response:
-            raise ValueError("No Python code block found in LLM response. Response should contain ```python...``` block.")
-        
+            raise ValueError(
+                "No Python code block found in LLM response. Response should contain ```python...``` block."
+            )
+
         start = response.find("```python") + len("```python")
         end = response.find("```", start)
-        
+
         if end == -1:
             raise ValueError("Unclosed Python code block in LLM response.")
-        
+
         return response[start:end].strip()
