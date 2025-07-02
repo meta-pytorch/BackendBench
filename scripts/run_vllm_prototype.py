@@ -91,145 +91,31 @@ def parse_operations(operations_str: str) -> List[str]:
     return [op.strip() for op in operations_str.split(",") if op.strip()]
 
 
-def create_enhanced_prompts() -> Dict[str, str]:
-    """Create enhanced prompts for kernel generation"""
-    return {
-        "relu": """
-You are an expert GPU kernel developer. Generate a high-performance Triton kernel for the ReLU activation function.
-
-REQUIREMENTS:
-- Function name MUST be: relu_kernel_impl
-- Input: tensor x (arbitrary shape, float32)
-- Output: tensor with ReLU applied: max(0, x)
-- Use Triton for GPU optimization
-- Handle memory coalescing efficiently
-- Support arbitrary tensor shapes and sizes
-
-TEMPLATE:
-```python
-@triton.jit
-def relu_kernel(input_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    # Your kernel implementation here
-    pass
-
-def relu_kernel_impl(x):
-    # Wrapper function that calls the Triton kernel
-    output = torch.empty_like(x)
-    n_elements = x.numel()
+def create_prompt_for_operation(op_name: str) -> str:
+    """Create prompt using existing KernelTemplateManager"""
+    from BackendBench.kernel_templates import KernelTemplateManager
+    from BackendBench.opinfo_suite import OPINFO_SUITE
     
-    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    relu_kernel[grid](x, output, n_elements, BLOCK_SIZE=1024)
+    # Get operation info from existing opinfo suite
+    if op_name in OPINFO_SUITE:
+        op_info = OPINFO_SUITE[op_name]
+        op_signature = op_info.signature
+        op_description = getattr(op_info, 'description', f'Apply {op_name} operation')
+    else:
+        op_signature = f"{op_name}(...) -> Tensor"
+        op_description = f"Apply {op_name} operation"
     
-    return output
-```
-
-Generate efficient, correct code optimized for GPU execution.
-""",
-        
-        "add": """
-You are an expert GPU kernel developer. Generate a high-performance Triton kernel for element-wise tensor addition.
-
-REQUIREMENTS:
-- Function name MUST be: add_kernel_impl
-- Inputs: tensor a, tensor b (same shape, float32)
-- Output: tensor a + b element-wise
-- Use Triton for GPU optimization
-- Optimize for memory bandwidth
-- Handle arbitrary tensor shapes
-
-TEMPLATE:
-```python
-@triton.jit
-def add_kernel(a_ptr, b_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    # Your kernel implementation here
-    pass
-
-def add_kernel_impl(a, b):
-    # Wrapper function that calls the Triton kernel
-    output = torch.empty_like(a)
-    n_elements = a.numel()
-    
-    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    add_kernel[grid](a, b, output, n_elements, BLOCK_SIZE=1024)
-    
-    return output
-```
-
-Generate efficient, correct code optimized for GPU execution.
-""",
-        
-        "mul": """
-You are an expert GPU kernel developer. Generate a high-performance Triton kernel for element-wise tensor multiplication.
-
-REQUIREMENTS:
-- Function name MUST be: mul_kernel_impl
-- Inputs: tensor a, tensor b (same shape, float32)
-- Output: tensor a * b element-wise
-- Use Triton for GPU optimization
-- Optimize for throughput
-- Handle arbitrary tensor shapes
-
-TEMPLATE:
-```python
-@triton.jit
-def mul_kernel(a_ptr, b_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    # Your kernel implementation here
-    pass
-
-def mul_kernel_impl(a, b):
-    # Wrapper function that calls the Triton kernel
-    output = torch.empty_like(a)
-    n_elements = a.numel()
-    
-    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    mul_kernel[grid](a, b, output, n_elements, BLOCK_SIZE=1024)
-    
-    return output
-```
-
-Generate efficient, correct code optimized for GPU execution.
-""",
-        
-        "sigmoid": """
-You are an expert GPU kernel developer. Generate a high-performance Triton kernel for the Sigmoid activation function.
-
-REQUIREMENTS:
-- Function name MUST be: sigmoid_kernel_impl
-- Input: tensor x (arbitrary shape, float32)
-- Output: tensor with sigmoid applied: 1 / (1 + exp(-x))
-- Use Triton for GPU optimization
-- Handle numerical stability for large values
-- Optimize for memory access patterns
-
-TEMPLATE:
-```python
-@triton.jit
-def sigmoid_kernel(input_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    # Your kernel implementation here
-    pass
-
-def sigmoid_kernel_impl(x):
-    # Wrapper function that calls the Triton kernel
-    output = torch.empty_like(x)
-    n_elements = x.numel()
-    
-    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    sigmoid_kernel[grid](x, output, n_elements, BLOCK_SIZE=1024)
-    
-    return output
-```
-
-Generate numerically stable, efficient code optimized for GPU execution.
-"""
-    }
+    # Use existing template manager
+    template_manager = KernelTemplateManager()
+    return template_manager.create_prompt(op_name, op_signature, op_description, framework="triton")
 
 
 async def main():
     parser = argparse.ArgumentParser(description="Run 8-GPU VLLM Backend Prototype")
     parser.add_argument(
         "--model", 
-        default="codellama/CodeLlama-7b-Instruct-hf",
-        help="VLLM model path (default: codellama/CodeLlama-7b-Instruct-hf)"
+        default="Qwen/Qwen3-30B",
+        help="VLLM model path (default: Qwen/Qwen3-30B)"
     )
     parser.add_argument(
         "--operations", 
@@ -284,24 +170,10 @@ async def main():
         evaluation_gpus=[4, 5, 6, 7],  # Last 4 GPUs for evaluation
     )
     
-    # Create enhanced prompts
-    prompts = create_enhanced_prompts()
-    
-    # Ensure all operations have prompts
+    # Create prompts for each operation using the existing simple pattern
+    prompts = {}
     for op in operations:
-        if op not in prompts:
-            prompts[op] = f"""
-Generate a high-performance kernel implementation for the {op} operation.
-
-REQUIREMENTS:
-- Function name MUST be: {op}_kernel_impl
-- Use appropriate inputs/outputs for the {op} operation
-- Optimize for GPU execution
-- Handle arbitrary tensor shapes
-- Return correct results
-
-Generate efficient, correct code optimized for GPU execution.
-"""
+        prompts[op] = create_prompt_for_operation(op)
     
     try:
         # Create and run orchestrator

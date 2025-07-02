@@ -159,8 +159,10 @@ class VLLMGenerationWorker:
             model=model_path,
             tensor_parallel_size=tensor_parallel_size,
             max_model_len=max_model_len,
-            gpu_memory_utilization=0.9,
-            enforce_eager=True  # Avoid graph compilation overhead
+            gpu_memory_utilization=0.85,  # Lower for larger models like Qwen3-30B
+            enforce_eager=True,  # Avoid graph compilation overhead
+            trust_remote_code=True,  # Required for Qwen models
+            dtype="bfloat16"  # Use bfloat16 for better memory efficiency
         )
         
         self.engine = AsyncLLMEngine.from_engine_args(engine_args)
