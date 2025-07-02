@@ -94,7 +94,7 @@ class KernelStore:
         # Atomic update using Lua script
         lua_script = """
         local key = KEYS[1]
-        local correct = ARGV[1] == "true"
+        local correct = ARGV[1] == "True"
         local speedup = tonumber(ARGV[2]) or 0
         
         local total = tonumber(redis.call('HGET', key, 'total') or 0)
