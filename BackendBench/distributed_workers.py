@@ -255,10 +255,20 @@ class DistributedWorkerManager:
         for gpu_id in self.config.evaluation_gpus:
             worker_id = f"eval_worker_{gpu_id}"
             
+            # Create a serializable config dict instead of passing the full object
+            config_dict = {
+                'redis_host': self.config.redis_host,
+                'redis_port': self.config.redis_port,
+                'vllm_model_path': self.config.vllm_model_path,
+                'generation_gpus': self.config.generation_gpus,
+                'evaluation_gpus': self.config.evaluation_gpus,
+                'max_workers': self.config.max_workers
+            }
+            
             # Create worker process
             worker_process = mp.Process(
-                target=self._run_evaluation_worker,
-                args=(worker_id, gpu_id, self.config)
+                target=DistributedWorkerManager._run_evaluation_worker,
+                args=(worker_id, gpu_id, config_dict)
             )
             
             worker_process.start()
@@ -268,9 +278,20 @@ class DistributedWorkerManager:
         
         print("All evaluation workers started!")
     
-    def _run_evaluation_worker(self, worker_id: str, gpu_id: int, config: WorkerConfig):
+    @staticmethod
+    def _run_evaluation_worker(worker_id: str, gpu_id: int, config_dict: dict):
         """Run evaluation worker in separate process"""
         try:
+            # Recreate WorkerConfig from dictionary inside worker process
+            config = WorkerConfig(
+                redis_host=config_dict['redis_host'],
+                redis_port=config_dict['redis_port'],
+                vllm_model_path=config_dict['vllm_model_path'],
+                generation_gpus=config_dict['generation_gpus'],
+                evaluation_gpus=config_dict['evaluation_gpus'],
+                max_workers=config_dict['max_workers']
+            )
+            
             worker = EvaluationWorker(worker_id, gpu_id, config)
             worker.run()
         except Exception as e:
