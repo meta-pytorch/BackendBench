@@ -1,17 +1,7 @@
-# Additional requirements for VLLM Backend Prototype
-# Install with: pip install -r requirements-vllm.txt
-
-# Core VLLM and distributed computing
 vllm>=0.3.0
 redis>=4.5.0
-
-# For multiprocessing and async support
-asyncio-mqtt>=0.11.0  # If needed for advanced messaging
-psutil>=5.9.0  # For system monitoring
-
-# Enhanced development/debugging tools
-rich>=13.0.0  # For better console output
-click>=8.1.0  # For CLI enhancements
-
-# Optional: Monitoring and observability
-prometheus-client>=0.16.0  # For metrics collection
+asyncio-mqtt>=0.11.0
+psutil>=5.9.0
+rich>=13.0.0
+click>=8.1.0
+prometheus-client>=0.16.0
