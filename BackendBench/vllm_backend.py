@@ -8,11 +8,13 @@ import redis
 import json
 
 try:
-    from vllm import AsyncLLM, SamplingParams
+    from vllm import LLM, SamplingParams
+    from vllm import AsyncLLMEngine
+    from vllm.engine.arg_utils import AsyncEngineArgs
     VLLM_AVAILABLE = True
-except ImportError:
+except ImportError as e:
     VLLM_AVAILABLE = False
-    print("Warning: VLLM not available. Install with: pip install vllm")
+    print(f"Warning: VLLM not available. Install with: pip install vllm. Error: {e}")
 
 from .backends import Backend
 
@@ -152,14 +154,16 @@ class VLLMGenerationWorker:
         self.model_path = model_path
         self.tensor_parallel_size = tensor_parallel_size
         
-        # Initialize VLLM AsyncLLM
-        self.llm = AsyncLLM(
+        # Initialize VLLM AsyncLLMEngine
+        engine_args = AsyncEngineArgs(
             model=model_path,
             tensor_parallel_size=tensor_parallel_size,
             max_model_len=max_model_len,
             gpu_memory_utilization=0.9,
             enforce_eager=True  # Avoid graph compilation overhead
         )
+        
+        self.engine = AsyncLLMEngine.from_engine_args(engine_args)
         
         # Sampling parameters for kernel generation
         self.sampling_params = SamplingParams(
@@ -186,15 +190,18 @@ class VLLMGenerationWorker:
             
             # Generate all candidates for this prompt in one call
             request_id = f"req_{hash(prompt)}_{time.time()}"
-            outputs = await self.llm.generate(prompt, sampling_params_multi, request_id)
             
-            # Extract kernel codes from outputs
-            for output in outputs:
-                if hasattr(output, 'outputs') and output.outputs:
-                    for completion in output.outputs:
-                        kernel_code = completion.text.strip()
-                        if kernel_code:  # Only add non-empty responses
-                            candidates.append(kernel_code)
+            # Use the correct AsyncLLMEngine.generate() API
+            final_output = None
+            async for request_output in self.engine.generate(prompt, sampling_params_multi, request_id):
+                final_output = request_output
+            
+            # Extract kernel codes from the final output
+            if final_output and final_output.outputs:
+                for completion in final_output.outputs:
+                    kernel_code = completion.text.strip()
+                    if kernel_code:  # Only add non-empty responses
+                        candidates.append(kernel_code)
             
             all_results.append(candidates)
             
