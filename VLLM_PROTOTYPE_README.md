@@ -1,6 +1,6 @@
 # VLLM Backend 8-GPU Prototype
 
-This prototype demonstrates a scalable self-hosted VLLM deployment for massively parallel kernel generation using rejection sampling. The system is designed to scale from 8 GPUs to 1000+ GPUs while maintaining the same architectural principles.
+This prototype demonstrates a scalable self-hosted VLLM deployment for massively parallel kernel generation using rejection sampling. The system is designed to scale from 8 GPUs to 1000+ GPUs.
 
 ## Architecture Overview
 
@@ -27,34 +27,13 @@ This prototype demonstrates a scalable self-hosted VLLM deployment for massively
 └─────────────────┘  └─────────────────┘  └─────────────────┘
 ```
 
-### 🎯 Key Features
-
-- **Massive Rejection Sampling**: Generate 10+ candidates per operation, keep the best
-- **Distributed Evaluation**: Parallel kernel testing on dedicated GPUs
-- **Smart Reprompting**: Learn from failures to improve generation quality
-- **Performance Tracking**: Redis-based metrics for continuous improvement
-- **Scalable Design**: Same architecture works for 8 to 1000+ GPUs
-
 ## Quick Start
 
 ### Prerequisites
 
 ```bash
-# 1. Hardware Requirements
-# - 8 NVIDIA GPUs (tested with A100, H100)
-# - 64GB+ system RAM
-# - Fast SSD storage
-
-# 2. Software Requirements
-# - Python 3.8+
-# - CUDA 11.8+ or 12.0+
-# - Redis server
-
-# 3. Install dependencies
 pip install -r requirements.txt
 pip install -r requirements-vllm.txt
-
-# 4. Start Redis
 redis-server
 ```
 
@@ -66,13 +45,13 @@ python scripts/run_vllm_prototype.py
 
 # Custom model and operations
 python scripts/run_vllm_prototype.py \
-    --model "codellama/CodeLlama-13b-Instruct-hf" \
+    --model "Qwen/Qwen2.5-14B-Instruct" \
     --operations "relu,add,mul,sigmoid" \
     --candidates-per-op 50
 
 # Advanced usage with custom Redis
 python scripts/run_vllm_prototype.py \
-    --model "meta-llama/Llama-2-7b-chat-hf" \
+    --model "Qwen/Qwen2.5-7B-Instruct" \
     --operations "matmul,softmax,layernorm" \
     --redis-host "10.0.0.100" \
     --candidates-per-op 100
@@ -88,19 +67,7 @@ python scripts/run_vllm_prototype.py \
 - **Concurrency**: Async batching for high throughput
 - **Output**: 10-50 kernel candidates per operation
 
-```python
-# Example generated kernel
-@triton.jit
-def relu_kernel(input_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    pid = tl.program_id(axis=0)
-    block_start = pid * BLOCK_SIZE
-    offsets = block_start + tl.arange(0, BLOCK_SIZE)
-    mask = offsets < n_elements
-    
-    x = tl.load(input_ptr + offsets, mask=mask)
-    output = tl.maximum(x, 0.0)
-    tl.store(output_ptr + offsets, output, mask=mask)
-```
+TODO: Measure actual count
 
 ### 2. Evaluation Workers
 
@@ -125,38 +92,9 @@ completed_tasks               → JSON results queue
 
 The system learns from failures to improve generation:
 
-```python
-def get_adaptive_prompt(self, operation_name: str, base_prompt: str) -> str:
-    failure_context = self.store.get_failure_context(operation_name)
-    
-    if "memory" in failure_context:
-        base_prompt += "\nIMPORTANT: Pay attention to memory access patterns"
-    if "compilation" in failure_context:
-        base_prompt += "\nIMPORTANT: Ensure proper variable declarations"
-        
-    return base_prompt
-```
-
 ## Scaling to 1000 GPUs
 
-### Architecture Modifications
-
-1. **Generation Scaling**: 
-   - 125 workers × 8-way TP = 1000 generation GPUs
-   - Multiple Redis instances with sharding
-   - Load balancing across VLLM workers
-
-2. **Evaluation Scaling**:
-   - 500+ evaluation workers (2 GPUs per worker)
-   - Hierarchical result aggregation
-   - Distributed file storage (S3/GCS)
-
-3. **Enhanced Orchestration**:
-   - Kubernetes deployment with auto-scaling
-   - Multi-node Redis cluster
-   - Prometheus monitoring + Grafana dashboards
-
-### Configuration Example (1000 GPU)
+TODO
 
 ```python
 SCALE_CONFIG = {
@@ -179,15 +117,7 @@ SCALE_CONFIG = {
 
 ## Performance Expectations
 
-### 8-GPU Prototype
-- **Generation**: ~100 kernels/minute
-- **Evaluation**: ~500 kernels/minute  
-- **End-to-end**: ~20 operations/hour with rejection sampling
-
-### 1000-GPU Scaled System
-- **Generation**: ~12,500 kernels/minute
-- **Evaluation**: ~60,000 kernels/minute
-- **End-to-end**: ~2,500 operations/hour with rejection sampling
+TODO: MEasure respectively how many kernels we generated, evaluated and end to end speedup to find a better than torch eager kernel
 
 ## Monitoring and Debugging
 
@@ -219,71 +149,3 @@ best_kernels = store.get_best_kernels("relu", limit=5)
 for kernel in best_kernels:
     print(f"Hash: {kernel['hash']}, Speedup: {kernel['speedup']:.2f}x")
 ```
-
-## Extending the System
-
-### Adding New Operations
-
-1. Add prompt template in `create_enhanced_prompts()`
-2. Implement test cases in evaluation worker
-3. Add to operations list in runner script
-
-### Custom Models
-
-```python
-# Support for custom VLLM models
-python scripts/run_vllm_prototype.py \
-    --model "/path/to/your/fine-tuned-model" \
-    --operations "custom_op1,custom_op2"
-```
-
-### Advanced Evaluation
-
-```python
-class CustomEvaluationWorker(EvaluationWorker):
-    def _evaluate_kernel(self, task):
-        # Add custom performance benchmarks
-        # Add custom correctness tests
-        # Add custom optimization metrics
-        pass
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Out of Memory**: Reduce tensor parallel size or model size
-2. **Redis Connection**: Check Redis server and network connectivity  
-3. **CUDA Errors**: Ensure proper GPU allocation and driver compatibility
-4. **Slow Generation**: Try smaller model or increase batch size
-
-### Debug Mode
-
-```bash
-# Enable verbose logging
-VLLM_DEBUG=1 python scripts/run_vllm_prototype.py --operations "relu"
-
-# Skip prerequisite checks for testing
-python scripts/run_vllm_prototype.py --skip-checks
-```
-
-## Future Enhancements
-
-1. **Advanced Rejection Sampling**: Bayesian optimization for prompt evolution
-2. **Federated Learning**: Share successful kernels across deployments  
-3. **Code Synthesis**: Multi-step kernel generation with planning
-4. **Hardware Specialization**: Architecture-specific optimization (H100, MI300X)
-5. **Integration**: Direct integration with existing ML frameworks
-
-## Contributing
-
-This prototype demonstrates the core concepts for massive scale test-time compute. Contributions welcome for:
-- Performance optimizations
-- New evaluation metrics  
-- Integration with additional models
-- Scaling improvements
-- Monitoring enhancements
-
----
-
-Built with ❤️ for the future of AI-powered code generation at scale.
