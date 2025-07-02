@@ -11,6 +11,11 @@ import redis
 import torch
 import traceback
 
+# Set multiprocessing start method to 'spawn' for CUDA compatibility
+# This must be done before any multiprocessing operations
+if mp.get_start_method(allow_none=True) != 'spawn':
+    mp.set_start_method('spawn', force=True)
+
 from .vllm_backend import KernelStore, KernelResult
 from .backends import LLMBackend
 
