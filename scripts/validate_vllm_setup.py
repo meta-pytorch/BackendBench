@@ -102,7 +102,12 @@ def test_kernel_store():
         
         store = KernelStore()
         
-        # Test storing a kernel result
+        # Clean up any existing test data first
+        store.redis.delete("kernel:test_op_validation:test_hash_123")
+        store.redis.delete("op_kernels:test_op_validation")
+        store.redis.delete("op_stats:test_op_validation")
+        
+        # Test storing a kernel result (use unique operation name for validation)
         test_result = KernelResult(
             kernel_code="def test(): return 42",
             kernel_hash="test_hash_123",
@@ -111,22 +116,26 @@ def test_kernel_store():
             timestamp=1234567890
         )
         
-        store.store_kernel_result("test_op", "test_hash_123", test_result)
+        store.store_kernel_result("test_op_validation", "test_hash_123", test_result)
         
         # Test retrieving stats
-        stats = store.get_operation_stats("test_op")
+        stats = store.get_operation_stats("test_op_validation")
         
         if stats["total_attempts"] == 1 and stats["best_speedup"] == 1.5:
             print("✅ Kernel store working correctly")
             
             # Cleanup
-            store.redis.delete("kernel:test_op:test_hash_123")
-            store.redis.delete("op_kernels:test_op")
-            store.redis.delete("op_stats:test_op")
+            store.redis.delete("kernel:test_op_validation:test_hash_123")
+            store.redis.delete("op_kernels:test_op_validation")
+            store.redis.delete("op_stats:test_op_validation")
             
             return True
         else:
             print(f"❌ Kernel store test failed: {stats}")
+            # Still cleanup even on failure
+            store.redis.delete("kernel:test_op_validation:test_hash_123")
+            store.redis.delete("op_kernels:test_op_validation")
+            store.redis.delete("op_stats:test_op_validation")
             return False
             
     except Exception as e:
