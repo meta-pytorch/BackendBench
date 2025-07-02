@@ -146,6 +146,14 @@ class EvaluationWorker:
         try:
             print(f"  Worker {self.worker_id} evaluating {task.operation_name}:{task.kernel_hash[:8]}")
             
+            # Save kernel for debugging (even if it fails)
+            debug_file = f"/tmp/debug_kernel_{task.operation_name}_{task.kernel_hash[:8]}.py"
+            with open(debug_file, "w") as f:
+                f.write(f"# Debug kernel for {task.operation_name}\n")
+                f.write(f"# Hash: {task.kernel_hash}\n\n")
+                f.write(task.kernel_code)
+            print(f"    Saved debug kernel to: {debug_file}")
+            
             # Use existing LLMBackend testing logic
             # TODO: Convert test_cases format properly
             dummy_test_cases = []  # Placeholder - need to implement proper test case conversion
@@ -160,17 +168,19 @@ class EvaluationWorker:
             if not is_correct:
                 if feedback.get("compilation_error"):
                     result.error = f"Compilation: {feedback['compilation_error']}"
+                    print(f"    ❌ Compilation failed: {feedback['compilation_error']}")
                 elif feedback.get("test_errors"):
                     result.error = f"Tests: {feedback['test_errors'][0]['error']}"
+                    print(f"    ❌ Tests failed: {feedback['test_errors'][0]['error']}")
                 else:
                     result.error = feedback.get("summary", "Unknown error")
+                    print(f"    ❌ Failed: {result.error}")
             else:
                 # Basic performance test - just check if it runs
                 result.speedup_factor = 1.0  # Placeholder
                 # TODO: Implement proper benchmarking with triton.do_bench
+                print(f"    ✅ Success: {result.correctness_passed}, Speedup: {result.speedup_factor:.2f}x")
                 
-            print(f"    ✅ Success: {result.correctness_passed}, Speedup: {result.speedup_factor:.2f}x")
-            
         except Exception as e:
             result.error = str(e)
             print(f"    ❌ Error: {e}")

@@ -182,29 +182,31 @@ class VLLMGenerationWorker:
         for prompt in prompts:
             candidates = []
             
-            # Create sampling params for multiple candidates
-            sampling_params_multi = SamplingParams(
-                temperature=0.7,
-                top_p=0.9,
-                max_tokens=2048,
-                n=num_candidates  # Generate multiple candidates at once
-            )
+            # Generate candidates one by one (more reliable than n=num_candidates)
+            for i in range(num_candidates):
+                sampling_params = SamplingParams(
+                    temperature=0.7,
+                    top_p=0.9,
+                    max_tokens=2048,
+                    n=1  # Generate one at a time
+                )
+                
+                request_id = f"req_{hash(prompt)}_{time.time()}_{i}"
+                
+                # Generate single candidate
+                final_output = None
+                async for request_output in self.engine.generate(prompt, sampling_params, request_id):
+                    final_output = request_output
+                
+                # Extract kernel code
+                if final_output and final_output.outputs and final_output.outputs[0].text.strip():
+                    kernel_code = final_output.outputs[0].text.strip()
+                    candidates.append(kernel_code)
+                    print(f"    Generated candidate {i+1}/{num_candidates} ({len(kernel_code)} chars)")
+                else:
+                    print(f"    Failed to generate candidate {i+1}/{num_candidates}")
             
-            # Generate all candidates for this prompt in one call
-            request_id = f"req_{hash(prompt)}_{time.time()}"
-            
-            # Use the correct AsyncLLMEngine.generate() API
-            final_output = None
-            async for request_output in self.engine.generate(prompt, sampling_params_multi, request_id):
-                final_output = request_output
-            
-            # Extract kernel codes from the final output
-            if final_output and final_output.outputs:
-                for completion in final_output.outputs:
-                    kernel_code = completion.text.strip()
-                    if kernel_code:  # Only add non-empty responses
-                        candidates.append(kernel_code)
-            
+            print(f"  Successfully generated {len(candidates)}/{num_candidates} candidates")
             all_results.append(candidates)
             
         return all_results
