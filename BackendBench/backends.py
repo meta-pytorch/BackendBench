@@ -2,6 +2,13 @@ import os
 import importlib.util
 from typing import Dict, Callable, List
 
+# Import VLLM backend if available
+try:
+    from .vllm_backend import VLLMBackend
+    VLLM_AVAILABLE = True
+except ImportError:
+    VLLM_AVAILABLE = False
+
 
 class Backend:
     def __init__(self, name):
