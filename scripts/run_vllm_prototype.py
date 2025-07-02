@@ -92,18 +92,12 @@ def parse_operations(operations_str: str) -> List[str]:
 
 
 def create_prompt_for_operation(op_name: str) -> str:
-    """Create prompt using existing KernelTemplateManager"""
+    """Create prompt using existing KernelTemplateManager with simple pattern"""
     from BackendBench.kernel_templates import KernelTemplateManager
-    from BackendBench.opinfo_suite import OPINFO_SUITE
     
-    # Get operation info from existing opinfo suite
-    if op_name in OPINFO_SUITE:
-        op_info = OPINFO_SUITE[op_name]
-        op_signature = op_info.signature
-        op_description = getattr(op_info, 'description', f'Apply {op_name} operation')
-    else:
-        op_signature = f"{op_name}(...) -> Tensor"
-        op_description = f"Apply {op_name} operation"
+    # Use simple signature and description patterns
+    op_signature = f"{op_name}(input: Tensor, *args, **kwargs) -> Tensor"
+    op_description = f"Apply {op_name} operation element-wise"
     
     # Use existing template manager
     template_manager = KernelTemplateManager()
