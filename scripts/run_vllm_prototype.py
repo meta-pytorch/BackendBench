@@ -108,8 +108,8 @@ async def main():
     parser = argparse.ArgumentParser(description="Run 8-GPU VLLM Backend Prototype")
     parser.add_argument(
         "--model", 
-        default="Qwen/Qwen3-30B",
-        help="VLLM model path (default: Qwen/Qwen3-30B)"
+        default="Qwen/Qwen3-32B",
+        help="VLLM model path (default: Qwen/Qwen3-32B)"
     )
     parser.add_argument(
         "--operations", 
