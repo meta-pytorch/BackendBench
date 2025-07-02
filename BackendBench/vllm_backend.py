@@ -8,8 +8,7 @@ import redis
 import json
 
 try:
-    from vllm import AsyncLLMEngine, SamplingParams
-    from vllm.engine.arg_utils import AsyncEngineArgs
+    from vllm import AsyncLLM, SamplingParams
     VLLM_AVAILABLE = True
 except ImportError:
     VLLM_AVAILABLE = False
@@ -153,16 +152,14 @@ class VLLMGenerationWorker:
         self.model_path = model_path
         self.tensor_parallel_size = tensor_parallel_size
         
-        # Initialize VLLM engine
-        engine_args = AsyncEngineArgs(
+        # Initialize VLLM AsyncLLM
+        self.llm = AsyncLLM(
             model=model_path,
             tensor_parallel_size=tensor_parallel_size,
             max_model_len=max_model_len,
             gpu_memory_utilization=0.9,
             enforce_eager=True  # Avoid graph compilation overhead
         )
-        
-        self.engine = AsyncLLMEngine.from_engine_args(engine_args)
         
         # Sampling parameters for kernel generation
         self.sampling_params = SamplingParams(
@@ -179,20 +176,25 @@ class VLLMGenerationWorker:
         for prompt in prompts:
             candidates = []
             
-            # Generate multiple candidates with rejection sampling
-            for _ in range(num_candidates):
-                request_id = f"req_{hash(prompt)}_{time.time()}"
-                
-                # Add request to engine
-                await self.engine.add_request(request_id, prompt, self.sampling_params)
-                
-                # Get result
-                async for output in self.engine.generate():
-                    if output.request_id == request_id:
-                        if output.outputs:
-                            kernel_code = output.outputs[0].text.strip()
+            # Create sampling params for multiple candidates
+            sampling_params_multi = SamplingParams(
+                temperature=0.7,
+                top_p=0.9,
+                max_tokens=2048,
+                n=num_candidates  # Generate multiple candidates at once
+            )
+            
+            # Generate all candidates for this prompt in one call
+            request_id = f"req_{hash(prompt)}_{time.time()}"
+            outputs = await self.llm.generate(prompt, sampling_params_multi, request_id)
+            
+            # Extract kernel codes from outputs
+            for output in outputs:
+                if hasattr(output, 'outputs') and output.outputs:
+                    for completion in output.outputs:
+                        kernel_code = completion.text.strip()
+                        if kernel_code:  # Only add non-empty responses
                             candidates.append(kernel_code)
-                        break
             
             all_results.append(candidates)
             
