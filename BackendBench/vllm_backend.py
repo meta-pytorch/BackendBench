@@ -2,6 +2,7 @@ import os
 import time
 import hashlib
 import asyncio
+import re
 from typing import Dict, List, Optional, Callable
 from dataclasses import dataclass
 import redis
@@ -17,6 +18,22 @@ except ImportError as e:
     print(f"Warning: VLLM not available. Install with: pip install vllm. Error: {e}")
 
 from .backends import Backend
+
+
+def extract_python_code(text: str) -> str:
+    """Extract Python code from markdown code blocks or return raw text"""
+    # Try to find ```python code blocks first
+    python_match = re.search(r'```python\s*\n(.*?)\n```', text, re.DOTALL)
+    if python_match:
+        return python_match.group(1).strip()
+    
+    # Try to find generic ``` code blocks
+    code_match = re.search(r'```\s*\n(.*?)\n```', text, re.DOTALL)
+    if code_match:
+        return code_match.group(1).strip()
+    
+    # If no code blocks found, return the original text
+    return text.strip()
 
 
 @dataclass
@@ -200,7 +217,8 @@ class VLLMGenerationWorker:
                 
                 # Extract kernel code
                 if final_output and final_output.outputs and final_output.outputs[0].text.strip():
-                    kernel_code = final_output.outputs[0].text.strip()
+                    raw_text = final_output.outputs[0].text.strip()
+                    kernel_code = extract_python_code(raw_text)
                     candidates.append(kernel_code)
                     print(f"    Generated candidate {i+1}/{num_candidates} ({len(kernel_code)} chars)")
                 else:
@@ -238,7 +256,11 @@ class SimpleRepromptPolicy:
         failure_context = self.store.get_failure_context(operation_name)
         
         if failure_context:
-            enhanced_prompt = f"{base_prompt}\n\nIMPORTANT: Learn from these recent failures:\n{failure_context}\n\nPlease avoid similar mistakes in your implementation."
+            enhanced_prompt = f"""{base_prompt}
+
+CRITICAL: Previous attempts failed with these errors:
+{failure_context}
+"""
         else:
             enhanced_prompt = base_prompt
             
