@@ -19,15 +19,9 @@ The {op_name}_kernel_impl wrapper function MUST handle complete device managemen
 
 Generate complete, runnable code only - no framework will add device handling wrapper code.
 
-CRITICAL: Output ONLY Python code. No explanations, no comments, no reasoning. If you must add comments then add as code comments. Start immediately with:
+RESPONSE FORMAT: You MUST respond with ONLY a Python code block. No explanations, no reasoning, no text outside the code block.
 
-```python
-import torch
-import triton
-import triton.language as tl
-```
-
-Do not include any text before or after the code block."""
+Start your response immediately with ```python"""
 
 PYTORCH_KERNEL_PROMPT = """Generate a PyTorch implementation for: {op_name}
 

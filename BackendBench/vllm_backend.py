@@ -22,15 +22,20 @@ from .backends import Backend
 
 def extract_python_code(text: str) -> str:
     """Extract Python code from markdown code blocks or return raw text"""
-    # Try to find ```python code blocks first
-    python_match = re.search(r'```python\s*\n(.*?)\n```', text, re.DOTALL)
+    # Try to find ```python code blocks first (most permissive)
+    python_match = re.search(r'```python\s*\n(.*?)(?:\n```|$)', text, re.DOTALL)
     if python_match:
         return python_match.group(1).strip()
     
-    # Try to find generic ``` code blocks
-    code_match = re.search(r'```\s*\n(.*?)\n```', text, re.DOTALL)
+    # Try to find generic ``` code blocks  
+    code_match = re.search(r'```\s*\n(.*?)(?:\n```|$)', text, re.DOTALL)
     if code_match:
         return code_match.group(1).strip()
+    
+    # Look for import statements as start of code
+    import_match = re.search(r'(import torch.*?)(?:\n\n[A-Z]|$)', text, re.DOTALL)
+    if import_match:
+        return import_match.group(1).strip()
     
     # If no code blocks found, return the original text
     return text.strip()
@@ -202,9 +207,9 @@ class VLLMGenerationWorker:
             # Generate candidates one by one (more reliable than n=num_candidates)
             for i in range(num_candidates):
                 sampling_params = SamplingParams(
-                    temperature=0.7,
+                    temperature=0.3,
                     top_p=0.9,
-                    max_tokens=2048,
+                    max_tokens=4096,  # Increase to ensure complete generation
                     n=1  # Generate one at a time
                 )
                 
