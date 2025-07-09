@@ -7,18 +7,33 @@ import BackendBench.backends as backends
 import BackendBench.eval as eval
 import click
 import torch
+from BackendBench.huggingface_tracer import HuggingFaceTracerTestSuite
+from BackendBench.llm_client import ClaudeKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
-from BackendBench.llm_client import ClaudeKernelGenerator
 
 logger = logging.getLogger(__name__)
+
+
+def setup_logging():
+    """Setup logging configuration."""
+    logging_level = os.environ.get("LOG_LEVEL", "WARNING")
+    numeric_level = getattr(logging, logging_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid log level: {logging_level}")
+
+    logging.basicConfig(
+        level=numeric_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 @click.command()
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo"]),
+    type=click.Choice(["smoke", "opinfo", "huggingface"]),
     help="Which suite to run",
 )
 @click.option(
@@ -40,6 +55,8 @@ logger = logging.getLogger(__name__)
     help="Maximum attempts for LLM kernel generation with feedback",
 )
 def cli(suite, backend, ops, llm_max_attempts):
+    # Setup logging first
+    setup_logging()
     if ops:
         ops = ops.split(",")
 
@@ -62,11 +79,17 @@ def cli(suite, backend, ops, llm_max_attempts):
             torch.bfloat16,
             filter=ops,
         ),
+        "huggingface": lambda: HuggingFaceTracerTestSuite(
+            name="huggingface_tracer_cuda_bfloat16",
+            device="cuda",
+            dtype=torch.float32,
+            json_file_path="/home/sahanp/repos/BackendBench/BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
+            filter=ops,
+        ),
     }[suite]()
 
     overall_correctness = []
     overall_performance = []
-
     for test in suite:
         if test.op not in backend:
             continue
@@ -100,6 +123,17 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                 "opinfo_cuda_bfloat16",
                 "cuda",
                 torch.bfloat16,
+                filter=ops_filter,
+            )
+        elif suite_name == "huggingface":
+            suite = HuggingFaceTracerTestSuite(
+                name="huggingface_tracer_cuda_float32",
+                device="cuda",
+                dtype=torch.float32,
+                json_file_path=os.path.join(
+                    os.path.dirname(os.path.dirname(__file__)),
+                    "BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
+                ),
                 filter=ops_filter,
             )
         else:

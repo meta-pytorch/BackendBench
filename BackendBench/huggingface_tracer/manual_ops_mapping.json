@@ -1,0 +1,74 @@
+{
+    "lift_fresh": {
+        "cpu": ["torch.float32", "torch.int64", "torch.uint8"],
+        "cuda": ["torch.float32", "torch.int64", "torch.uint8"]
+    },
+    "_to_copy": {
+        "cpu": ["torch.bool", "torch.float32", "torch.int64", "torch.uint8"],
+        "cuda": ["torch.bool", "torch.float32", "torch.int64", "torch.uint8"]
+    },
+    "convolution": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "_scaled_dot_product_efficient_attention": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "detach": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "_has_compatible_shallow_copy_type": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "detach_": {
+        "cpu": ["torch.int64"],
+        "cuda": ["torch.int64"]
+    },
+    "is_nonzero": {
+        "cpu": ["torch.bool"],
+        "cuda": ["torch.bool"]
+    },
+    "linalg_vector_norm": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "_local_scalar_dense": {
+        "cpu": ["torch.bool", "torch.float32"],
+        "cuda": ["torch.bool", "torch.float32"]
+    },
+    "cudnn_batch_norm": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "max_pool2d_with_indices": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "copy_": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "upsample_nearest2d": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "alias": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    },
+    "type_as": {
+        "cpu": ["torch.int32", "torch.int64"],
+        "cuda": ["torch.int32", "torch.int64"]
+    },
+    "_scaled_dot_product_flash_attention_for_cpu": {
+        "cpu": ["torch.float32"],
+        "cuda": []
+    },
+    "_softmax": {
+        "cpu": ["torch.float32"],
+        "cuda": ["torch.float32"]
+    }
+}
