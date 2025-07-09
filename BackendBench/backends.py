@@ -289,6 +289,7 @@ class LLMBackend(Backend):
     def __init__(self) -> None:
         super().__init__("llm")
         self.compiled_kernels: Dict[str, Callable] = {}
+        self.k_results: Dict = {}  # Store per-k results for sampling strategy analysis
 
         # Create generated_kernels directory
         import datetime
@@ -509,3 +510,11 @@ import torch.nn.functional as F
 
     def __contains__(self, key):
         return key in self.compiled_kernels
+
+    def store_k_results(self, op, k_results: Dict):
+        """Store per-k results for an operation."""
+        self.k_results[op] = k_results
+
+    def get_k_results(self, op) -> Dict:
+        """Get per-k results for an operation."""
+        return self.k_results.get(op, {})

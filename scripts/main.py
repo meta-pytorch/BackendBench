@@ -39,9 +39,23 @@ logger = logging.getLogger(__name__)
     type=int,
     help="Maximum attempts for LLM kernel generation with feedback",
 )
-def cli(suite, backend, ops, llm_max_attempts):
+@click.option(
+    "--k",
+    default=1,
+    type=int,
+    help="Number of trajectories to generate for sampling strategy (LLM backend only)",
+)
+def cli(suite, backend, ops, llm_max_attempts, k):
     if ops:
         ops = ops.split(",")
+
+    # Validate that k is only used with LLM backend
+    if k > 1 and backend != "llm":
+        print(
+            f"Error: --k parameter (k={k}) is only valid for LLM backend, not '{backend}' backend"
+        )
+        print("Use --backend llm to enable sampling strategy")
+        sys.exit(1)
 
     backend = {
         "aten": backends.AtenBackend,
@@ -49,10 +63,13 @@ def cli(suite, backend, ops, llm_max_attempts):
         "llm": backends.LLMBackend,
     }[backend]()
 
+    # Generate k trajectories and report results for k=1, k=2, ..., k
+    k_values = list(range(1, k + 1))
+
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
-        backend = setup_llm_backend(backend, llm_client, suite, ops, llm_max_attempts)
+        backend = setup_llm_backend(backend, llm_client, suite, ops, llm_max_attempts, k)
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -63,6 +80,13 @@ def cli(suite, backend, ops, llm_max_attempts):
             filter=ops,
         ),
     }[suite]()
+
+    # Track results per k value for sampling strategy analysis
+    k_results = {}  # k -> {correctness_list, performance_list, success_count}
+    if backend.name == "llm" and k > 1:
+        k_values = list(range(1, k + 1))
+        for k_val in k_values:
+            k_results[k_val] = {"correctness": [], "performance": [], "success_count": 0}
 
     successful_correctness = []
     successful_performance = []
@@ -87,6 +111,16 @@ def cli(suite, backend, ops, llm_max_attempts):
         )
         successful_correctness.append(correctness)
         successful_performance.append(perf)
+
+        # Track per-k results if using sampling strategy
+        if backend.name == "llm" and k > 1 and hasattr(backend, "get_k_results"):
+            op_k_results = backend.get_k_results(test.op)
+            if op_k_results:
+                for k_val in k_values:
+                    if k_val in op_k_results:
+                        k_results[k_val]["correctness"].append(op_k_results[k_val]["correctness"])
+                        k_results[k_val]["performance"].append(op_k_results[k_val]["performance"])
+                        k_results[k_val]["success_count"] += 1
 
         logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
 
@@ -114,10 +148,28 @@ def cli(suite, backend, ops, llm_max_attempts):
     print(f"Geometric Mean Performance (successful): {geomean_perf_successful:.2f}x")
     print(f"Overall Correctness (including failures): {mean_correctness_overall:.2f}")
     print(f"Overall Performance (including failures): {geomean_perf_overall:.2f}x")
+
+    # Print sampling strategy results if available
+    if k_results:
+        print(f"\n{'=' * 60}")
+        print("SAMPLING STRATEGY RESULTS (per k value)")
+        print(f"{'=' * 60}")
+        for k_val in sorted(k_results.keys()):
+            results = k_results[k_val]
+            if results["correctness"]:
+                mean_corr = torch.tensor(results["correctness"]).mean().item()
+                geomean_perf = torch.tensor(results["performance"]).log().mean().exp().item()
+                success_rate = results["success_count"] / total_ops
+                print(
+                    f"k={k_val:2d}: Mean Correctness={mean_corr:.3f}, Geomean Performance={geomean_perf:.3f}x, Success Rate={success_rate:.3f}"
+                )
+            else:
+                print(f"k={k_val:2d}: No successful operations")
+
     print(f"{'=' * 60}")
 
 
-def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
+def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5, k=1):
     """Setup LLM backend by generating kernels for all operations in the suite."""
     try:
         if suite_name == "smoke":
@@ -160,15 +212,98 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
 
-            # Generate kernel with iterative refinement
-            kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
-                op_name,
-                op_signature,
-                op_description,
-                framework="triton",
-                max_attempts=max_attempts,
-                feedback_callback=feedback_callback,
-            )
+            # Generate kernels with sampling strategy if k > 1
+            if k > 1:
+                k_values = list(range(1, k + 1))
+                print(
+                    f"    Running sampling strategy: generating {k} trajectories, reporting for k={k_values}"
+                )
+
+                # Generate k trajectories
+                all_trajectories = []
+                for trajectory in range(k):
+                    print(f"      Generating trajectory {trajectory + 1}/{k}...")
+
+                    kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
+                        op_name,
+                        op_signature,
+                        op_description,
+                        framework="triton",
+                        max_attempts=max_attempts,
+                        feedback_callback=feedback_callback,
+                    )
+
+                    if success:
+                        # Test the kernel
+                        correctness, feedback_info = llm_backend.test_kernel_correctness(
+                            op, kernel_code, op_test.correctness_tests, 1
+                        )
+                        performance = feedback_info.get("performance_ratio", 1.0)
+
+                        all_trajectories.append(
+                            {
+                                "kernel_code": kernel_code,
+                                "correctness": correctness,
+                                "performance": performance,
+                                "attempts": attempts_used,
+                            }
+                        )
+
+                # Report results for each k value and store for analysis
+                best_kernel = None
+                best_correctness = 0.0
+                best_performance = 1.0
+                op_k_results = {}
+
+                for k_val in k_values:
+                    if len(all_trajectories) >= k_val:
+                        # Take first k_val trajectories
+                        k_trajectories = all_trajectories[:k_val]
+                        best_trajectory = max(k_trajectories, key=lambda t: t["correctness"])
+                        print(
+                            f"      k={k_val}: Best correctness={best_trajectory['correctness']:.2f}, performance={best_trajectory['performance']:.2f}x"
+                        )
+
+                        # Store results for this k value
+                        op_k_results[k_val] = {
+                            "correctness": best_trajectory["correctness"],
+                            "performance": best_trajectory["performance"],
+                        }
+
+                        if best_trajectory["correctness"] > best_correctness:
+                            best_kernel = best_trajectory["kernel_code"]
+                            best_correctness = best_trajectory["correctness"]
+                            best_performance = best_trajectory["performance"]
+                    else:
+                        print(
+                            f"      k={k_val}: Not enough successful trajectories ({len(all_trajectories)} < {k_val})"
+                        )
+
+                # Store k results in backend for later analysis
+                if op_k_results:
+                    llm_backend.store_k_results(op, op_k_results)
+
+                # Use the best kernel found across all k values
+                if best_kernel:
+                    kernel_code = best_kernel
+                    success = True
+                    attempts_used = max_attempts  # Approximate
+                    print(
+                        f"    Best overall: correctness={best_correctness:.2f}, performance={best_performance:.2f}x"
+                    )
+                else:
+                    success = False
+                    attempts_used = max_attempts
+            else:
+                # Original single trajectory approach
+                kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
+                    op_name,
+                    op_signature,
+                    op_description,
+                    framework="triton",
+                    max_attempts=max_attempts,
+                    feedback_callback=feedback_callback,
+                )
 
             if success:
                 try:
@@ -219,6 +354,19 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         )
         print(f"Generated kernels saved to: {llm_backend.kernels_dir}")
         print(f"{'=' * 60}\n")
+
+        # Print sampling strategy summary if used
+        if k > 1:
+            k_values = list(range(1, k + 1))
+            print(f"\n{'=' * 60}")
+            print("SAMPLING STRATEGY SUMMARY")
+            print(f"{'=' * 60}")
+            print(f"K values tested: {k_values}")
+            print(f"Total operations: {total_ops}")
+            print(f"Successful generations: {successful_ops}")
+            print(f"Success rate: {successful_ops / total_ops * 100:.1f}%")
+            print("Note: Results show best kernel found across all k values")
+            print(f"{'=' * 60}\n")
 
         # Save overall summary
         overall_summary_file = os.path.join(llm_backend.kernels_dir, "OVERALL_SUMMARY.txt")
