@@ -64,14 +64,20 @@ def cli(suite, backend, ops, llm_max_attempts):
         ),
     }[suite]()
 
-    overall_correctness = []
-    overall_performance = []
+    successful_correctness = []
+    successful_performance = []
+    total_ops = 0
+    successful_ops = 0
 
     for test in suite:
+        total_ops += 1
+        
         if test.op not in backend:
+            # Operation failed to generate kernel - count as failed
             continue
 
         logger.debug(test.op)
+        successful_ops += 1
 
         correctness, perf = eval.eval_one_op(
             test.op,
@@ -79,15 +85,34 @@ def cli(suite, backend, ops, llm_max_attempts):
             test.correctness_tests,
             test.performance_tests,
         )
-        overall_correctness.append(correctness)
-        overall_performance.append(perf)
+        successful_correctness.append(correctness)
+        successful_performance.append(perf)
 
         logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
-    geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
-    print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    # Calculate metrics
+    generation_success_rate = successful_ops / total_ops if total_ops > 0 else 0.0
+    
+    if successful_ops > 0:
+        mean_correctness_successful = torch.tensor(successful_correctness).mean().item()
+        geomean_perf_successful = torch.tensor(successful_performance).log().mean().exp().item()
+    else:
+        mean_correctness_successful = 0.0
+        geomean_perf_successful = 1.0
+    
+    # Overall metrics (including failed operations)
+    mean_correctness_overall = mean_correctness_successful * generation_success_rate
+    geomean_perf_overall = geomean_perf_successful * generation_success_rate + (1 - generation_success_rate)
+    
+    # Print comprehensive results
+    print(f"\n{'=' * 60}")
+    print("EVALUATION RESULTS")
+    print(f"{'=' * 60}")
+    print(f"Mean Correctness (successful): {mean_correctness_successful:.2f}")
+    print(f"Geometric Mean Performance (successful): {geomean_perf_successful:.2f}x")
+    print(f"Overall Correctness (including failures): {mean_correctness_overall:.2f}")
+    print(f"Overall Performance (including failures): {geomean_perf_overall:.2f}x")
+    print(f"{'=' * 60}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
