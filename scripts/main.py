@@ -71,7 +71,7 @@ def cli(suite, backend, ops, llm_max_attempts):
 
     for test in suite:
         total_ops += 1
-        
+
         if test.op not in backend:
             # Operation failed to generate kernel - count as failed
             continue
@@ -92,18 +92,20 @@ def cli(suite, backend, ops, llm_max_attempts):
 
     # Calculate metrics
     generation_success_rate = successful_ops / total_ops if total_ops > 0 else 0.0
-    
+
     if successful_ops > 0:
         mean_correctness_successful = torch.tensor(successful_correctness).mean().item()
         geomean_perf_successful = torch.tensor(successful_performance).log().mean().exp().item()
     else:
         mean_correctness_successful = 0.0
         geomean_perf_successful = 1.0
-    
+
     # Overall metrics (including failed operations)
     mean_correctness_overall = mean_correctness_successful * generation_success_rate
-    geomean_perf_overall = geomean_perf_successful * generation_success_rate + (1 - generation_success_rate)
-    
+    geomean_perf_overall = geomean_perf_successful * generation_success_rate + (
+        1 - generation_success_rate
+    )
+
     # Print comprehensive results
     print(f"\n{'=' * 60}")
     print("EVALUATION RESULTS")
