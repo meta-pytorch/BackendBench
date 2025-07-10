@@ -48,7 +48,7 @@ def load_json_data(json_file_path: str) -> Dict[str, Any]:
         raise
 
 
-def calculate_tensor_magnitude(combination: Dict[str, Any]) -> float:
+def calculate_tensor_shape_magnitude(combination: Dict[str, Any]) -> float:
     """
     Calculate a magnitude metric for tensor arguments to determine 'largest'.
 
@@ -56,7 +56,7 @@ def calculate_tensor_magnitude(combination: Dict[str, Any]) -> float:
         combination: Dictionary containing input_shapes and other metadata
 
     Returns:
-        Float representing the total magnitude (product of all tensor dimensions)
+        Float representing the total "magnitude" (product of all tensor dimensions) from the shape
     """
     total_magnitude = 0.0
     input_shapes = combination["input_shapes"]
@@ -100,12 +100,13 @@ def select_unique_inputs(
 
     # Filter to only those with the specified dtype in the cases of tensors
     for input in unique_inputs:
-        for dtype in input["input_dtypes"]:
-            if dtype.startswith("torch.") and dtype != str(dtype):
+        for tensor_dtype in input["input_dtypes"]:
+            if tensor_dtype.startswith("torch.") and tensor_dtype != str(dtype):
                 continue
         for _, entry in input["tensor_lists"].items():
-            for dtype in entry["dtypes"]:
-                if dtype.startswith("torch.") and dtype != str(dtype):
+            for tensor_dtype in entry["dtypes"]:
+                # all types should be tensors already
+                tensor_dtype != str(dtype):
                     continue
 
     # Sort by count (popularity) descending
@@ -116,7 +117,7 @@ def select_unique_inputs(
     # Sort by magnitude descending
     largest_unique_inputs = sorted(
         unique_inputs,
-        key=lambda x: calculate_tensor_magnitude(x),
+        key=lambda x: calculate_tensor_shape_magnitude(x),
         reverse=True,
     )
 
@@ -192,12 +193,7 @@ def create_single_tensor(
         imag_part = torch.randn(shape, dtype=real_dtype, device=device)
         tensor = torch.complex(real_part, imag_part)
     else:
-        # Fallback - try to create zeros and cast
-        try:
-            tensor = torch.zeros(shape, dtype=torch_dtype, device=device)
-        except Exception as e:
-            logger.warning(f"Could not create tensor with dtype {torch_dtype}: {e}")
-            tensor = torch.randn(shape, device=device)
+        raise ValueError(f"Unsupported dtype: {dtype_str}")
 
     return tensor
 

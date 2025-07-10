@@ -83,7 +83,10 @@ def cli(suite, backend, ops, llm_max_attempts):
             name="huggingface_tracer_cuda_bfloat16",
             device="cuda",
             dtype=torch.float32,
-            json_file_path="/home/sahanp/repos/BackendBench/BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
+            json_file_path=os.path.join(
+                os.path.dirname(os.path.dirname(__file__)),
+                "BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
+            ),
             filter=ops,
         ),
     }[suite]()
@@ -109,7 +112,9 @@ def cli(suite, backend, ops, llm_max_attempts):
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
+    print(
+        f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}"
+    )
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
 
@@ -187,29 +192,41 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                     successful_ops += 1
 
                     # Save summary of this operation
-                    summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
+                    summary_file = os.path.join(
+                        llm_backend.kernels_dir, f"{op_name}_summary.txt"
+                    )
                     with open(summary_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
                         f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
                         f.write("Final status: Success\n")
-                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                        f.write(
+                            f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n"
+                        )
 
                 except Exception as e:
-                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
+                    print(
+                        f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}"
+                    )
                     success = False
 
             if not success:
                 print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
 
                 # Save summary of this operation
-                summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
+                summary_file = os.path.join(
+                    llm_backend.kernels_dir, f"{op_name}_summary.txt"
+                )
                 with open(summary_file, "w") as f:
                     f.write(f"Operation: {op_name}\n")
                     f.write(f"Full op: {op_str}\n")
                     f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                    f.write("Final status: Failed - All attempts failed correctness tests\n")
-                    f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                    f.write(
+                        "Final status: Failed - All attempts failed correctness tests\n"
+                    )
+                    f.write(
+                        f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n"
+                    )
                 # Continue with other operations
 
         # Print summary
@@ -228,7 +245,9 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         print(f"{'=' * 60}\n")
 
         # Save overall summary
-        overall_summary_file = os.path.join(llm_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        overall_summary_file = os.path.join(
+            llm_backend.kernels_dir, "OVERALL_SUMMARY.txt"
+        )
         with open(overall_summary_file, "w") as f:
             f.write("LLM Backend Generation Summary\n")
             f.write(f"{'=' * 40}\n")
