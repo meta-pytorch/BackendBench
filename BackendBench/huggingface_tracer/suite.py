@@ -22,7 +22,9 @@ from .tracer_parser import (
     SPECIAL_CASES,
 )
 
-DEFAULT_JSON_SOURCE = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/hf_op_trace.json"
+DEFAULT_JSON_SOURCE = (
+    "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/hf_op_trace.json"
+)
 logger = logging.getLogger(__name__)
 
 # todo: This is a manual mapping of the ops that are not supported by opinfo but are still present
@@ -153,9 +155,7 @@ class HuggingFaceTracerOpTest(OpTest):
             Converted argument (tensor, list of tensors, or other value)
         """
         if non_tensor_input is not None:
-            return self._handle_non_tensor_input(
-                non_tensor_input, dtype_str, tensor_lists
-            )
+            return self._handle_non_tensor_input(non_tensor_input, dtype_str, tensor_lists)
         elif dtype_str == "<class 'NoneType'>":
             return None
         elif dtype_str == "<class 'list'>" and shape is None:
@@ -177,9 +177,7 @@ class HuggingFaceTracerOpTest(OpTest):
                 tensor_list_metadata = tensor_lists[tensor_list_ref]
                 return create_tensor_list(tensor_list_metadata, self.device, self.dtype)
             else:
-                logger.warning(
-                    f"Tensor list reference {tensor_list_ref} not found in tensor_lists"
-                )
+                logger.warning(f"Tensor list reference {tensor_list_ref} not found in tensor_lists")
                 return []  # Empty list as fallback
 
         # Handle torch.dtype conversion
@@ -194,9 +192,7 @@ class HuggingFaceTracerOpTest(OpTest):
         else:
             return non_tensor_input
 
-    def _handle_tensor_input(
-        self, shape: Any, dtype_str: str, arg_index: int
-    ) -> torch.Tensor:
+    def _handle_tensor_input(self, shape: Any, dtype_str: str, arg_index: int) -> torch.Tensor:
         """Handle tensor inputs."""
         if isinstance(shape, list):
             return create_single_tensor(shape, dtype_str, self.device, self.dtype)
@@ -229,12 +225,8 @@ def build_huggingface_tracer_tests(
     op_tests = []
 
     # create op_info mapping to test dtypes
-    op_dtype_filter = {
-        op.name.split(".")[-1]: op.supported_dtypes(device) for op in op_db
-    }
-    manual_ops = load_json_data(
-        os.path.join(os.path.dirname(__file__), MANUAL_OPS_FILE)
-    )
+    op_dtype_filter = {op.name.split(".")[-1]: op.supported_dtypes(device) for op in op_db}
+    manual_ops = load_json_data(os.path.join(os.path.dirname(__file__), MANUAL_OPS_FILE))
     for op in manual_ops:
         dtype_list = manual_ops[op].get(device, [])
         # convert to set to match with op_info datatype
@@ -285,9 +277,7 @@ def build_huggingface_tracer_tests(
             continue
         # Skip if no supported dtypes
         if dtype not in op_dtype_filter[op_name_no_overload]:
-            logger.debug(
-                f"Skipping {op_name}: dtype {dtype} not supported according to op_info"
-            )
+            logger.debug(f"Skipping {op_name}: dtype {dtype} not supported according to op_info")
             skipped_no_dtype_tests.append(op_name)
             continue
 
@@ -303,20 +293,15 @@ def build_huggingface_tracer_tests(
                 f"Created test for {op_name} with {len(selected_unique_inputs)} unique_inputs on {device}"
             )
         else:
-            logger.debug(
-                f"Skipping {op_name}: no unique_inputs found for dtype {dtype}"
-            )
+            logger.debug(f"Skipping {op_name}: no unique_inputs found for dtype {dtype}")
             skipped_no_dtype_tests.append(op_name)
 
-    logger.info(
-        f"While building tests, skipped {len(skipped_no_op_info)} ops with no op_info"
-    )
+    logger.info(f"While building tests, skipped {len(skipped_no_op_info)} ops with no op_info")
     logger.info(
         f"While building tests, skipped {len(skipped_no_dtype_tests)} ops with no dtype tests"
     )
     logger.info(
-        "Skipped ops with no op_info or were manually added: \n"
-        + "\n".join(skipped_no_op_info)
+        "Skipped ops with no op_info or were manually added: \n" + "\n".join(skipped_no_op_info)
     )
     logger.info(
         f"Skipped ops as they don't support testing {dtype} on {device}: \n"

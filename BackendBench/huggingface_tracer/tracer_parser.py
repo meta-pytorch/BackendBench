@@ -79,11 +79,7 @@ def calculate_tensor_shape_magnitude(combination: Dict[str, Any]) -> float:
     input_shapes = combination["input_shapes"]
 
     for shape in input_shapes:
-        if (
-            isinstance(shape, list)
-            and len(shape) > 0
-            and all(isinstance(x, int) for x in shape)
-        ):
+        if isinstance(shape, list) and len(shape) > 0 and all(isinstance(x, int) for x in shape):
             # Calculate product of dimensions (total tensor size)
             magnitude = 1
             for dim in shape:
@@ -127,9 +123,9 @@ def select_unique_inputs(
                     continue
 
     # Sort by count (popularity) descending
-    popular_unique_inputs = sorted(
-        unique_inputs, key=lambda x: x["count"], reverse=True
-    )[:max_popular]
+    popular_unique_inputs = sorted(unique_inputs, key=lambda x: x["count"], reverse=True)[
+        :max_popular
+    ]
 
     # Sort by magnitude descending
     largest_unique_inputs = sorted(
@@ -183,9 +179,7 @@ def create_single_tensor(
                 dtype_name = dtype_str.replace("torch.", "")
                 torch_dtype = getattr(torch, dtype_name)
         except AttributeError:
-            logger.warning(
-                f"Could not convert {dtype_str} to torch dtype, using {torch_dtype}"
-            )
+            logger.warning(f"Could not convert {dtype_str} to torch dtype, using {torch_dtype}")
 
     # Create tensor with appropriate method based on dtype
     if torch_dtype in [torch.float16, torch.float32, torch.float64, torch.bfloat16]:
