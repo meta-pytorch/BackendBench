@@ -83,10 +83,6 @@ def cli(suite, backend, ops, llm_max_attempts):
             name="huggingface_tracer_cuda_bfloat16",
             device="cuda",
             dtype=torch.float32,
-            json_file_path=os.path.join(
-                os.path.dirname(os.path.dirname(__file__)),
-                "BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
-            ),
             filter=ops,
         ),
     }[suite]()
@@ -135,10 +131,6 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                 name="huggingface_tracer_cuda_float32",
                 device="cuda",
                 dtype=torch.float32,
-                json_file_path=os.path.join(
-                    os.path.dirname(os.path.dirname(__file__)),
-                    "BackendBench/huggingface_tracer/tracer_ops_and_shapes/sample_inputs.json",
-                ),
                 filter=ops_filter,
             )
         else:

@@ -2,7 +2,7 @@
 
 This directory contains outputs of the huggingface tracer  which store traced PyTorch operation inputs from HuggingFace models.
 
-'sample_inputs.json' contains an example of what these look like with the outputs from 20 models.
+'[hf_op_trace.json](https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/hf_op_trace.json)' contains an example of what these look like with the outputs from 20 models.
 
 ## Schema Structure
 

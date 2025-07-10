@@ -8,6 +8,8 @@ unique inputs from HuggingFace tracer JSON data.
 import json
 import logging
 from typing import Any, Dict, List
+from urllib.parse import urlparse
+from urllib.request import urlopen
 
 import torch
 
@@ -23,12 +25,12 @@ SPECIAL_CASES = {
 }
 
 
-def load_json_data(json_file_path: str) -> Dict[str, Any]:
+def load_json_data(json_source: str) -> Dict[str, Any]:
     """
-    Load operator data from JSON file.
+    Load operator data from JSON file or URL.
 
     Args:
-        json_file_path: Path to JSON file containing operator data
+        json_source: Path to JSON file or URL containing operator data
 
     Returns:
         Dictionary containing the loaded JSON data
@@ -36,16 +38,31 @@ def load_json_data(json_file_path: str) -> Dict[str, Any]:
     Raises:
         FileNotFoundError: If the JSON file doesn't exist
         json.JSONDecodeError: If the JSON format is invalid
+        Exception: If URL cannot be accessed
     """
-    try:
-        with open(json_file_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        logger.error(f"JSON file not found: {json_file_path}")
-        raise
-    except json.JSONDecodeError as e:
-        logger.error(f"Invalid JSON format in {json_file_path}: {e}")
-        raise
+    # Check if the source is a URL
+    parsed_url = urlparse(json_source)
+    if parsed_url.scheme in ("http", "https"):
+        try:
+            logger.info(f"Loading JSON data from URL: {json_source}")
+            with urlopen(json_source) as response:
+                data = response.read().decode("utf-8")
+                return json.loads(data)
+        except Exception as e:
+            logger.error(f"Failed to load JSON from URL {json_source}: {e}")
+            raise
+    else:
+        # Handle as local file path
+        try:
+            logger.info(f"Loading JSON data from local file: {json_source}")
+            with open(json_source, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            logger.error(f"JSON file not found: {json_source}")
+            raise
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON format in {json_source}: {e}")
+            raise
 
 
 def calculate_tensor_shape_magnitude(combination: Dict[str, Any]) -> float:
@@ -106,7 +123,7 @@ def select_unique_inputs(
         for _, entry in input["tensor_lists"].items():
             for tensor_dtype in entry["dtypes"]:
                 # all types should be tensors already
-                tensor_dtype != str(dtype):
+                if tensor_dtype != str(dtype):
                     continue
 
     # Sort by count (popularity) descending
