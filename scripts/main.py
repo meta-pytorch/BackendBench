@@ -313,7 +313,7 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
                 with open(summary_file, "w") as f:
                     f.write(f"Operation: {op_name}\n")
                     f.write(f"Full op: {op_str}\n")
-                    f.write(f"Backend: KernelAgent\n")
+                    f.write("Backend: KernelAgent\n")
                     f.write(f"Workers: {num_workers}\n")
                     f.write(f"Max rounds: {max_rounds}\n")
                     f.write("Final status: Failed - KernelAgent could not generate working kernel\n")

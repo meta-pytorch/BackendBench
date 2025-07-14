@@ -1,6 +1,6 @@
 import os
 import importlib.util
-from typing import Dict, Callable, List, Optional
+from typing import Dict, Callable, List
 
 
 class Backend:
