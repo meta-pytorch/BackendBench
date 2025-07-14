@@ -34,3 +34,30 @@ Run LLM evaluation on smoke test (relu operation):
 export ANTHROPIC_API_KEY=your_api_key_here
 python scripts/main.py --suite smoke --backend llm
 ```
+
+## KernelAgent-Based Triton Kernel Generation
+
+Generate and evaluate PyTorch kernels using KernelAgent's advanced system with parallel workers and iterative refinement:
+
+**Prerequisites**: Initialize the KernelAgent submodule:
+```bash
+git submodule update --init --recursive
+```
+
+Run KernelAgent evaluation on smoke test (relu operation):
+```bash
+export OPENAI_API_KEY=your_api_key_here
+python scripts/main.py --suite smoke --backend kernel_agent
+```
+
+Run KernelAgent with custom configuration:
+```bash
+export OPENAI_API_KEY=your_api_key_here
+python scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
+```
+
+Run KernelAgent on opinfo tests with a specific operation:
+```bash
+export OPENAI_API_KEY=your_api_key_here
+python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
+```
