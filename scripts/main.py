@@ -257,11 +257,11 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
         print(f"\n{'=' * 80}")
         print("KERNEL AGENT BACKEND SETUP")
         print(f"{'=' * 80}")
-        print(f"Configuration:")
+        print("Configuration:")
         print(f"  - Parallel workers: {num_workers}")
         print(f"  - Max refinement rounds per worker: {max_rounds}")
-        print(f"  - Advanced features: Multi-turn dialogue, conversation history")
-        print(f"  - Framework: OpenAI Triton with comprehensive guidelines")
+        print("  - Advanced features: Multi-turn dialogue, conversation history")
+        print("  - Framework: OpenAI Triton with comprehensive guidelines")
         print(f"{'=' * 80}\n")
 
         for op_test in suite:
@@ -295,11 +295,11 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
                     with open(summary_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
-                        f.write(f"Backend: KernelAgent\n")
+                        f.write("Backend: KernelAgent\n")
                         f.write(f"Workers: {num_workers}\n")
                         f.write(f"Max rounds: {max_rounds}\n")
                         f.write("Final status: Success\n")
-                        f.write(f"Generated using: Parallel workers + iterative refinement\n")
+                        f.write("Generated using: Parallel workers + iterative refinement\n")
 
                 except Exception as e:
                     print(f"✗ KernelAgent generated kernel but compilation failed for {op_name}: {e}")
@@ -331,10 +331,10 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
             else "Success rate: 0.0%"
         )
         print(f"Generated kernels saved to: {kernel_agent_backend.kernels_dir}")
-        print(f"Configuration used:")
+        print("Configuration used:")
         print(f"  - Parallel workers: {num_workers}")
         print(f"  - Max refinement rounds: {max_rounds}")
-        print(f"  - Features: Triton guidelines, conversation history, auto test generation")
+        print("  - Features: Triton guidelines, conversation history, auto test generation")
         print(f"{'=' * 80}\n")
 
         # Save overall summary
@@ -352,12 +352,12 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
             )
             f.write(f"Parallel workers: {num_workers}\n")
             f.write(f"Max refinement rounds per worker: {max_rounds}\n")
-            f.write(f"Advanced features used:\n")
-            f.write(f"  - Multi-turn conversation with LLM\n")
-            f.write(f"  - Comprehensive Triton programming guidelines\n")
-            f.write(f"  - Automatic test generation and validation\n")
-            f.write(f"  - Session management and artifact preservation\n")
-            f.write(f"  - Parallel worker architecture for higher success rate\n")
+            f.write("Advanced features used:\n")
+            f.write("  - Multi-turn conversation with LLM\n")
+            f.write("  - Comprehensive Triton programming guidelines\n")
+            f.write("  - Automatic test generation and validation\n")
+            f.write("  - Session management and artifact preservation\n")
+            f.write("  - Parallel worker architecture for higher success rate\n")
 
         return kernel_agent_backend
 
