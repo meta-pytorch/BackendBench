@@ -66,10 +66,12 @@ def cli(suite, backend, ops, llm_max_attempts, kernel_agent_workers, kernel_agen
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
         backend = setup_llm_backend(backend, llm_client, suite, ops, llm_max_attempts)
-    
+
     # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
-        backend = setup_kernel_agent_backend(backend, suite, ops, kernel_agent_workers, kernel_agent_max_rounds)
+        backend = setup_kernel_agent_backend(
+            backend, suite, ops, kernel_agent_workers, kernel_agent_max_rounds
+        )
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -234,7 +236,9 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         sys.exit(1)
 
 
-def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num_workers=4, max_rounds=10):
+def setup_kernel_agent_backend(
+    kernel_agent_backend, suite_name, ops_filter, num_workers=4, max_rounds=10
+):
     """Setup KernelAgent backend by generating kernels using the sophisticated agent system."""
     try:
         # Configure the backend with the specified parameters
@@ -291,7 +295,9 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
                     successful_ops += 1
 
                     # Save summary of this operation
-                    summary_file = os.path.join(kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt")
+                    summary_file = os.path.join(
+                        kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt"
+                    )
                     with open(summary_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
@@ -302,21 +308,27 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite_name, ops_filter, num
                         f.write("Generated using: Parallel workers + iterative refinement\n")
 
                 except Exception as e:
-                    print(f"✗ KernelAgent generated kernel but compilation failed for {op_name}: {e}")
+                    print(
+                        f"✗ KernelAgent generated kernel but compilation failed for {op_name}: {e}"
+                    )
                     success = False
 
             if not success:
                 print(f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel")
 
                 # Save summary of this operation
-                summary_file = os.path.join(kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt")
+                summary_file = os.path.join(
+                    kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt"
+                )
                 with open(summary_file, "w") as f:
                     f.write(f"Operation: {op_name}\n")
                     f.write(f"Full op: {op_str}\n")
                     f.write("Backend: KernelAgent\n")
                     f.write(f"Workers: {num_workers}\n")
                     f.write(f"Max rounds: {max_rounds}\n")
-                    f.write("Final status: Failed - KernelAgent could not generate working kernel\n")
+                    f.write(
+                        "Final status: Failed - KernelAgent could not generate working kernel\n"
+                    )
 
         # Print summary
         print(f"\n{'=' * 80}")
