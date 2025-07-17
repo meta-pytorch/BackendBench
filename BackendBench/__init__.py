@@ -5,9 +5,6 @@ Import this module to automatically monkey patch PyTorch operations with custom 
 """
 
 import os
-import sys
-import torch
-from typing import Optional, Dict, Any
 
 from .backends import AtenBackend, FlagGemsBackend
 
