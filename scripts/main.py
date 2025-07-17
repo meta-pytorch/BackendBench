@@ -14,7 +14,26 @@ from BackendBench.llm_client import ClaudeKernelGenerator
 
 logger = logging.getLogger(__name__)
 
+
+def setup_logging(log_level):
+    """Configure logging with the specified level."""
+    numeric_level = getattr(logging, log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f'Invalid log level: {log_level}')
+    
+    logging.basicConfig(
+        level=numeric_level,
+        format='[%(asctime)s][%(levelname)s][%(filename)s] %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+
 @click.command()
+@click.option(
+    "--log-level",
+    default=os.getenv('LOG_LEVEL', 'INFO'),
+    type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], case_sensitive=False),
+    help="Set the logging level"
+)
 @click.option(
     "--suite",
     default="smoke",
@@ -45,7 +64,8 @@ logger = logging.getLogger(__name__)
     type=str,
     help="Path to TorchBench operator data",
 )
-def cli(suite, backend, ops, llm_max_attempts, torchbench_data_path):
+def cli(log_level, suite, backend, ops, llm_max_attempts, torchbench_data_path):
+    setup_logging(log_level)
     if ops:
         ops = ops.split(",")
 

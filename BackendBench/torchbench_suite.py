@@ -97,7 +97,7 @@ def _parse_inputs(filename, filter, op_inputs):
             if m := re.match("cnt: \\d+, (.*)", line):
                 assert op is not None
                 args = m.group(1)
-                if any(f in op for f in filter):
+                if filter is None or any(f in op for f in filter):
                     op_inputs[op].append(args)
     return op_inputs
 

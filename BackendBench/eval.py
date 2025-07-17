@@ -2,7 +2,7 @@ import logging
 
 import torch
 
-from triton.testing import do_bench
+import triton.testing
 
 
 logger = logging.getLogger(__name__)
@@ -73,7 +73,7 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    bench_fn = do_bench if torch.cuda.is_available() else cpu_bench
+    bench_fn = triton.testing.do_bench if torch.cuda.is_available() else cpu_bench
     base_times = []
     test_times = []
     for test in tests:
