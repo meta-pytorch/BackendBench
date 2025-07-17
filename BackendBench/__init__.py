@@ -9,7 +9,7 @@ import sys
 import torch
 from typing import Optional, Dict, Any
 
-from .backends import AtenBackend, FlagGemsBackend, LLMBackend
+from .backends import AtenBackend, FlagGemsBackend
 
 
 class BackendRegistry:
@@ -35,8 +35,7 @@ class BackendRegistry:
         """Create a backend instance."""
         backends = {
             'aten': AtenBackend,
-            'flag_gems': FlagGemsBackend, 
-            'llm': LLMBackend
+            'flag_gems': FlagGemsBackend
         }
         
         if backend_name not in backends:
@@ -51,15 +50,7 @@ class BackendRegistry:
             
         # Get all torch ops that the backend supports
         if hasattr(self._current_backend, 'ops'):
-            # For backends like FlagGemsBackend that have an ops dict
             for torch_op, backend_impl in self._current_backend.ops.items():
-                if torch_op not in self._original_ops:
-                    self._original_ops[torch_op] = torch_op.default
-                torch_op.default = backend_impl
-                
-        elif self._current_backend.name == 'llm':
-            # For LLM backend, patch compiled kernels
-            for torch_op, backend_impl in self._current_backend.compiled_kernels.items():
                 if torch_op not in self._original_ops:
                     self._original_ops[torch_op] = torch_op.default
                 torch_op.default = backend_impl
@@ -97,7 +88,7 @@ def use_backend(backend_name: str, backend_instance=None):
     Switch to a different backend.
     
     Args:
-        backend_name: Name of the backend ('aten', 'flag_gems', 'llm')
+        backend_name: Name of the backend ('aten', 'flag_gems')
         backend_instance: Optional pre-configured backend instance
     """
     _registry.register_backend(backend_name, backend_instance)
@@ -123,12 +114,6 @@ def _auto_configure():
     """Auto-configure backend based on environment variables."""
     backend_name = os.getenv('BACKENDBENCH_BACKEND', 'aten')
     
-    if backend_name == 'llm':
-        api_key = os.getenv('ANTHROPIC_API_KEY')
-        if not api_key:
-            print("Warning: ANTHROPIC_API_KEY not set, falling back to aten backend")
-            backend_name = 'aten'
-    
     try:
         use_backend(backend_name)
     except Exception as e:
@@ -138,5 +123,5 @@ def _auto_configure():
 
 
 # Auto-configure on import unless explicitly disabled
-if not os.getenv('BACKENDBENCH_NO_AUTO_PATCH', '').lower() in ('1', 'true', 'yes'):
+if os.getenv('BACKENDBENCH_NO_AUTO_PATCH', '').lower() not in ('1', 'true', 'yes'):
     _auto_configure()
