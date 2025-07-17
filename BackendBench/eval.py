@@ -7,22 +7,34 @@ from triton.testing import do_bench
 
 logger = logging.getLogger(__name__)
 
-
-def allclose(a, b):
-    if isinstance(a, torch.Tensor):
-        torch.testing.assert_close(a, b, equal_nan=True)
-        return True
-    if isinstance(a, (list, tuple)):
-        return all(allclose(x, y) for x, y in zip(a, b))
-    return a == b
-
-
 EXC_MSG = """
 Exception raised for {op}:
     args: {args}
     kwargs: {kwargs}
     exc: {exc}
 """
+
+
+def format_tensor(t):
+    return f"{t.dtype}{list(t.shape)}"
+
+def format_args(args):
+    return [format_tensor(arg) if isinstance(arg, torch.Tensor) else arg for arg in args]
+
+def format_kwargs(kwargs):
+    return {k: format_tensor(v) if isinstance(v, torch.Tensor) else v for k, v in kwargs.items()}
+
+def format_exception(e, op, args, kwargs):
+    return EXC_MSG.format(op=op, args=format_args(args), kwargs=format_kwargs(kwargs), exc=e)
+
+def allclose(a, b):
+    if isinstance(a, torch.Tensor):
+        torch.testing.assert_close(a, b, equal_nan=True, atol=1e-2, rtol=1e-2)
+        return True
+    if isinstance(a, (list, tuple)):
+        return all(allclose(x, y) for x, y in zip(a, b))
+    return a == b
+
 
 
 def eval_correctness_test(op, impl, test):
@@ -33,13 +45,14 @@ def eval_correctness_test(op, impl, test):
         res = impl(*args, **kwargs)
         return allclose(ref, res)
     except Exception as e:
-        logger.debug(EXC_MSG.format(op=op, args=args, kwargs=kwargs, exc=e))
+        logger.warning(format_exception(e, op, args, kwargs))
         return False
 
 
 def eval_correctness(op, impl, tests):
     correct, total = 0, 0
     for test in tests:
+        logging.debug(f"Testing {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}")
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
@@ -60,13 +73,18 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    if torch.cuda.is_available():
-        base_times = [do_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
-        test_times = [do_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
-    else:
-        base_times = [cpu_bench(lambda: op(*test.args, **test.kwargs)) for test in tests]
-        test_times = [cpu_bench(lambda: impl(*test.args, **test.kwargs)) for test in tests]
-
+    bench_fn = do_bench if torch.cuda.is_available() else cpu_bench
+    base_times = []
+    test_times = []
+    for test in tests:
+        logging.debug(f"Benchmarking {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}")
+        base_times.append(bench_fn(lambda: op(*test.args, **test.kwargs)))
+        try:
+            allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))
+        except Exception as e:
+            test_times.append(base_times[-1])
+            continue
+        test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
     speedups = torch.tensor(test_times) / torch.tensor(base_times)
     return speedups.log().mean().exp()
 

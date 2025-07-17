@@ -8,17 +8,17 @@ import BackendBench.eval as eval
 import click
 import torch
 from BackendBench.opinfo_suite import OpInfoTestSuite
+from BackendBench.torchbench_suite import TorchBenchTestSuite
 from BackendBench.suite import SmokeTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator
 
 logger = logging.getLogger(__name__)
 
-
 @click.command()
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench"]),
     help="Which suite to run",
 )
 @click.option(
@@ -39,7 +39,13 @@ logger = logging.getLogger(__name__)
     type=int,
     help="Maximum attempts for LLM kernel generation with feedback",
 )
-def cli(suite, backend, ops, llm_max_attempts):
+@click.option(
+    "--torchbench-data-path",
+    default="third_party/tritonbench/tritonbench/data/input_configs",
+    type=str,
+    help="Path to TorchBench operator data",
+)
+def cli(suite, backend, ops, llm_max_attempts, torchbench_data_path):
     if ops:
         ops = ops.split(",")
 
@@ -60,6 +66,11 @@ def cli(suite, backend, ops, llm_max_attempts):
             "opinfo_cuda_bfloat16",
             "cuda",
             torch.bfloat16,
+            filter=ops,
+        ),
+        "torchbench": lambda: TorchBenchTestSuite(
+            "torchbench",
+            torchbench_data_path,
             filter=ops,
         ),
     }[suite]()
