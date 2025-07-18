@@ -18,14 +18,18 @@ Exception raised for {op}:
 def format_tensor(t):
     return f"{t.dtype}{list(t.shape)}"
 
+
 def format_args(args):
     return [format_tensor(arg) if isinstance(arg, torch.Tensor) else arg for arg in args]
+
 
 def format_kwargs(kwargs):
     return {k: format_tensor(v) if isinstance(v, torch.Tensor) else v for k, v in kwargs.items()}
 
+
 def format_exception(e, op, args, kwargs):
     return EXC_MSG.format(op=op, args=format_args(args), kwargs=format_kwargs(kwargs), exc=e)
+
 
 def allclose(a, b):
     if isinstance(a, torch.Tensor):
@@ -34,7 +38,6 @@ def allclose(a, b):
     if isinstance(a, (list, tuple)):
         return all(allclose(x, y) for x, y in zip(a, b))
     return a == b
-
 
 
 def eval_correctness_test(op, impl, test):
@@ -52,7 +55,9 @@ def eval_correctness_test(op, impl, test):
 def eval_correctness(op, impl, tests):
     correct, total = 0, 0
     for test in tests:
-        logging.debug(f"Testing {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}")
+        logging.debug(
+            f"Testing {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}"
+        )
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
@@ -77,7 +82,9 @@ def eval_performance(op, impl, tests):
     base_times = []
     test_times = []
     for test in tests:
-        logging.debug(f"Benchmarking {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}")
+        logging.debug(
+            f"Benchmarking {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}"
+        )
         base_times.append(bench_fn(lambda: op(*test.args, **test.kwargs)))
         try:
             allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))

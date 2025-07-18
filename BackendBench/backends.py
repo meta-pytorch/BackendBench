@@ -22,11 +22,13 @@ class AtenBackend(Backend):
 def _flag_gems_softmax(*args, **kwargs):
     # half_to_float is not supported in flag_gems
     import flag_gems
+
     return flag_gems.ops.softmax(*args[:-1], **kwargs)
 
 
 def _flag_gems_layernorm(*args, **kwargs):
     import flag_gems
+
     x, m, v = flag_gems.ops.layer_norm(*args[:-1], **kwargs)
     mv_shape = [*x.shape[:-1], 1]
     return x, m.view(*mv_shape), v.view(*mv_shape)

@@ -19,20 +19,21 @@ def setup_logging(log_level):
     """Configure logging with the specified level."""
     numeric_level = getattr(logging, log_level.upper(), None)
     if not isinstance(numeric_level, int):
-        raise ValueError(f'Invalid log level: {log_level}')
-    
+        raise ValueError(f"Invalid log level: {log_level}")
+
     logging.basicConfig(
         level=numeric_level,
-        format='[%(asctime)s][%(levelname)s][%(filename)s] %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
+        format="[%(asctime)s][%(levelname)s][%(filename)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
+
 
 @click.command()
 @click.option(
     "--log-level",
-    default=os.getenv('LOG_LEVEL', 'INFO'),
-    type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'], case_sensitive=False),
-    help="Set the logging level"
+    default=os.getenv("LOG_LEVEL", "INFO"),
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    help="Set the logging level",
 )
 @click.option(
     "--suite",

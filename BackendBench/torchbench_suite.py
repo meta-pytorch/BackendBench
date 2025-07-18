@@ -1,5 +1,3 @@
-
-
 """
 Load aten inputs from serialized txt files.
 """
@@ -115,9 +113,7 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(
-                s in op for s in ["embedding", "scatter", "gather", "index", "nll_loss"]
-            ):
+            if any(s in op for s in ["embedding", "scatter", "gather", "index", "nll_loss"]):
                 # TODO: indexing ops need valid indices
                 continue
             yield TorchBenchOpTest(op, inputs)
