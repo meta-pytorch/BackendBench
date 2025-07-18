@@ -19,6 +19,21 @@ class AtenBackend(Backend):
         return True
 
 
+def _flag_gems_softmax(*args, **kwargs):
+    # half_to_float is not supported in flag_gems
+    import flag_gems
+
+    return flag_gems.ops.softmax(*args[:-1], **kwargs)
+
+
+def _flag_gems_layernorm(*args, **kwargs):
+    import flag_gems
+
+    x, m, v = flag_gems.ops.layer_norm(*args[:-1], **kwargs)
+    mv_shape = [*x.shape[:-1], 1]
+    return x, m.view(*mv_shape), v.view(*mv_shape)
+
+
 class FlagGemsBackend(Backend):
     def __init__(self) -> None:
         super().__init__("flaggems")
@@ -121,7 +136,7 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.isnan.default: flag_gems.ops.isnan,
             torch.ops.aten.minimum.default: flag_gems.ops.minimum,
             torch.ops.aten.maximum.default: flag_gems.ops.maximum,
-            torch.ops.aten.native_layer_norm.default: flag_gems.ops.layer_norm,
+            torch.ops.aten.native_layer_norm.default: _flag_gems_layernorm,
             torch.ops.aten.native_layer_norm_backward.default: flag_gems.ops.layer_norm_backward,
             torch.ops.aten.le.Tensor: flag_gems.ops.le,
             torch.ops.aten.le.Scalar: flag_gems.ops.le_scalar,
@@ -177,7 +192,7 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.silu_backward.default: flag_gems.ops.silu_backward,
             torch.ops.aten.sin.default: flag_gems.ops.sin,
             torch.ops.aten.sin_.default: flag_gems.ops.sin_,
-            torch.ops.aten._softmax.default: flag_gems.ops.softmax,
+            torch.ops.aten._softmax.default: _flag_gems_softmax,
             torch.ops.aten._softmax_backward_data.default: flag_gems.ops.softmax_backward,
             torch.ops.aten.sort.default: flag_gems.ops.sort,
             torch.ops.aten.sub.Tensor: flag_gems.ops.sub,
