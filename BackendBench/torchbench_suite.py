@@ -1,4 +1,3 @@
-import sys
 
 
 """
@@ -6,7 +5,6 @@ Load aten inputs from serialized txt files.
 """
 
 import re
-import logging
 import math
 from collections import defaultdict
 from pathlib import Path

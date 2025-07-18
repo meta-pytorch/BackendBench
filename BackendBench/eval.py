@@ -81,7 +81,7 @@ def eval_performance(op, impl, tests):
         base_times.append(bench_fn(lambda: op(*test.args, **test.kwargs)))
         try:
             allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))
-        except Exception as e:
+        except Exception:
             test_times.append(base_times[-1])
             continue
         test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
