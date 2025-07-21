@@ -29,3 +29,4 @@ jobs:
     - name: Run smoke test
       run: |
         PYTHONPATH=. python scripts/main.py --suite smoke --backend aten 
+        pytest test/
