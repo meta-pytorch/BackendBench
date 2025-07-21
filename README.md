@@ -116,9 +116,8 @@ generated_kernels/
        # Your implementation here
        return result
    
-   # Optional: Add a CPU test
+   # Optional: Add a test
    if __name__ == "__main__":
-       # Test your implementation
        pass
    ```
 
@@ -183,23 +182,3 @@ Test with BackendBench:
 ```bash
 python scripts/main.py --suite smoke --backend directory
 ```
-
-### Tips for Implementation
-
-1. **Start Simple**: Begin with basic PyTorch operations, optimize later
-2. **Match Signatures**: Your function signature must exactly match PyTorch's operation
-3. **Handle Edge Cases**: Consider empty tensors, different dtypes, broadcasting
-4. **Test on CPU**: Ensure your implementation works on CPU before GPU optimization
-5. **Use PyTorch Primitives**: Leverage existing PyTorch operations for correctness
-
-### Advanced: Multiple Implementations
-
-You can have multiple implementations per operation:
-```
-generated_kernels/relu/
-├── relu_implementation_1.py  # Basic version
-├── relu_implementation_2.py  # Optimized version  
-└── relu_triton_kernel.py     # Triton implementation
-```
-
-The system will automatically select the first implementation found.

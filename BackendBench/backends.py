@@ -80,7 +80,7 @@ class DirectoryBackend(Backend):
         except AttributeError:
             pass
 
-        # For more complex mappings, you could add a mapping dict here
+        # Not 100% sure this is right, will need to iterate over all ops
         return None
 
     def __getitem__(self, key):
