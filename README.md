@@ -73,3 +73,133 @@ Run KernelAgent on opinfo tests with a specific operation:
 export OPENAI_API_KEY=your_api_key_here
 python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
+
+## Directory-Based Kernel Development
+
+BackendBench supports a simple directory structure for manually adding kernel implementations. This is perfect for researchers who want to contribute optimized kernels without dealing with complex generation systems.
+
+### Directory Structure
+
+Create kernels in the following structure:
+```
+generated_kernels/
+├── relu/
+│   └── relu_implementation_1.py
+├── add/  
+│   └── add_implementation_1.py
+├── mul/
+│   └── mul_implementation_1.py
+└── ...
+```
+
+### How to Add Your Kernels
+
+1. **Create the operation directory:**
+   ```bash
+   mkdir generated_kernels/{op_name}
+   ```
+
+2. **Create your implementation file:**
+   ```bash
+   # Example: generated_kernels/relu/relu_implementation_1.py
+   ```
+
+3. **Write your kernel following this template:**
+   ```python
+   import torch
+   
+   def {op_name}_kernel_impl(*args, **kwargs):
+       """
+       Your kernel implementation.
+       Must match the PyTorch operation signature exactly.
+       """
+       # Your implementation here
+       return result
+   
+   # Optional: Add a CPU test
+   if __name__ == "__main__":
+       # Test your implementation
+       pass
+   ```
+
+### Operation Name Mapping
+
+Use these exact directory names for common operations:
+- `relu` → `torch.ops.aten.relu.default`  
+- `add` → `torch.ops.aten.add.Tensor`
+- `mul` → `torch.ops.aten.mul.Tensor` 
+- `div` → `torch.ops.aten.div.Tensor`
+- `sub` → `torch.ops.aten.sub.Tensor`
+- `abs` → `torch.ops.aten.abs.default`
+- `sin` → `torch.ops.aten.sin.default`
+- `cos` → `torch.ops.aten.cos.default`
+- `exp` → `torch.ops.aten.exp.default`
+- `log` → `torch.ops.aten.log.default`
+
+To find the correct name for other operations:
+```python
+# Find operation name
+import torch
+op = torch.ops.aten.some_op.some_variant
+print(str(op).split('aten.')[-1].split('.')[0])  # Use this as directory name
+```
+
+### Example Implementation
+
+Here's a complete example for ReLU:
+
+```python
+# generated_kernels/relu/relu_implementation_1.py
+import torch
+
+def relu_kernel_impl(input_tensor):
+    """
+    Simple ReLU implementation - replace negative values with zero.
+    
+    Args:
+        input_tensor: Input tensor of any shape
+        
+    Returns:
+        Tensor with same shape, negative values replaced with 0
+    """
+    return torch.maximum(input_tensor, torch.zeros_like(input_tensor))
+
+if __name__ == "__main__":
+    # Test on CPU
+    x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+    result = relu_kernel_impl(x)
+    expected = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    print(f"Test passed: {torch.allclose(result, expected)}")
+```
+
+### Testing Your Kernels
+
+Test individual implementations:
+```bash
+python generated_kernels/relu/relu_implementation_1.py
+```
+
+Test with BackendBench:
+```bash
+python scripts/main.py --suite smoke --backend directory
+```
+
+### Tips for Implementation
+
+1. **Start Simple**: Begin with basic PyTorch operations, optimize later
+2. **Match Signatures**: Your function signature must exactly match PyTorch's operation
+3. **Handle Edge Cases**: Consider empty tensors, different dtypes, broadcasting
+4. **Test on CPU**: Ensure your implementation works on CPU before GPU optimization
+5. **Use PyTorch Primitives**: Leverage existing PyTorch operations for correctness
+
+### Advanced: Multiple Implementations
+
+You can have multiple implementations per operation:
+```
+generated_kernels/relu/
+├── relu_implementation_1.py  # Basic version
+├── relu_implementation_2.py  # Optimized version  
+└── relu_triton_kernel.py     # Triton implementation
+```
+
+The system will automatically select the first implementation found.

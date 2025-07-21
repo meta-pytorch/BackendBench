@@ -44,7 +44,7 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "kernel_agent"]),
+    type=click.Choice(["aten", "flag_gems", "llm", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
@@ -96,6 +96,7 @@ def cli(
         "flag_gems": backends.FlagGemsBackend,
         "llm": backends.LLMBackend,
         "kernel_agent": backends.KernelAgentBackend,
+        "directory": backends.DirectoryBackend,
     }[backend]()
 
     # For LLM backend, we need to generate kernels first
