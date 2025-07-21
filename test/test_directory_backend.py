@@ -18,8 +18,9 @@ def backend():
     if not os.path.exists("generated_kernels"):
         # Import and run the existing script
         import subprocess
+
         subprocess.run([sys.executable, "scripts/create_simple_test_ops.py"], check=True)
-    
+
     return DirectoryBackend(ops_dir="generated_kernels")
 
 
