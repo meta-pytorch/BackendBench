@@ -3,3 +3,4 @@ click
 numpy
 expecttest
 anthropic>=0.34.0
+pytest
