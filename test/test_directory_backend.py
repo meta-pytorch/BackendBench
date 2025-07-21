@@ -14,6 +14,12 @@ from BackendBench.backends import DirectoryBackend
 
 @pytest.fixture(scope="module")
 def backend():
+    # Ensure generated_kernels directory exists for CI
+    if not os.path.exists("generated_kernels"):
+        # Import and run the existing script
+        import subprocess
+        subprocess.run([sys.executable, "scripts/create_simple_test_ops.py"], check=True)
+    
     return DirectoryBackend(ops_dir="generated_kernels")
 
 
@@ -92,7 +98,7 @@ def test_backend_loading(backend):
         assert len(dirs) > 0
 
 
-def test_kernel_directories_exist():
+def test_kernel_directories_exist(backend):
     assert os.path.exists("generated_kernels")
 
     expected_dirs = ["relu", "add", "mul", "abs", "sum"]
