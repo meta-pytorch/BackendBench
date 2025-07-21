@@ -106,13 +106,13 @@ def main():
     """Create 5 simple test operations."""
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     logger.info("Creating simple test implementations...")
-    
+
     create_relu()
     create_add()
     create_mul()
     create_abs()
     create_sum()
-    
+
     logger.info("Created 5 simple kernel implementations in generated_kernels/")
     logger.info("Test them individually:")
     logger.info("  python generated_kernels/relu/relu_implementation_1.py")
