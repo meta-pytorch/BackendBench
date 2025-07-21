@@ -77,7 +77,16 @@ def setup_logging(log_level):
     type=str,
     help="Path to TorchBench operator data",
 )
-def cli(log_level, suite, backend, ops, llm_max_attempts, kernel_agent_workers, kernel_agent_max_rounds, torchbench_data_path):
+def cli(
+    log_level,
+    suite,
+    backend,
+    ops,
+    llm_max_attempts,
+    kernel_agent_workers,
+    kernel_agent_max_rounds,
+    torchbench_data_path,
+):
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
