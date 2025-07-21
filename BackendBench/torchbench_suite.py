@@ -33,7 +33,6 @@ _FLOATING_TYPES = [torch.float16, torch.bfloat16, torch.float32, torch.float64]
 
 
 def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
-    # print(size, dtype, stride, device)
     kwargs = {}
     if dtype in _FLOATING_TYPES:
         kwargs.update({"low": 0, "high": 1})
@@ -145,6 +144,10 @@ class TorchBenchTestSuite:
                     "index",
                     "nll_loss",
                     "im2col_backward",
+                    "col2im_backward",
+                    "native_layer_norm_backward",
+                    "upsample_nearest2d_backward.vec",
+                    "upsample_bilinear2d_backward.vec",
                 ]
             ):
                 # TODO: indexing ops need valid indices
