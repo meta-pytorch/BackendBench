@@ -128,12 +128,6 @@ Use these exact directory names for common operations:
 - `add` → `torch.ops.aten.add.Tensor`
 - `mul` → `torch.ops.aten.mul.Tensor` 
 - `div` → `torch.ops.aten.div.Tensor`
-- `sub` → `torch.ops.aten.sub.Tensor`
-- `abs` → `torch.ops.aten.abs.default`
-- `sin` → `torch.ops.aten.sin.default`
-- `cos` → `torch.ops.aten.cos.default`
-- `exp` → `torch.ops.aten.exp.default`
-- `log` → `torch.ops.aten.log.default`
 
 To find the correct name for other operations:
 ```python
@@ -152,15 +146,6 @@ Here's a complete example for ReLU:
 import torch
 
 def relu_kernel_impl(input_tensor):
-    """
-    Simple ReLU implementation - replace negative values with zero.
-    
-    Args:
-        input_tensor: Input tensor of any shape
-        
-    Returns:
-        Tensor with same shape, negative values replaced with 0
-    """
     return torch.maximum(input_tensor, torch.zeros_like(input_tensor))
 
 if __name__ == "__main__":
