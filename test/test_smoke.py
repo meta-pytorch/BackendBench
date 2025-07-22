@@ -43,12 +43,12 @@ class TestSmoke:
         mean_correctness = torch.tensor(overall_correctness).mean().item()
         geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
 
-        assert (
-            mean_correctness >= 0.8
-        ), f"Mean correctness {mean_correctness:.2f} is below threshold of 0.8"
-        assert (
-            geomean_perf >= 0.5
-        ), f"Geomean performance {geomean_perf:.2f} is below threshold of 0.5"
+        assert mean_correctness >= 0.8, (
+            f"Mean correctness {mean_correctness:.2f} is below threshold of 0.8"
+        )
+        assert geomean_perf >= 0.5, (
+            f"Geomean performance {geomean_perf:.2f} is below threshold of 0.5"
+        )
 
         print(f"Correctness score (mean pass rate): {mean_correctness:.2f}")
         print(f"Performance score (geomean speedup): {geomean_perf:.2f}")
