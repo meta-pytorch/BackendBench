@@ -25,7 +25,8 @@ jobs:
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
     
     - name: Run smoke test
       run: |
-        PYTHONPATH=. python scripts/main.py --suite smoke --backend aten 
+        PYTHONPATH=. pytest test/
