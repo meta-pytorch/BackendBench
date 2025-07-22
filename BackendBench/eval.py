@@ -28,7 +28,8 @@ def format_kwargs(kwargs):
 
 
 def format_exception(e, op, args, kwargs):
-    return EXC_MSG.format(op=op, args=format_args(args), kwargs=format_kwargs(kwargs), exc=e)
+    op_name = getattr(op, "__name__", str(op))
+    return EXC_MSG.format(op=op_name, args=format_args(args), kwargs=format_kwargs(kwargs), exc=e)
 
 
 def allclose(a, b):
@@ -36,6 +37,8 @@ def allclose(a, b):
         torch.testing.assert_close(a, b, equal_nan=True, atol=1e-2, rtol=1e-2)
         return True
     if isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            raise ValueError(f"Length mismatch: {len(a)} vs {len(b)}")
         return all(allclose(x, y) for x, y in zip(a, b))
     return a == b
 
@@ -92,7 +95,7 @@ def eval_performance(op, impl, tests):
             test_times.append(base_times[-1])
             continue
         test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
-    speedups = torch.tensor(test_times) / torch.tensor(base_times)
+    speedups = torch.tensor(base_times) / torch.tensor(test_times)
     return speedups.log().mean().exp()
 
 

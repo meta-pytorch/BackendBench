@@ -3,3 +3,5 @@ __pycache__/
 .vscode/
 .ruff_cache/
 generated_kernels/
+venv/
+CLAUDE.md
