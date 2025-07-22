@@ -4,7 +4,9 @@ from BackendBench.torchbench_suite import TorchBenchOpTest
 
 class TestOpTest:
     def test_op_test(self):
-        op_test = TorchBenchOpTest("aten.relu.default", ["((T([32, 128, 512], f16),), {})"], None)
+        op_test = TorchBenchOpTest(
+            "aten.relu.default", ["((T([32, 128, 512], f16, None, 'cpu'),), {})"], None
+        )
         for test in op_test.correctness_tests:
             args, kwargs = test.args, test.kwargs
             arg, *extras = args
@@ -19,8 +21,8 @@ class TestOpTest:
         op_test = TorchBenchOpTest(
             "aten.relu.default",
             [
-                "((T([32, 128, 512], f16),), {})",
-                "((T([32, 256, 512], f16),), {})",
+                "((T([32, 128, 512], f16, None, 'cpu'),), {})",
+                "((T([32, 256, 512], f16, None, 'cpu'),), {})",
             ],
             1,
         )
