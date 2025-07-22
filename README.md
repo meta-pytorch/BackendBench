@@ -73,3 +73,97 @@ Run KernelAgent on opinfo tests with a specific operation:
 export OPENAI_API_KEY=your_api_key_here
 python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
+
+## Directory-Based Kernel Development
+
+BackendBench supports a simple directory structure for manually adding kernel implementations. This is perfect for researchers who want to contribute optimized kernels without dealing with complex generation systems.
+
+### Directory Structure
+
+Create kernels in the following structure:
+```
+generated_kernels/
+├── relu/
+│   └── relu_implementation_1.py
+├── add/  
+│   └── add_implementation_1.py
+├── mul/
+│   └── mul_implementation_1.py
+└── ...
+```
+
+### How to Add Your Kernels
+
+1. **Create the operation directory:**
+   ```bash
+   mkdir generated_kernels/{op_name}
+   ```
+
+2. **Create your implementation file:**
+   ```bash
+   # Example: generated_kernels/relu/relu_implementation_1.py
+   ```
+
+3. **Write your kernel following this template:**
+   ```python
+   import torch
+   
+   def {op_name}_kernel_impl(*args, **kwargs):
+       """
+       Your kernel implementation.
+       Must match the PyTorch operation signature exactly.
+       """
+       # Your implementation here
+       return result
+   
+   # Optional: Add a test
+   if __name__ == "__main__":
+       pass
+   ```
+
+### Operation Name Mapping
+
+Use these exact directory names for common operations:
+- `relu` → `torch.ops.aten.relu.default`  
+- `add` → `torch.ops.aten.add.Tensor`
+- `mul` → `torch.ops.aten.mul.Tensor` 
+- `div` → `torch.ops.aten.div.Tensor`
+
+To find the correct name for other operations:
+```python
+# Find operation name
+import torch
+op = torch.ops.aten.some_op.some_variant
+print(str(op).split('aten.')[-1].split('.')[0])  # Use this as directory name
+```
+
+### Example Implementation
+
+Here's a complete example for ReLU:
+
+```python
+# generated_kernels/relu/relu_implementation_1.py
+import torch
+
+def relu_kernel_impl(input_tensor):
+    return torch.maximum(input_tensor, torch.zeros_like(input_tensor))
+
+if __name__ == "__main__":
+    # Test on CPU
+    x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
+    result = relu_kernel_impl(x)
+    expected = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
+    print(f"Test passed: {torch.allclose(result, expected)}")
+```
+
+### Testing Your Kernels
+
+Test individual implementations:
+```bash
+python generated_kernels/relu/relu_implementation_1.py
+```
+
+Test with BackendBench:
+```bash
+python scripts/main.py --suite smoke --backend directory
+```
