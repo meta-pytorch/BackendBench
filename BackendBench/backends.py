@@ -2,6 +2,8 @@ import os
 import importlib.util
 import logging
 from typing import Dict, Callable, List
+import flag_gems
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +69,6 @@ class DirectoryBackend(Backend):
 
     def _find_pytorch_op(self, op_name: str):
         """Map operation name to PyTorch operation."""
-        import torch
-
         # Try common patterns
         try:
             return getattr(torch.ops.aten, op_name).default
@@ -106,14 +106,10 @@ class AtenBackend(Backend):
 
 def _flag_gems_softmax(*args, **kwargs):
     # half_to_float is not supported in flag_gems
-    import flag_gems
-
     return flag_gems.ops.softmax(*args[:-1], **kwargs)
 
 
 def _flag_gems_layernorm(*args, **kwargs):
-    import flag_gems
-
     x, m, v = flag_gems.ops.layer_norm(*args[:-1], **kwargs)
     mv_shape = [*x.shape[:-1], 1]
     return x, m.view(*mv_shape), v.view(*mv_shape)
@@ -122,9 +118,6 @@ def _flag_gems_layernorm(*args, **kwargs):
 class FlagGemsBackend(Backend):
     def __init__(self) -> None:
         super().__init__("flaggems")
-        import flag_gems
-        import torch
-
         self.ops = {
             torch.ops.aten.abs.default: flag_gems.ops.abs,
             torch.ops.aten.abs_.default: flag_gems.ops.abs_,
