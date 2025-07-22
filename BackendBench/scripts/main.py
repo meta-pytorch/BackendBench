@@ -7,24 +7,44 @@ import BackendBench.backends as backends
 import BackendBench.eval as eval
 import click
 import torch
+from BackendBench.llm_client import ClaudeKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
-from BackendBench.llm_client import ClaudeKernelGenerator
+from BackendBench.torchbench_suite import TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
 
+def setup_logging(log_level):
+    """Configure logging with the specified level."""
+    numeric_level = getattr(logging, log_level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid log level: {log_level}")
+
+    logging.basicConfig(
+        level=numeric_level,
+        format="[%(asctime)s][%(levelname)s][%(filename)s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
 @click.command()
+@click.option(
+    "--log-level",
+    default=os.getenv("LOG_LEVEL", "INFO"),
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    help="Set the logging level",
+)
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench"]),
     help="Which suite to run",
 )
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm"]),
+    type=click.Choice(["aten", "flag_gems", "llm", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
@@ -34,12 +54,48 @@ logger = logging.getLogger(__name__)
     help="Comma-separated list of ops to run",
 )
 @click.option(
+    "--topn-inputs",
+    "--topn",
+    default=None,
+    type=int,
+    help="Select the top N largest inputs for each op (default: all inputs)",
+)
+@click.option(
     "--llm-max-attempts",
     default=5,
     type=int,
     help="Maximum attempts for LLM kernel generation with feedback",
 )
-def cli(suite, backend, ops, llm_max_attempts):
+@click.option(
+    "--kernel-agent-workers",
+    default=4,
+    type=int,
+    help="Number of parallel workers for KernelAgent backend",
+)
+@click.option(
+    "--kernel-agent-max-rounds",
+    default=10,
+    type=int,
+    help="Maximum refinement rounds per worker for KernelAgent backend",
+)
+@click.option(
+    "--torchbench-data-path",
+    default="third_party/tritonbench/tritonbench/data/input_configs",
+    type=str,
+    help="Path to TorchBench operator data",
+)
+def cli(
+    log_level,
+    suite,
+    backend,
+    ops,
+    topn_inputs,
+    llm_max_attempts,
+    kernel_agent_workers,
+    kernel_agent_max_rounds,
+    torchbench_data_path,
+):
+    setup_logging(log_level)
     if ops:
         ops = ops.split(",")
 
@@ -47,12 +103,20 @@ def cli(suite, backend, ops, llm_max_attempts):
         "aten": backends.AtenBackend,
         "flag_gems": backends.FlagGemsBackend,
         "llm": backends.LLMBackend,
+        "kernel_agent": backends.KernelAgentBackend,
+        "directory": backends.DirectoryBackend,
     }[backend]()
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
         backend = setup_llm_backend(backend, llm_client, suite, ops, llm_max_attempts)
+
+    # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
+    elif backend.name == "kernel_agent":
+        backend = setup_kernel_agent_backend(
+            backend, suite, ops, kernel_agent_workers, kernel_agent_max_rounds
+        )
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -61,6 +125,12 @@ def cli(suite, backend, ops, llm_max_attempts):
             "cuda",
             torch.bfloat16,
             filter=ops,
+        ),
+        "torchbench": lambda: TorchBenchTestSuite(
+            "torchbench",
+            torchbench_data_path,
+            filter=ops,
+            topn=topn_inputs,
         ),
     }[suite]()
 
@@ -214,6 +284,152 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         print(f"Error setting up LLM backend: {e}")
         if "ANTHROPIC_API_KEY" in str(e):
             print("Please set ANTHROPIC_API_KEY environment variable")
+        sys.exit(1)
+
+
+def setup_kernel_agent_backend(
+    kernel_agent_backend, suite_name, ops_filter, num_workers=4, max_rounds=10
+):
+    """Setup KernelAgent backend by generating kernels using the sophisticated agent system."""
+    try:
+        # Configure the backend with the specified parameters
+        kernel_agent_backend.set_config(num_workers, max_rounds)
+        if suite_name == "smoke":
+            suite = SmokeTestSuite
+        elif suite_name == "opinfo":
+            suite = OpInfoTestSuite(
+                "opinfo_cuda_bfloat16",
+                "cuda",
+                torch.bfloat16,
+                filter=ops_filter,
+            )
+        else:
+            raise ValueError(f"Unknown suite: {suite_name}")
+
+        successful_ops = 0
+        total_ops = 0
+
+        print(f"\n{'=' * 80}")
+        print("KERNEL AGENT BACKEND SETUP")
+        print(f"{'=' * 80}")
+        print("Configuration:")
+        print(f"  - Parallel workers: {num_workers}")
+        print(f"  - Max refinement rounds per worker: {max_rounds}")
+        print("  - Advanced features: Multi-turn dialogue, conversation history")
+        print("  - Framework: OpenAI Triton with comprehensive guidelines")
+        print(f"{'=' * 80}\n")
+
+        for op_test in suite:
+            op = op_test.op
+            total_ops += 1
+
+            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+            op_str = str(op)
+            if "aten." in op_str:
+                # Extract the operation name before any variant (like .default)
+                op_name = op_str.split("aten.")[-1].split(".")[0]
+            else:
+                op_name = op_str.split(".")[-1]
+
+            print(f"\n[{total_ops}] {op_name.upper()} - KernelAgent Generation")
+            print(f"    Operation: {op_str}")
+            print(f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each")
+
+            # Generate kernel using KernelAgent's sophisticated system
+            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(op, op_name)
+
+            if success:
+                try:
+                    # Add the successful kernel to the backend
+                    kernel_agent_backend.add_kernel(op, kernel_code, op_name)
+                    print(f"✓ Successfully generated and compiled KernelAgent kernel for {op_name}")
+                    successful_ops += 1
+
+                    # Save summary of this operation
+                    summary_file = os.path.join(
+                        kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt"
+                    )
+                    with open(summary_file, "w") as f:
+                        f.write(f"Operation: {op_name}\n")
+                        f.write(f"Full op: {op_str}\n")
+                        f.write("Backend: KernelAgent\n")
+                        f.write(f"Workers: {num_workers}\n")
+                        f.write(f"Max rounds: {max_rounds}\n")
+                        f.write("Final status: Success\n")
+                        f.write("Generated using: Parallel workers + iterative refinement\n")
+
+                except Exception as e:
+                    print(
+                        f"✗ KernelAgent generated kernel but compilation failed for {op_name}: {e}"
+                    )
+                    success = False
+
+            if not success:
+                print(f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel")
+
+                # Save summary of this operation
+                summary_file = os.path.join(
+                    kernel_agent_backend.kernels_dir, f"{op_name}_summary.txt"
+                )
+                with open(summary_file, "w") as f:
+                    f.write(f"Operation: {op_name}\n")
+                    f.write(f"Full op: {op_str}\n")
+                    f.write("Backend: KernelAgent\n")
+                    f.write(f"Workers: {num_workers}\n")
+                    f.write(f"Max rounds: {max_rounds}\n")
+                    f.write(
+                        "Final status: Failed - KernelAgent could not generate working kernel\n"
+                    )
+
+        # Print summary
+        print(f"\n{'=' * 80}")
+        print("KERNEL AGENT BACKEND SETUP SUMMARY")
+        print(f"{'=' * 80}")
+        print(f"Total operations: {total_ops}")
+        print(f"Successful: {successful_ops}")
+        print(f"Failed: {total_ops - successful_ops}")
+        print(
+            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
+            if total_ops > 0
+            else "Success rate: 0.0%"
+        )
+        print(f"Generated kernels saved to: {kernel_agent_backend.kernels_dir}")
+        print("Configuration used:")
+        print(f"  - Parallel workers: {num_workers}")
+        print(f"  - Max refinement rounds: {max_rounds}")
+        print("  - Features: Triton guidelines, conversation history, auto test generation")
+        print(f"{'=' * 80}\n")
+
+        # Save overall summary
+        overall_summary_file = os.path.join(kernel_agent_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        with open(overall_summary_file, "w") as f:
+            f.write("KernelAgent Backend Generation Summary\n")
+            f.write(f"{'=' * 50}\n")
+            f.write(f"Total operations: {total_ops}\n")
+            f.write(f"Successful: {successful_ops}\n")
+            f.write(f"Failed: {total_ops - successful_ops}\n")
+            f.write(
+                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
+                if total_ops > 0
+                else "Success rate: 0.0%\n"
+            )
+            f.write(f"Parallel workers: {num_workers}\n")
+            f.write(f"Max refinement rounds per worker: {max_rounds}\n")
+            f.write("Advanced features used:\n")
+            f.write("  - Multi-turn conversation with LLM\n")
+            f.write("  - Comprehensive Triton programming guidelines\n")
+            f.write("  - Automatic test generation and validation\n")
+            f.write("  - Session management and artifact preservation\n")
+            f.write("  - Parallel worker architecture for higher success rate\n")
+
+        return kernel_agent_backend
+
+    except Exception as e:
+        print(f"Error setting up KernelAgent backend: {e}")
+        if "OPENAI_API_KEY" in str(e) or "OpenAI" in str(e):
+            print("Please set OPENAI_API_KEY environment variable")
+        if "import" in str(e).lower():
+            print("Please ensure KernelAgent is available in the parent directory")
         sys.exit(1)
 
 

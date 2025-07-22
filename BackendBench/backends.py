@@ -1,11 +1,96 @@
 import os
 import importlib.util
+import logging
 from typing import Dict, Callable, List
+
+logger = logging.getLogger(__name__)
 
 
 class Backend:
     def __init__(self, name):
         self.name = name
+
+
+class DirectoryBackend(Backend):
+    def __init__(self, ops_dir="generated_kernels"):
+        super().__init__("directory")
+        self.ops_dir = ops_dir
+        self.compiled_kernels: Dict[str, Callable] = {}
+        self._load_kernels()
+
+    def _load_kernels(self):
+        if not os.path.exists(self.ops_dir):
+            logger.warning(f"ops directory {self.ops_dir} does not exist")
+            return
+
+        loaded_count = 0
+        for op_name in os.listdir(self.ops_dir):
+            op_dir = os.path.join(self.ops_dir, op_name)
+            if not os.path.isdir(op_dir):
+                continue
+
+            impl_files = [f for f in os.listdir(op_dir) if f.endswith(".py")]
+            if not impl_files:
+                logger.warning(f"No Python files found in {op_dir}")
+                continue
+
+            # Use the first implementation file
+            impl_file = impl_files[0]
+            impl_path = os.path.join(op_dir, impl_file)
+
+            try:
+                # Load the implementation and map to PyTorch operation
+                kernel_func = self._load_kernel_from_file(impl_path, op_name)
+                pytorch_op = self._find_pytorch_op(op_name)
+                if pytorch_op:
+                    self.compiled_kernels[pytorch_op] = kernel_func
+                    logger.info(f"Loaded {op_name} from {impl_file}")
+                    loaded_count += 1
+                else:
+                    logger.warning(f"Could not map {op_name} to PyTorch operation")
+
+            except Exception as e:
+                logger.error(f"Error loading {op_name} from {impl_file}: {e}")
+
+        logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
+
+    def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+        spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        kernel_func_name = f"{op_name}_kernel_impl"
+        if hasattr(module, kernel_func_name):
+            return getattr(module, kernel_func_name)
+        else:
+            raise ValueError(f"No callable function found in {file_path}")
+
+    def _find_pytorch_op(self, op_name: str):
+        """Map operation name to PyTorch operation."""
+        import torch
+
+        # Try common patterns
+        try:
+            return getattr(torch.ops.aten, op_name).default
+        except AttributeError:
+            pass
+
+        try:
+            return getattr(torch.ops.aten, op_name).Tensor
+        except AttributeError:
+            pass
+
+        # Not 100% sure this is right, will need to iterate over all ops
+        return None
+
+    def __getitem__(self, key):
+        if key in self.compiled_kernels:
+            return self.compiled_kernels[key]
+        # Fallback to original operation if not implemented
+        return key
+
+    def __contains__(self, key):
+        return key in self.compiled_kernels or True  # Always claim to contain ops for fallback
 
 
 class AtenBackend(Backend):
@@ -17,6 +102,21 @@ class AtenBackend(Backend):
 
     def __contains__(self, key):
         return True
+
+
+def _flag_gems_softmax(*args, **kwargs):
+    # half_to_float is not supported in flag_gems
+    import flag_gems
+
+    return flag_gems.ops.softmax(*args[:-1], **kwargs)
+
+
+def _flag_gems_layernorm(*args, **kwargs):
+    import flag_gems
+
+    x, m, v = flag_gems.ops.layer_norm(*args[:-1], **kwargs)
+    mv_shape = [*x.shape[:-1], 1]
+    return x, m.view(*mv_shape), v.view(*mv_shape)
 
 
 class FlagGemsBackend(Backend):
@@ -121,7 +221,7 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.isnan.default: flag_gems.ops.isnan,
             torch.ops.aten.minimum.default: flag_gems.ops.minimum,
             torch.ops.aten.maximum.default: flag_gems.ops.maximum,
-            torch.ops.aten.native_layer_norm.default: flag_gems.ops.layer_norm,
+            torch.ops.aten.native_layer_norm.default: _flag_gems_layernorm,
             torch.ops.aten.native_layer_norm_backward.default: flag_gems.ops.layer_norm_backward,
             torch.ops.aten.le.Tensor: flag_gems.ops.le,
             torch.ops.aten.le.Scalar: flag_gems.ops.le_scalar,
@@ -177,7 +277,7 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.silu_backward.default: flag_gems.ops.silu_backward,
             torch.ops.aten.sin.default: flag_gems.ops.sin,
             torch.ops.aten.sin_.default: flag_gems.ops.sin_,
-            torch.ops.aten._softmax.default: flag_gems.ops.softmax,
+            torch.ops.aten._softmax.default: _flag_gems_softmax,
             torch.ops.aten._softmax_backward_data.default: flag_gems.ops.softmax_backward,
             torch.ops.aten.sort.default: flag_gems.ops.sort,
             torch.ops.aten.sub.Tensor: flag_gems.ops.sub,
@@ -506,6 +606,317 @@ import torch.nn.functional as F
         if key in self.compiled_kernels:
             return self.compiled_kernels[key]
         raise KeyError(f"No kernel implementation found for {key}")
+
+    def __contains__(self, key):
+        return key in self.compiled_kernels
+
+
+class KernelAgentBackend(Backend):
+    """
+    Backend that uses KernelAgent for sophisticated parallel kernel generation.
+
+    This backend leverages KernelAgent's advanced features:
+    - Parallel workers with iterative refinement
+    - Multi-turn conversation history
+    - Comprehensive prompt engineering with Triton guidelines
+    - Automatic test generation
+    """
+
+    def __init__(self) -> None:
+        super().__init__("kernel_agent")
+        self.compiled_kernels: Dict[str, Callable] = {}
+
+        # Create generated_kernels directory
+        import datetime
+
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.kernels_dir = f"generated_kernels/kernel_agent_run_{timestamp}"
+        os.makedirs(self.kernels_dir, exist_ok=True)
+
+        # Create README for this run
+        readme_path = os.path.join(self.kernels_dir, "README.md")
+        with open(readme_path, "w") as f:
+            f.write(f"""# Generated Kernels - KernelAgent - {timestamp}
+
+This directory contains PyTorch/Triton kernels generated by the KernelAgent Backend.
+
+## Run Info
+- Timestamp: {timestamp}
+- Backend: KernelAgent
+- Features: Parallel workers, iterative refinement, conversation history
+
+## Files
+Each `<op_name>_kernel.py` file contains the complete generated kernel code for that operation.
+KernelAgent session directories contain detailed logs, worker outputs, and generation artifacts.
+
+## KernelAgent Features Used
+- Parallel workers for increased success rate
+- Iterative refinement with multi-turn dialogue
+- Comprehensive Triton programming guidelines
+- Automatic test generation and validation
+- Session logging and artifact preservation
+
+## Usage
+You can inspect these files to debug kernel generation, analyze the parallel worker outputs,
+or understand the sophisticated generation process used by KernelAgent.
+""")
+
+        print(f"Saving KernelAgent generated kernels to: {self.kernels_dir}")
+
+        # Initialize KernelAgent (imported lazily to avoid dependency issues)
+        self.kernel_agent = None
+        self.num_workers = 4  # Default values, can be overridden
+        self.max_rounds = 10
+
+    def set_config(self, num_workers: int, max_rounds: int):
+        """Set configuration for KernelAgent."""
+        self.num_workers = num_workers
+        self.max_rounds = max_rounds
+
+    def _get_kernel_agent(self):
+        """Lazy initialization of KernelAgent to avoid import issues."""
+        if self.kernel_agent is None:
+            try:
+                # Import KernelAgent from the submodule
+                import sys
+
+                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
+                if kernel_agent_path not in sys.path:
+                    sys.path.insert(0, os.path.abspath(kernel_agent_path))
+
+                from triton_kernel_agent import TritonKernelAgent
+
+                # Create KernelAgent with custom log directory
+                agent_log_dir = os.path.join(self.kernels_dir, "agent_logs")
+                os.makedirs(agent_log_dir, exist_ok=True)
+
+                self.kernel_agent = TritonKernelAgent(
+                    log_dir=agent_log_dir, num_workers=self.num_workers, max_rounds=self.max_rounds
+                )
+
+                print(f"✓ KernelAgent initialized with log directory: {agent_log_dir}")
+
+            except ImportError as e:
+                raise ImportError(
+                    f"Failed to import KernelAgent: {e}\n"
+                    f"Please ensure KernelAgent submodule is properly initialized.\n"
+                    f"Run: git submodule update --init --recursive"
+                )
+
+        return self.kernel_agent
+
+    def _create_problem_description_from_op(self, op, op_name: str) -> str:
+        """
+        Create a problem description for KernelAgent based on the PyTorch operation.
+
+        Args:
+            op: PyTorch operation
+            op_name: Operation name extracted from op
+
+        Returns:
+            Problem description string for KernelAgent
+        """
+        # Create a comprehensive problem description that KernelAgent can understand
+        problem_description = f"""
+Implement a high-performance Triton kernel for the PyTorch operation: {op_name}
+
+Operation details:
+- PyTorch operation: {op}
+- Operation name: {op_name}
+- Framework target: OpenAI Triton
+
+Requirements:
+1. The kernel must be functionally equivalent to the PyTorch operation
+2. Implement using Triton language primitives (tl.load, tl.store, etc.)
+3. Handle all tensor shapes and data types that the original operation supports
+4. Optimize for GPU performance with proper memory coalescing
+5. Include proper boundary condition handling
+6. Follow Triton best practices for kernel design
+
+The generated kernel should:
+- Take the same input arguments as the PyTorch operation
+- Return outputs with identical shapes, dtypes, and numerical values
+- Be optimized for common tensor shapes and memory layouts
+- Handle edge cases gracefully
+
+Please generate a complete, production-ready Triton kernel implementation.
+"""
+        return problem_description
+
+    def _adapt_kernel_function_name(self, kernel_code: str, op_name: str) -> str:
+        """
+        Adapt KernelAgent's 'kernel_function' to BackendBench's expected naming convention.
+
+        KernelAgent generates kernels with 'kernel_function' as the main entry point.
+        BackendBench expects '{op_name}_kernel_impl' as the function name.
+
+        Args:
+            kernel_code: Original kernel code from KernelAgent
+            op_name: Operation name for the expected function name
+
+        Returns:
+            Modified kernel code with correct function name
+        """
+        expected_name = f"{op_name}_kernel_impl"
+
+        # Replace 'def kernel_function' with 'def {op_name}_kernel_impl'
+        if "def kernel_function(" in kernel_code:
+            adapted_code = kernel_code.replace("def kernel_function(", f"def {expected_name}(")
+
+            # Also replace any docstring references
+            adapted_code = adapted_code.replace(
+                '"""Wrapper function that handles kernel launch."""',
+                f'"""{op_name} kernel implementation using Triton."""',
+            )
+
+            return adapted_code
+        else:
+            # If kernel_function is not found, add a wrapper that calls the existing function
+            wrapper_code = f'''
+
+def {expected_name}(*args, **kwargs):
+    """{op_name} kernel implementation using Triton - BackendBench adapter."""
+    # Call the original kernel_function from KernelAgent
+    return kernel_function(*args, **kwargs)
+'''
+            return kernel_code + wrapper_code
+
+    def compile_kernel_from_string(
+        self, kernel_code: str, op_name: str, attempt: int = 1
+    ) -> Callable:
+        """Compile a kernel from string code and return a callable."""
+        try:
+            # Adapt the function name for BackendBench compatibility
+            adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
+
+            # Prepare the code with necessary imports
+            is_triton = "triton.jit" in adapted_code or "@triton.jit" in adapted_code
+            if is_triton:
+                full_code = self._prepare_triton_code(adapted_code)
+            else:
+                full_code = self._prepare_torch_code(adapted_code)
+
+            # Save the kernel to file
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
+            with open(kernel_file, "w") as f:
+                f.write(full_code)
+
+            print(f"Saved KernelAgent kernel to: {kernel_file}")
+
+            # Import and compile the kernel
+            spec = importlib.util.spec_from_file_location(f"kernel_agent_{op_name}", kernel_file)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            # Find the expected function
+            expected_name = f"{op_name}_kernel_impl"
+            if hasattr(module, expected_name):
+                return getattr(module, expected_name)
+            else:
+                available_functions = [
+                    name
+                    for name in dir(module)
+                    if callable(getattr(module, name)) and not name.startswith("_")
+                ]
+                raise ValueError(
+                    f"Expected function '{expected_name}' not found in KernelAgent kernel. "
+                    f"Available: {available_functions}"
+                )
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to compile KernelAgent kernel for {op_name}: {str(e)}")
+
+    def _prepare_triton_code(self, kernel_code: str) -> str:
+        """Prepare Triton kernel code with necessary imports."""
+        imports = """
+import torch
+import triton
+import triton.language as tl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def _prepare_torch_code(self, kernel_code: str) -> str:
+        """Prepare regular PyTorch kernel code with necessary imports."""
+        imports = """
+import torch
+import torch.nn.functional as F
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def add_kernel(self, op, kernel_code: str, op_name: str):
+        """Add a kernel implementation for a specific operator."""
+        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+        self.compiled_kernels[op] = compiled_kernel
+
+        # Save the original KernelAgent code as well
+        original_file = os.path.join(self.kernels_dir, f"{op_name}_original_kernel_agent.py")
+        with open(original_file, "w") as f:
+            f.write(kernel_code)
+
+    def generate_kernel_with_agent(self, op, op_name: str) -> tuple[str, bool]:
+        """
+        Generate a kernel using KernelAgent's sophisticated generation system.
+
+        Args:
+            op: PyTorch operation
+            op_name: Operation name
+
+        Returns:
+            tuple: (kernel_code, success)
+        """
+        try:
+            agent = self._get_kernel_agent()
+
+            # Create problem description
+            problem_description = self._create_problem_description_from_op(op, op_name)
+
+            print(
+                f"🚀 Generating {op_name} kernel with KernelAgent (parallel workers + refinement)"
+            )
+
+            # Generate kernel using KernelAgent
+            result = agent.generate_kernel(
+                problem_description=problem_description,
+                test_code=None,  # Let KernelAgent auto-generate the test
+            )
+
+            if result["success"]:
+                print(f"✅ KernelAgent succeeded for {op_name}!")
+                print(
+                    f"   Worker {result['worker_id']} found solution in {result['rounds']} rounds"
+                )
+                print(f"   Session: {result['session_dir']}")
+
+                # Copy the session directory to our kernels directory for preservation
+                import shutil
+
+                session_name = os.path.basename(result["session_dir"])
+                preserved_session = os.path.join(
+                    self.kernels_dir, f"{op_name}_session_{session_name}"
+                )
+                try:
+                    shutil.copytree(result["session_dir"], preserved_session)
+                    print(f"   Session preserved: {preserved_session}")
+                except Exception as e:
+                    print(f"   Warning: Could not preserve session: {e}")
+
+                return result["kernel_code"], True
+            else:
+                print(f"❌ KernelAgent failed for {op_name}: {result['message']}")
+                return "", False
+
+        except Exception as e:
+            print(f"❌ KernelAgent error for {op_name}: {e}")
+            return "", False
+
+    def __getitem__(self, key):
+        if key in self.compiled_kernels:
+            return self.compiled_kernels[key]
+        raise KeyError(f"No KernelAgent kernel implementation found for {key}")
 
     def __contains__(self, key):
         return key in self.compiled_kernels

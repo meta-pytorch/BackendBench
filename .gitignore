@@ -4,3 +4,6 @@ __pycache__/
 .ruff_cache/
 generated_kernels/
 backendbench.egg-info/
+CLAUDE.md
+venv/
+ops/

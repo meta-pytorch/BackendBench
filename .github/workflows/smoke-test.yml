@@ -5,7 +5,8 @@ on:
 
 jobs:
   smoke-test:
-    runs-on: ubuntu-latest
+    runs-on: 4-core-ubuntu-gpu-t4
+
     steps:
     - uses: actions/checkout@v4
     
@@ -14,22 +15,19 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Install package
+      run: |
+        pip install .
     
     - name: Run smoke test
       run: |
-        PYTHONPATH=. python BackendBench/scripts/main.py --suite smoke --backend aten 
+        python -m BackendBench.scripts.main --suite smoke --backend aten 
     
-    - name: Run installation test
+    - name: Run pytest tests
       run: |
-        pip install .
+        pytest test/
