@@ -28,7 +28,7 @@ def format_kwargs(kwargs):
 
 
 def format_exception(e, op, args, kwargs):
-    op_name = getattr(op, '__name__', str(op))
+    op_name = getattr(op, "__name__", str(op))
     return EXC_MSG.format(op=op_name, args=format_args(args), kwargs=format_kwargs(kwargs), exc=e)
 
 
