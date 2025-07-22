@@ -4,11 +4,15 @@ Load aten inputs from serialized txt files.
 
 import math
 import re
+import tempfile
+import urllib.request
 from collections import defaultdict
 from pathlib import Path
 
 import torch
 from torch.testing import make_tensor
+
+DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/blob/main/tritonbench_op_trace.txt"
 
 
 dtype_abbrs = {
@@ -120,11 +124,33 @@ def _parse_inputs(filename, filter, op_inputs):
 
 
 class TorchBenchTestSuite:
-    def __init__(self, name, filename, filter=None, topn=None):
+    def __init__(self, name, filename=None, filter=None, topn=None):
         self.name = name
         self.topn = topn
         self.optests = defaultdict(list)
-        if Path(filename).is_dir():
+        
+        # Use default URL if no filename provided
+        if filename is None:
+            filename = DEFAULT_HUGGINGFACE_URL
+        
+        # Check if filename is a URL
+        if isinstance(filename, str) and (filename.startswith('http://') or filename.startswith('https://')):
+            # Download URL content to a temporary file
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.txt', delete=False) as tmp_file:
+                try:
+                    # For HuggingFace blob URLs, we need to convert to raw URL
+                    if 'huggingface.co' in filename and '/blob/' in filename:
+                        filename = filename.replace('/blob/', '/resolve/')
+                    
+                    with urllib.request.urlopen(filename) as response:
+                        content = response.read().decode('utf-8')
+                        tmp_file.write(content)
+                        tmp_file.flush()
+                        _parse_inputs(tmp_file.name, filter, self.optests)
+                finally:
+                    # Clean up temp file
+                    Path(tmp_file.name).unlink(missing_ok=True)
+        elif Path(filename).is_dir():
             for file_path in Path(filename).glob("**/*.txt"):
                 _parse_inputs(str(file_path), filter, self.optests)
         else:
