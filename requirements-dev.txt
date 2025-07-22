@@ -2,3 +2,4 @@ pytest
 pytest-cov
 pytest-mock
 pytest-timeout
+ruff==0.12.1
