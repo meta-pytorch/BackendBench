@@ -14,19 +14,11 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
     - name: Install dependencies
       run: |
         pip install -r requirements.txt
+        pip install -r requirements-dev.txt
     
     - name: Run smoke test
       run: |
-        PYTHONPATH=. python scripts/main.py --suite smoke --backend aten 
-        pytest test/
+        PYTHONPATH=. pytest test/
