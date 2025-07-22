@@ -5,6 +5,7 @@ from BackendBench.backends import AtenBackend, FlagGemsBackend, LLMBackend, Kern
 
 try:
     import importlib.util
+
     HAS_FLAG_GEMS = importlib.util.find_spec("flag_gems") is not None
 except ImportError:
     HAS_FLAG_GEMS = False
@@ -177,7 +178,10 @@ class TestKernelAgentBackend:
 
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_generate_kernel(self):
-        with patch("os.makedirs"), patch("triton_kernel_agent.TritonKernelAgent") as mock_kernel_agent_class:
+        with (
+            patch("os.makedirs"),
+            patch("triton_kernel_agent.TritonKernelAgent") as mock_kernel_agent_class,
+        ):
             backend = KernelAgentBackend()
 
             mock_agent = Mock()

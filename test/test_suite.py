@@ -32,10 +32,10 @@ class TestTestClass:
     def test_test_args_property(self):
         def fn1():
             return 10
-        
+
         def fn2():
             return 20
-        
+
         test = Test(fn1, 5, fn2)
 
         args = test.args
@@ -47,7 +47,7 @@ class TestTestClass:
     def test_test_kwargs_property(self):
         def fn1():
             return "computed"
-        
+
         test = Test(key1=fn1, key2="static")
 
         kwargs = test.kwargs
