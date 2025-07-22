@@ -7,10 +7,10 @@ import BackendBench.backends as backends
 import BackendBench.eval as eval
 import click
 import torch
-from BackendBench.opinfo_suite import OpInfoTestSuite
-from BackendBench.torchbench_suite import TorchBenchTestSuite
-from BackendBench.suite import SmokeTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator
+from BackendBench.opinfo_suite import OpInfoTestSuite
+from BackendBench.suite import SmokeTestSuite
+from BackendBench.torchbench_suite import TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +54,13 @@ def setup_logging(log_level):
     help="Comma-separated list of ops to run",
 )
 @click.option(
+    "--topn-inputs",
+    "--topn",
+    default=None,
+    type=int,
+    help="Select the top N largest inputs for each op (default: all inputs)",
+)
+@click.option(
     "--llm-max-attempts",
     default=5,
     type=int,
@@ -82,6 +89,7 @@ def cli(
     suite,
     backend,
     ops,
+    topn_inputs,
     llm_max_attempts,
     kernel_agent_workers,
     kernel_agent_max_rounds,
@@ -122,6 +130,7 @@ def cli(
             "torchbench",
             torchbench_data_path,
             filter=ops,
+            topn=topn_inputs,
         ),
     }[suite]()
 
