@@ -1,16 +1,3 @@
-[build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "BackendBench"
-version = "0.1.0"
-packages = ["BackendBench", "KernelAgent"]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["BackendBench*", "KernelAgent*"]
-
 [tool.ruff]
 line-length = 100
 
