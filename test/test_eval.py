@@ -168,7 +168,7 @@ class TestEvalPerformance:
             nonlocal counter
             counter += 1
 
-        with patch("time.perf_counter", side_effect=[0.0, 0.0, 1.0]):
+        with patch("time.perf_counter", side_effect=[0.0, 1.0]):
             time_per_run = cpu_bench(test_fn, num_runs=100)
 
         assert counter == 110
