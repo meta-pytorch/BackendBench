@@ -4,21 +4,19 @@ from unittest.mock import Mock, patch
 from BackendBench.backends import AtenBackend, FlagGemsBackend, LLMBackend, KernelAgentBackend
 
 try:
-    import flag_gems
-
-    HAS_FLAG_GEMS = True
+    import importlib.util
+    HAS_FLAG_GEMS = importlib.util.find_spec("flag_gems") is not None
 except ImportError:
     HAS_FLAG_GEMS = False
 
 try:
     import sys
     import os
+    import importlib.util
 
     kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
     sys.path.insert(0, os.path.abspath(kernel_agent_path))
-    from triton_kernel_agent import TritonKernelAgent
-
-    HAS_KERNEL_AGENT = True
+    HAS_KERNEL_AGENT = importlib.util.find_spec("triton_kernel_agent") is not None
 except ImportError:
     HAS_KERNEL_AGENT = False
 
@@ -179,7 +177,7 @@ class TestKernelAgentBackend:
 
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_generate_kernel(self):
-        with patch("os.makedirs"):
+        with patch("os.makedirs"), patch("triton_kernel_agent.TritonKernelAgent") as mock_kernel_agent_class:
             backend = KernelAgentBackend()
 
             mock_agent = Mock()

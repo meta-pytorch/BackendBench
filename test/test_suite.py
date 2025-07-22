@@ -30,8 +30,12 @@ class TestTestClass:
 
     @pytest.mark.skip(reason="Test expects mixed callable/non-callable args - needs clarification")
     def test_test_args_property(self):
-        fn1 = lambda: 10
-        fn2 = lambda: 20
+        def fn1():
+            return 10
+        
+        def fn2():
+            return 20
+        
         test = Test(fn1, 5, fn2)
 
         args = test.args
@@ -41,7 +45,9 @@ class TestTestClass:
         reason="Test expects mixed callable/non-callable kwargs - needs clarification"
     )
     def test_test_kwargs_property(self):
-        fn1 = lambda: "computed"
+        def fn1():
+            return "computed"
+        
         test = Test(key1=fn1, key2="static")
 
         kwargs = test.kwargs

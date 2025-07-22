@@ -3,7 +3,7 @@ import torch
 from unittest.mock import Mock, patch
 
 try:
-    import triton.testing
+    import importlib.util
     from BackendBench.eval import (
         format_tensor,
         format_args,
@@ -17,7 +17,7 @@ try:
         cpu_bench,
     )
 
-    HAS_TRITON = True
+    HAS_TRITON = importlib.util.find_spec("triton") is not None
 except ImportError:
     HAS_TRITON = False
 

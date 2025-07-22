@@ -2,12 +2,12 @@ import pytest
 import torch
 
 try:
-    import triton.testing
+    import importlib.util
     from BackendBench.suite import SmokeTestSuite
     from BackendBench.eval import eval_one_op
     import BackendBench.backends as backends
 
-    HAS_TRITON = True
+    HAS_TRITON = importlib.util.find_spec("triton") is not None
 except ImportError:
     HAS_TRITON = False
 
