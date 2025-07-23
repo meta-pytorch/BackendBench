@@ -31,6 +31,20 @@ dtype_abbrs_parsing = {value: key for key, value in dtype_abbrs.items()}
 
 _FLOATING_TYPES = [torch.float16, torch.bfloat16, torch.float32, torch.float64]
 
+# Operators to skip for indexing ops that need valid indices
+SKIP_OPERATORS = [
+    "embedding",
+    "scatter",
+    "gather",
+    "index",
+    "nll_loss",
+    "im2col_backward",
+    "col2im_backward",
+    "native_layer_norm_backward",
+    "upsample_nearest2d_backward.vec",
+    "upsample_bilinear2d_backward.vec",
+]
+
 
 def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
     kwargs = {}
@@ -135,21 +149,7 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(
-                s in op
-                for s in [
-                    "embedding",
-                    "scatter",
-                    "gather",
-                    "index",
-                    "nll_loss",
-                    "im2col_backward",
-                    "col2im_backward",
-                    "native_layer_norm_backward",
-                    "upsample_nearest2d_backward.vec",
-                    "upsample_bilinear2d_backward.vec",
-                ]
-            ):
+            if any(s in op for s in SKIP_OPERATORS):
                 # TODO: indexing ops need valid indices
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)
