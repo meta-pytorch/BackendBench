@@ -128,22 +128,26 @@ class TorchBenchTestSuite:
         self.name = name
         self.topn = topn
         self.optests = defaultdict(list)
-        
+
         # Use default URL if no filename provided
         if filename is None:
             filename = DEFAULT_HUGGINGFACE_URL
-        
+
         # Check if filename is a URL
-        if isinstance(filename, str) and (filename.startswith('http://') or filename.startswith('https://')):
+        if isinstance(filename, str) and (
+            filename.startswith("http://") or filename.startswith("https://")
+        ):
             # Download URL content to a temporary file
-            with tempfile.NamedTemporaryFile(mode='w+', suffix='.txt', delete=False) as tmp_file:
+            with tempfile.NamedTemporaryFile(
+                mode="w+", suffix=".txt", delete=False
+            ) as tmp_file:
                 try:
                     # For HuggingFace blob URLs, we need to convert to raw URL
-                    if 'huggingface.co' in filename and '/blob/' in filename:
-                        filename = filename.replace('/blob/', '/resolve/')
-                    
+                    if "huggingface.co" in filename and "/blob/" in filename:
+                        filename = filename.replace("/blob/", "/resolve/")
+
                     with urllib.request.urlopen(filename) as response:
-                        content = response.read().decode('utf-8')
+                        content = response.read().decode("utf-8")
                         tmp_file.write(content)
                         tmp_file.flush()
                         _parse_inputs(tmp_file.name, filter, self.optests)
@@ -174,6 +178,8 @@ class TorchBenchTestSuite:
                     "native_layer_norm_backward",
                     "upsample_nearest2d_backward.vec",
                     "upsample_bilinear2d_backward.vec",
+                    "_cudnn_rnn_backward.default", # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
+                    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
                 ]
             ):
                 # TODO: indexing ops need valid indices
