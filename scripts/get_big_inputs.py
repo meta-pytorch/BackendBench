@@ -1,48 +1,32 @@
-import torch
-import re
-import json
-import math
-from typing import List, Dict, Tuple, Any
-from collections import defaultdict
-import traceback
+import argparse
 import gc
-import requests
-import os
-from tqdm import tqdm
+import re
 import sys
+import tempfile
+from collections import defaultdict
 from pathlib import Path
+from typing import List, Tuple
+
+import requests
+import torch
+from tqdm import tqdm
 
 # Add parent directory to path to import BackendBench modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import math
+
 from BackendBench.torchbench_suite import (
-    SKIP_OPERATORS,
+    _args_size,
+    _deserialize_args,
+    _deserialize_tensor,
+    _parse_inputs,
     dtype_abbrs,
     dtype_abbrs_parsing,
-    _FLOATING_TYPES,
-    _deserialize_tensor,
-    _deserialize_args,
-    _args_size
+    SKIP_OPERATORS,
 )
 
-# Additional operators to skip for scaling that are not in torchbench_suite
-ADDITIONAL_SKIP_OPERATORS = {
-    "_cudnn_rnn_backward.default",
-    "_fft_c2c.default",
-}
-
-# Combine both skip lists
-SKIP_OPERATORS_SCALING = set(SKIP_OPERATORS) | ADDITIONAL_SKIP_OPERATORS
-
-class OperatorTrace:
-    def __init__(self, op_name: str, args_str: str, cnt: int):
-        self.op_name = op_name
-        self.args_str = args_str
-        self.cnt = cnt
-    
-    def to_line(self) -> str:
-        """Convert back to line format expected by torchbench_suite.py"""
-        return f"cnt: {self.cnt}, {self.args_str}"
+MAX_ITERATIONS = 100  # Maximum number of iterations for binary search
 
 
 def scale_shape(shape: List[int], scale_factor: float) -> List[int]:
@@ -54,87 +38,197 @@ def scale_shape(shape: List[int], scale_factor: float) -> List[int]:
         scaled.append(scaled_dim)
     return scaled
 
+
 def get_tensor_memory_size(shape: List[int], dtype: torch.dtype) -> int:
     """Estimate memory size of a tensor in bytes"""
     # Calculate memory size
     num_elements = 1
     for dim in shape:
         num_elements *= dim
-    
+
     # Get element size for the dtype
     dummy = torch.tensor([0], dtype=dtype)
     element_size = dummy.element_size()
-    
+
     return num_elements * element_size
 
-def scale_tensor_args(args, op_name: str) -> Tuple[List, bool]:
-    """Scale tensor arguments in args list"""
-    scaled_args = []
-    any_scaled = False
-    
-    for arg in args:
-        if isinstance(arg, torch.Tensor):
-            # Get original shape and dtype
-            original_shape = list(arg.shape)
-            dtype = arg.dtype
-            
-            # Binary search for maximum scale
-            scaled_shape, scale_factor = binary_search_max_scale(original_shape, dtype, op_name)
-            
-            if scale_factor > 1.1:  # Only keep if meaningfully scaled
-                any_scaled = True
-                # Create tensor expression for serialization
-                scaled_args.append(f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+
+def scale_tensor_in_repr(tensor_repr: str, op_name: str) -> Tuple[str, bool]:
+    """Scale a tensor representation string like 'T([2, 3], f32)'"""
+    # Parse the tensor representation
+    match = re.match(r"T\((.*?)\)", tensor_repr)
+    if not match:
+        return tensor_repr, False
+
+    # Parse the arguments inside T()
+    args_str = match.group(1)
+    parts = args_str.split(", ")
+
+    # First part is the shape
+    shape_str = parts[0]
+    shape = eval(shape_str)
+
+    # Second part is the dtype
+    dtype_str = parts[1] if len(parts) > 1 else "f32"
+    dtype = dtype_abbrs_parsing.get(dtype_str, torch.float32)
+
+    # Binary search for maximum scale
+    scaled_shape, scale_factor = binary_search_max_scale(shape, dtype, op_name)
+
+    if scale_factor >= 2.0:  # Only keep if meaningfully scaled
+        # Reconstruct the tensor representation
+        if len(parts) > 2:  # Has stride
+            return f"T({scaled_shape}, {dtype_str}, {parts[2]})", True
+        else:
+            return f"T({scaled_shape}, {dtype_str})", True
+
+    return tensor_repr, False
+
+
+def scale_args_string(args_str: str, op_name: str) -> Tuple[str, bool]:
+    """Scale tensor arguments in a serialized args string"""
+    try:
+        # First deserialize to get actual tensor objects
+        args, kwargs = _deserialize_args(args_str)
+
+        # Now process and scale
+        scaled_parts = []
+        any_scaled = False
+
+        # Process args
+        for arg in args:
+            if isinstance(arg, torch.Tensor):
+                # Get tensor properties
+                original_shape = list(arg.shape)
+                dtype = arg.dtype
+                stride = arg.stride() if not arg.is_contiguous() else None
+
+                # Binary search for maximum scale
+                scaled_shape, scale_factor = binary_search_max_scale(original_shape, dtype, op_name)
+
+                if scale_factor >= 2.0:  # Only keep if meaningfully scaled
+                    any_scaled = True
+                    # Create tensor expression
+                    if stride:
+                        scaled_parts.append(
+                            f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')}, {list(stride)})"
+                        )
+                    else:
+                        scaled_parts.append(f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+                    print(
+                        f"  Scaled tensor from {original_shape} to {scaled_shape} (scale: {scale_factor:.2f}x)"
+                    )
+                else:
+                    # Keep original
+                    if stride:
+                        scaled_parts.append(
+                            f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')}, {list(stride)})"
+                        )
+                    else:
+                        scaled_parts.append(f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+            elif isinstance(arg, list):
+                # Handle lists that might contain tensors
+                list_parts = []
+                for item in arg:
+                    if isinstance(item, torch.Tensor):
+                        original_shape = list(item.shape)
+                        dtype = item.dtype
+                        stride = item.stride() if not item.is_contiguous() else None
+                        scaled_shape, scale_factor = binary_search_max_scale(
+                            original_shape, dtype, op_name
+                        )
+                        if scale_factor >= 2.0:
+                            any_scaled = True
+                            if stride:
+                                list_parts.append(
+                                    f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')}, {list(stride)})"
+                                )
+                            else:
+                                list_parts.append(
+                                    f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')})"
+                                )
+                        else:
+                            if stride:
+                                list_parts.append(
+                                    f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')}, {list(stride)})"
+                                )
+                            else:
+                                list_parts.append(
+                                    f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')})"
+                                )
+                    else:
+                        list_parts.append(repr(item))
+                scaled_parts.append(f"[{', '.join(list_parts)}]")
             else:
-                scaled_args.append(f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')})")
-        elif isinstance(arg, (list, tuple)):
-            # Recursively scale nested args
-            scaled_nested, nested_scaled = scale_tensor_args(arg, op_name)
-            scaled_args.append(scaled_nested)
-            any_scaled = any_scaled or nested_scaled
-        else:
-            # Keep non-tensor args as-is
-            scaled_args.append(arg)
-    
-    return scaled_args, any_scaled
+                # Keep non-tensor args as-is
+                scaled_parts.append(repr(arg))
 
-def serialize_args(args, kwargs) -> str:
-    """Serialize args and kwargs back to string format"""
-    # Convert args and kwargs to string representation
-    args_strs = []
-    
-    for arg in args:
-        if isinstance(arg, str) and arg.startswith('T('):
-            # Already serialized tensor
-            args_strs.append(arg)
-        elif isinstance(arg, (list, tuple)):
-            # Handle nested structures
-            args_strs.append(str(arg))
-        else:
-            args_strs.append(repr(arg))
-    
-    # Construct the full args string
-    if kwargs:
-        kwargs_str = ', '.join(f'{k}={repr(v)}' for k, v in kwargs.items())
-        return f"({', '.join(args_strs)}, {kwargs_str})"
-    else:
-        return f"({', '.join(args_strs)})"
+        # Process kwargs
+        for k, v in kwargs.items():
+            if isinstance(v, torch.Tensor):
+                original_shape = list(v.shape)
+                dtype = v.dtype
+                scaled_shape, scale_factor = binary_search_max_scale(original_shape, dtype, op_name)
+                if scale_factor >= 2.0:
+                    any_scaled = True
+                    scaled_parts.append(f"{k}=T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+                else:
+                    scaled_parts.append(f"{k}=T({original_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+            elif isinstance(v, list):
+                # Handle lists that might contain tensors
+                list_parts = []
+                for item in v:
+                    if isinstance(item, torch.Tensor):
+                        original_shape = list(item.shape)
+                        dtype = item.dtype
+                        scaled_shape, scale_factor = binary_search_max_scale(
+                            original_shape, dtype, op_name
+                        )
+                        if scale_factor >= 2.0:
+                            any_scaled = True
+                            list_parts.append(f"T({scaled_shape}, {dtype_abbrs.get(dtype, 'f32')})")
+                        else:
+                            list_parts.append(
+                                f"T({original_shape}, {dtype_abbrs.get(dtype, 'f32')})"
+                            )
+                    else:
+                        list_parts.append(repr(item))
+                scaled_parts.append(f"{k}=[{', '.join(list_parts)}]")
+            else:
+                scaled_parts.append(f"{k}={repr(v)}")
 
-def binary_search_max_scale(original_shape: List[int], dtype: torch.dtype, op_name: str) -> Tuple[List[int], float]:
+        # Return the serialized string
+        return f"({', '.join(scaled_parts)})", any_scaled
+
+    except Exception as e:
+        # If we can't parse/scale, return original
+        return args_str, False
+
+
+def binary_search_max_scale(
+    original_shape: List[int], dtype: torch.dtype, op_name: str
+) -> Tuple[List[int], float]:
     """Use binary search to find maximum scale factor without OOM"""
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     # Clear cache before starting
-    if device == 'cuda':
+    if device == "cuda":
         torch.cuda.empty_cache()
         gc.collect()
-    
+
+    # Skip scaling for CPU - just return a moderate scale
+    if device == "cpu":
+        # For CPU, use a conservative fixed scale
+        scale = 2.0
+        scaled_shape = scale_shape(original_shape, scale)
+        return scaled_shape, scale
+
     # Start with conservative bounds
     min_scale = 1.0
     max_scale = 100.0  # Start with 100x scaling
     best_scale = 1.0
     best_shape = original_shape.copy()
-    
+
     # First, try to find upper bound
     test_scale = max_scale
     with tqdm(desc=f"Finding upper bound for {op_name}", leave=False) as pbar:
@@ -146,13 +240,13 @@ def binary_search_max_scale(original_shape: List[int], dtype: torch.dtype, op_na
                 if mem_size > 100 * 1024 * 1024 * 1024:  # 100GB limit
                     pbar.set_description(f"Memory limit reached: {mem_size / (1024**3):.1f}GB")
                     break
-                
+
                 # Try to create tensor
                 tensor = _deserialize_tensor(test_shape, dtype, device=device)
                 del tensor
-                if device == 'cuda':
+                if device == "cuda":
                     torch.cuda.empty_cache()
-                
+
                 # Success, try larger
                 min_scale = test_scale
                 best_scale = test_scale
@@ -169,19 +263,19 @@ def binary_search_max_scale(original_shape: List[int], dtype: torch.dtype, op_na
             except Exception as e:
                 print(f"Unexpected error for {op_name}: {e}")
                 break
-    
+
     # Binary search between min_scale and max_scale
     iterations = 0
-    with tqdm(total=20, desc=f"Binary search for {op_name}", leave=False) as pbar:
-        while max_scale - min_scale > 0.1 and iterations < 20:
+    with tqdm(total=MAX_ITERATIONS, desc=f"Binary search for {op_name}", leave=False) as pbar:
+        while max_scale - min_scale > 0.1 and iterations < MAX_ITERATIONS:
             mid_scale = (min_scale + max_scale) / 2
             try:
                 test_shape = scale_shape(original_shape, mid_scale)
                 tensor = _deserialize_tensor(test_shape, dtype, device=device)
                 del tensor
-                if device == 'cuda':
+                if device == "cuda":
                     torch.cuda.empty_cache()
-                
+
                 # Success, try larger
                 min_scale = mid_scale
                 best_scale = mid_scale
@@ -194,263 +288,247 @@ def binary_search_max_scale(original_shape: List[int], dtype: torch.dtype, op_na
             except Exception as e:
                 print(f"Unexpected error for {op_name}: {e}")
                 max_scale = mid_scale
-            
+
             iterations += 1
             pbar.update(1)
-    
+
     # Clear cache after search
-    if device == 'cuda':
+    if device == "cuda":
         torch.cuda.empty_cache()
         gc.collect()
-    
+
     return best_shape, best_scale
 
-def download_file(url: str, local_filename: str) -> str:
-    """Download file from URL and save locally with progress bar"""
-    print(f"Downloading file from {url}...")
-    
-    try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        
-        # Get total file size if available
-        total_size = int(response.headers.get('content-length', 0))
-        
-        with open(local_filename, 'w', encoding='utf-8') as f:
-            with tqdm(
-                total=total_size,
-                unit='B',
-                unit_scale=True,
-                desc=f"Downloading {local_filename}"
-            ) as pbar:
-                for chunk in response.iter_content(chunk_size=8192, decode_unicode=True):
-                    if chunk:
-                        f.write(chunk)
-                        pbar.update(len(chunk.encode('utf-8')))
-        
-        print(f"File downloaded successfully as {local_filename}")
-        return local_filename
-        
-    except requests.RequestException as e:
-        print(f"Error downloading file: {e}")
-        raise
-    except Exception as e:
-        print(f"Unexpected error during download: {e}")
-        raise
 
-def process_operator_traces(input_file: str, n_largest: int = 5):
+def process_operator_traces(url: str, n_largest: int = 5):
     """Process operator traces and scale inputs"""
-    # Parse inputs using same logic as torchbench_suite.py
-    print("Reading and parsing trace file...")
+    # Parse inputs using the same logic as torchbench_suite.py
+    print("Reading and parsing trace file from URL...")
     op_inputs = defaultdict(list)
-    current_op = None
-    
-    # First pass: count total lines for progress bar
-    total_lines = sum(1 for line in open(input_file, 'r') if line.strip())
-    
-    with open(input_file, 'r') as f:
-        with tqdm(total=total_lines, desc="Parsing traces") as pbar:
-            for line in f:
-                line = line.strip()
-                if line:
-                    # Parse operator name
-                    if m := re.match("Operator: (.*)", line):
-                        current_op = m.group(1)
-                        if current_op == "aten.sum.SymInt":
-                            current_op = "aten.sum.dim_IntList"
-                    # Parse input with count
-                    elif m := re.match("cnt: (\\d+), (.*)", line):
-                        if current_op is not None:
-                            cnt = int(m.group(1))
-                            args_str = m.group(2)
-                            op_inputs[current_op].append((args_str, cnt))
-                pbar.update(1)
-    
+
+    # Use same approach as torchbench_suite.py - download to temp file and parse
+    with (
+        tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+        requests.get(url) as response,
+    ):
+        response.raise_for_status()
+        tmp_file.write(response.text)
+        tmp_file.flush()
+        _parse_inputs(tmp_file.name, None, op_inputs)
+        Path(tmp_file.name).unlink(missing_ok=True)
+
     print(f"Successfully parsed {sum(len(v) for v in op_inputs.values())} traces")
     print(f"Found {len(op_inputs)} unique operators")
-    
-    # Group by operator and convert to OperatorTrace objects
-    print("Processing operators...")
-    operator_groups = defaultdict(list)
-    for op_name, inputs in op_inputs.items():
-        for args_str, cnt in inputs:
-            trace = OperatorTrace(op_name, args_str, cnt)
-            operator_groups[op_name].append(trace)
-    
-    print(f"Found {len(operator_groups)} unique operators")
-    
-    # Sort each group by input size and get n largest
-    new_traces = []
-    
-    # Create progress bar for operators
-    operators_to_process = [op for op in operator_groups.keys() if op not in SKIP_OPERATORS]
-    
-    with tqdm(total=len(operators_to_process), desc="Processing operators") as op_pbar:
-        for op_name in operators_to_process:
-            op_traces = operator_groups[op_name]
-            op_pbar.set_description(f"Processing {op_name}")
-            
-            # Sort by total tensor size
-            def get_total_size(trace):
-                total = 0
-                for inp in trace.inputs:
-                    if isinstance(inp, dict) and 'shape' in inp:
-                        shape = inp['shape']
-                        size = 1
-                        for dim in shape:
-                            size *= dim
-                        total += size
-                return total
-            
-            op_traces.sort(key=get_total_size, reverse=True)
-            
-            # Process n largest with nested progress bar
-            traces_to_process = op_traces[:n_largest]
-            
-            for i, trace in enumerate(traces_to_process):
-                # Create new scaled inputs
-                scaled_inputs = []
-                any_scaled = False
-                
-                # Process inputs with progress
-                with tqdm(
-                    total=len(trace.inputs), 
-                    desc=f"{op_name} input {i+1}/{len(traces_to_process)}", 
-                    leave=False
-                ) as inp_pbar:
-                    for inp_idx, inp in enumerate(trace.inputs):
-                        inp_pbar.set_description(f"{op_name} input {i+1}/{len(traces_to_process)} - tensor {inp_idx+1}")
-                        
-                        if isinstance(inp, dict) and 'shape' in inp:
-                            original_shape = inp['shape']
-                            dtype = inp.get('dtype', 'float32')
-                            
-                            # Binary search for maximum scale
-                            scaled_shape, scale_factor = binary_search_max_scale(original_shape, dtype, op_name)
-                            
-                            if scale_factor > 1.1:  # Only keep if meaningfully scaled
-                                any_scaled = True
-                                scaled_input = inp.copy()
-                                scaled_input['shape'] = scaled_shape
-                                scaled_inputs.append(scaled_input)
-                                inp_pbar.write(f"    Scaled by {scale_factor:.2f}x: {original_shape} -> {scaled_shape}")
-                            else:
-                                scaled_inputs.append(inp)
-                                inp_pbar.write(f"    Could not scale significantly")
-                        else:
-                            scaled_inputs.append(inp)
-                        
-                        inp_pbar.update(1)
-                
-                # Create new trace if any input was scaled
-                if any_scaled:
-                    new_trace = OperatorTrace(trace.raw_line)
-                    new_trace.inputs = scaled_inputs
-                    new_trace.cnt = 0  # Set count to 0 for new inputs
-                    # Update inputs_str
-                    new_trace.inputs_str = str(scaled_inputs)
-                    new_traces.append(new_trace)
-            
-            op_pbar.update(1)
-    
-    # Sort each group by input size and get n largest
-    new_traces = []
-    
-    # Create progress bar for operators
-    operators_to_process = [op for op in operator_groups.keys() if not any(s in op for s in SKIP_OPERATORS_SCALING)]
-    skipped_ops = [op for op in operator_groups.keys() if any(s in op for s in SKIP_OPERATORS_SCALING)]
-    
+
+    # Filter out skipped operators
+    operators_to_process = {
+        op: inputs for op, inputs in op_inputs.items() if not any(s in op for s in SKIP_OPERATORS)
+    }
+    skipped_ops = [op for op in op_inputs.keys() if any(s in op for s in SKIP_OPERATORS)]
+
     if skipped_ops:
         print(f"Skipped {len(skipped_ops)} operators: {', '.join(sorted(skipped_ops)[:10])}...")
-    
+
+    # Process each operator
+    scaled_traces = []
+
     with tqdm(total=len(operators_to_process), desc="Processing operators") as op_pbar:
-        for op_name in operators_to_process:
-            op_traces = operator_groups[op_name]
+        for op_name, inputs in operators_to_process.items():
             op_pbar.set_description(f"Processing {op_name}")
-            
-            # Sort by total tensor size
-            def get_total_size(trace):
+
+            # Sort inputs by size and take n largest
+            inputs_with_size = []
+            for args_str in inputs:
                 try:
-                    args, kwargs = _deserialize_args(trace.args_str)
-                    return _args_size(args) + _args_size(list(kwargs.values()))
+                    args, kwargs = _deserialize_args(args_str)
+                    size = _args_size(args) + _args_size(list(kwargs.values()))
+                    inputs_with_size.append((size, args_str))
                 except:
-                    return 0
-            
-            op_traces.sort(key=get_total_size, reverse=True)
-            
-            # Process n largest
-            traces_to_process = op_traces[:n_largest]
-            
-            for i, trace in enumerate(traces_to_process):
-                try:
-                    # Parse the args
-                    args, kwargs = _deserialize_args(trace.args_str)
-                    
-                    # Scale tensor arguments
-                    scaled_args, any_scaled = scale_tensor_args(args, op_name)
-                    scaled_kwargs = kwargs  # TODO: scale kwargs if needed
-                    
-                    if any_scaled:
-                        # Create new args string
-                        new_args_str = serialize_args(scaled_args, scaled_kwargs)
-                        new_trace = OperatorTrace(op_name, new_args_str, 0)
-                        new_traces.append(new_trace)
-                        op_pbar.write(f"  Scaled inputs for {op_name} [{i+1}/{len(traces_to_process)}]")
-                except Exception as e:
-                    op_pbar.write(f"  Failed to process {op_name}: {str(e)}")
                     continue
-            
+
+            # Sort by size and take n largest
+            inputs_with_size.sort(key=lambda x: x[0], reverse=True)
+            largest_inputs = [x[1] for x in inputs_with_size[:n_largest]]
+
+            # Process and scale each input
+            for i, args_str in enumerate(largest_inputs):
+                try:
+                    # Scale the args string
+                    scaled_args_str, was_scaled = scale_args_string(args_str, op_name)
+
+                    if was_scaled:
+                        scaled_traces.append((op_name, scaled_args_str))
+                        op_pbar.write(f"  Scaled input {i + 1}/{len(largest_inputs)} for {op_name}")
+                    else:
+                        op_pbar.write(
+                            f"  No scaling for {op_name} input {i + 1} - scale factor not > 1.1"
+                        )
+
+                except Exception as e:
+                    op_pbar.write(f"  Failed to scale {op_name} input {i + 1}: {str(e)}")
+                    continue
+
             op_pbar.update(1)
-    
+
     # Write new inputs file in torchbench_suite format
-    print("Writing new inputs file...")
-    with open('new_inputs.txt', 'w') as f:
+    print("\nWriting new inputs file...")
+    with open("new_inputs.txt", "w") as f:
         current_op = None
-        for trace in tqdm(new_traces, desc="Writing new inputs"):
-            if trace.op_name != current_op:
-                f.write(f"Operator: {trace.op_name}\n")
-                current_op = trace.op_name
-            f.write(trace.to_line() + '\n')
-    
-    # Combine original and new traces
+        for op_name, args_str in tqdm(scaled_traces, desc="Writing new inputs"):
+            if op_name != current_op:
+                f.write(f"Operator: {op_name}\n")
+                current_op = op_name
+            f.write(f"cnt: 0, {args_str}\n")
+
+    # Write combined file with original and new traces
     print("Writing combined file...")
-    with open('combined_inputs.txt', 'w') as f:
-        # Write original traces first (maintaining operator grouping)
-        for op_name, traces in tqdm(op_inputs.items(), desc="Writing original traces"):
+    with open("combined_inputs.txt", "w") as f:
+        # Combine scaled traces by operator
+        scaled_by_op = defaultdict(list)
+        for op_name, args_str in scaled_traces:
+            scaled_by_op[op_name].append(args_str)
+
+        # Write each operator only once with all inputs
+        for op_name, original_inputs in tqdm(op_inputs.items(), desc="Writing combined traces"):
             f.write(f"Operator: {op_name}\n")
-            for args_str, cnt in traces:
-                f.write(f"cnt: {cnt}, {args_str}\n")
-        
-        # Write new scaled traces
-        current_op = None
-        for trace in tqdm(new_traces, desc="Writing new traces"):
-            if trace.op_name != current_op:
-                f.write(f"Operator: {trace.op_name}\n")
-                current_op = trace.op_name
-            f.write(trace.to_line() + '\n')
-    
+
+            # Write original traces first
+            for args_str in original_inputs:
+                # Original traces don't have cnt prefix, so add it
+                f.write(f"cnt: 1, {args_str}\n")
+
+            # Write scaled traces for this operator if any
+            if op_name in scaled_by_op:
+                for args_str in scaled_by_op[op_name]:
+                    f.write(f"cnt: 0, {args_str}\n")
+
     print(f"\nProcessing complete!")
-    print(f"Generated {len(new_traces)} new scaled inputs")
-    print(f"Total traces in combined file: {len(all_traces)}")
+    print(f"Generated {len(scaled_traces)} new scaled inputs")
+    print(
+        f"Total traces in combined file: {sum(len(v) for v in op_inputs.values()) + len(scaled_traces)}"
+    )
     print(f"Files created: new_inputs.txt, combined_inputs.txt")
 
+    return scaled_traces, op_inputs
+
+
+def test_forward_pass(input_file: str, max_tests: int = None):
+    """Test that all inputs in the file can be deserialized and run forward pass"""
+    print(f"\nTesting forward pass for inputs in {input_file}...")
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using device: {device}")
+
+    # Parse the input file
+    op_inputs = defaultdict(list)
+    _parse_inputs(input_file, None, op_inputs)
+
+    total_tests = 0
+    failed_tests = []
+
+    # Test each operator
+    with tqdm(total=len(op_inputs), desc="Testing operators") as pbar:
+        for op_name, inputs in op_inputs.items():
+            pbar.set_description(f"Testing {op_name}")
+
+            # Skip operators in SKIP_OPERATORS
+            if any(s in op_name for s in SKIP_OPERATORS):
+                pbar.write(f"  Skipping {op_name} (in SKIP_OPERATORS)")
+                pbar.update(1)
+                continue
+
+            # Get the operator function
+            try:
+                op_func = eval(f"torch.ops.{op_name}")
+            except:
+                pbar.write(f"  Warning: Could not find operator {op_name}")
+                failed_tests.append((op_name, "Operator not found"))
+                pbar.update(1)
+                continue
+
+            # Test inputs for this operator
+            test_count = 0
+            for i, args_str in enumerate(inputs):
+                if max_tests and test_count >= max_tests:
+                    break
+
+                try:
+                    # Deserialize arguments
+                    args, kwargs = _deserialize_args(args_str)
+
+                    # Move tensors to device
+                    args = [
+                        arg.to(device) if isinstance(arg, torch.Tensor) else arg for arg in args
+                    ]
+                    kwargs = {
+                        k: v.to(device) if isinstance(v, torch.Tensor) else v
+                        for k, v in kwargs.items()
+                    }
+
+                    # Run forward pass
+                    with torch.no_grad():
+                        output = op_func(*args, **kwargs)
+
+                    # Clear memory
+                    if device == "cuda":
+                        torch.cuda.empty_cache()
+
+                    test_count += 1
+                    total_tests += 1
+
+                except Exception as e:
+                    error_msg = str(e)
+                    if "out of memory" in error_msg.lower():
+                        pbar.write(f"  OOM for {op_name} input {i}: {error_msg[:100]}")
+                    else:
+                        pbar.write(f"  Failed {op_name} input {i}: {error_msg[:100]}")
+                        failed_tests.append((op_name, f"Input {i}: {error_msg[:100]}"))
+                    continue
+
+            pbar.update(1)
+
+    # Print summary
+    print(f"\nTest Summary:")
+    print(f"Total tests run: {total_tests}")
+    print(f"Failed tests: {len(failed_tests)}")
+
+    if failed_tests:
+        print("\nFailed tests:")
+        for op_name, error in failed_tests[:10]:  # Show first 10 failures
+            print(f"  {op_name}: {error}")
+        if len(failed_tests) > 10:
+            print(f"  ... and {len(failed_tests) - 10} more failures")
+
+    return total_tests, failed_tests
+
+
 if __name__ == "__main__":
-    # URL to the original trace file
-    url = "https://huggingface.co/api/resolve-cache/datasets/GPUMODE/huggingface_op_trace/3a22aa2466ecd2b01044786b6d80b57d5c6651b5/tritonbench_op_trace.txt?%2Fdatasets%2FGPUMODE%2Fhuggingface_op_trace%2Fresolve%2Fmain%2Ftritonbench_op_trace.txt=&etag=%22338a3d76dcab6320ebaa0d2b1acd949c6529e6b7%22"
-    
-    # Local filename to save the downloaded file
-    local_filename = 'tritonbench_op_trace.txt'
-    
-    # Number of largest inputs to scale per operator
-    n_largest = 5
-    
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--url",
+        type=str,
+        default="https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt",
+    )
+    parser.add_argument("--n_largest", type=int, default=10)
+    parser.add_argument(
+        "--verify", action="store_true", help="Test forward pass on generated inputs"
+    )
+    parser.add_argument("--test_file", type=str, default="new_inputs.txt", help="File to test")
+    parser.add_argument(
+        "--max_tests_per_op", type=int, default=None, help="Maximum tests per operator"
+    )
+    args = parser.parse_args()
+
+    url = args.url
+    n_largest = args.n_largest
+
     try:
-        # Download the file
-        input_file = download_file(url, local_filename)
-        
-        # Process the downloaded file
-        process_operator_traces(input_file, n_largest)
-        
+        # Process the file directly from URL
+        scaled_traces, op_inputs = process_operator_traces(url, n_largest)
+
+        # Optionally test the inputs
+        if args.verify:
+            test_forward_pass(args.test_file, args.max_tests_per_op)
+
     except Exception as e:
         print(f"Script failed with error: {e}")
-        print("Please check your internet connection and the URL validity.")
