@@ -237,11 +237,17 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
 
     # Find upper bound
     test_scale = max_scale
+<<<<<<< HEAD
     original_inputs = serialize_args(args, kwargs)
     best_args_str = serialize_args(args, kwargs)
 
     # 1024x should be sufficiently large
     while test_scale <= 1024:
+=======
+    original_inputs = _reserialize_args(args, kwargs)
+    best_args_str = _reserialize_args(args, kwargs)
+    while test_scale <= 10000:
+>>>>>>> afed2a9 (fix url)
         # Scale all tensors by same factor
         scale_factors = [test_scale] * len(tensors)
         scaled_args, scaled_kwargs = None, None
@@ -257,7 +263,11 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
             best_scale = test_scale
             test_scale *= 2
             max_scale = test_scale
+<<<<<<< HEAD
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
+=======
+            best_args_str = _reserialize_args(scaled_args, scaled_kwargs)
+>>>>>>> afed2a9 (fix url)
             # Test the operator with scaled inputs
             with torch.no_grad():
                 _ = op_func(*scaled_args, **scaled_kwargs)
@@ -266,7 +276,11 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
             best_scale = test_scale
             test_scale *= 2
             max_scale = test_scale
+<<<<<<< HEAD
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
+=======
+            best_args_str = _reserialize_args(scaled_args, scaled_kwargs)
+>>>>>>> afed2a9 (fix url)
         except torch.cuda.OutOfMemoryError as e:
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
             max_scale = test_scale
@@ -488,12 +502,23 @@ def process_operator_traces(
             for i, args_str in enumerate(largest_inputs):
                 args, kwargs = _deserialize_args(args_str)
 
+<<<<<<< HEAD
                 # Find uniform scale factor for all tensors
                 uniform_scale, scaled_args_str = binary_search_max_scale(
                     args, kwargs, op_name
                 )
 
                 if uniform_scale >= MIN_ACCEPTABLE_SCALING_FACTOR:
+=======
+                args, kwargs = _deserialize_args(args_str)
+
+                # Find uniform scale factor for all tensors
+                uniform_scale, scaled_args_str = binary_search_max_scale(
+                    args, kwargs, op_name
+                )
+
+                if uniform_scale >= 2.0:
+>>>>>>> afed2a9 (fix url)
                     scaled_traces.append((op_name, scaled_args_str))
                     log.debug(
                         f"Scaled input {args_str} to {scaled_args_str} which is {uniform_scale}x"
@@ -504,7 +529,11 @@ def process_operator_traces(
                     success_ops_and_inputs.append((op_name, scaled_args_str))
                 else:
                     op_pbar.write(
+<<<<<<< HEAD
                         f"  No scaling for {op_name} input {i + 1} - scale factor not > {MIN_ACCEPTABLE_SCALING_FACTOR}"
+=======
+                        f"  No scaling for {op_name} input {i + 1} - scale factor not > 2.0"
+>>>>>>> afed2a9 (fix url)
                     )
                     failed_ops_and_inputs.append((op_name, args_str))
 
@@ -559,6 +588,16 @@ if __name__ == "__main__":
         "--url",
         type=str,
         default=SCRAPED_HF_URL,
+    )
+    parser.add_argument(
+        "--manually_scaled_ops_url",
+        type=str,
+        default=MANUALLY_SCALED_OPS_URL,
+    )
+    parser.add_argument(
+        "--log-level",
+        type=str,
+        default="INFO",
     )
     parser.add_argument(
         "--manually_scaled_ops_url",
