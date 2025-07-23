@@ -1,3 +1,49 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "backendbench"
+version = "0.1.0"
+description = "A PyTorch backend evaluation suite"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "torch",
+    "click",
+    "numpy",
+    "expecttest",
+    "anthropic>=0.34.0",
+    "pytest",
+    "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-timeout",
+    "ruff==0.12.1",
+]
+flaggems = [
+    "flag_gems",
+]
+
+[project.scripts]
+backendbench = "BackendBench.scripts.main:cli"
+
+[tool.setuptools.packages.find]
+include = ["BackendBench*"]
+
 [tool.ruff]
 line-length = 100
 
