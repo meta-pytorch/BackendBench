@@ -2,6 +2,7 @@ name: Smoke Test
 
 on:
   push:
+  pull_request:
 
 jobs:
   smoke-test:
