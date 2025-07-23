@@ -262,6 +262,7 @@ def binary_search_max_scale(
                 pbar.set_description(f"Found upper bound: {test_scale:.1f}x")
                 break
             except Exception as e:
+                # todo: maybe we should handle this differently
                 print(f"Unexpected error for {op_name}: {e}")
                 break
 
@@ -371,7 +372,6 @@ def process_operator_traces(url: str, n_largest: int = 5):
 
             op_pbar.update(1)
 
-    # Write new inputs file in torchbench_suite format
     print("\nWriting new inputs file...")
     with open("new_inputs.txt", "w") as f:
         current_op = None
@@ -381,7 +381,6 @@ def process_operator_traces(url: str, n_largest: int = 5):
                 current_op = op_name
             f.write(f"cnt: 0, {args_str}\n")
 
-    # Write combined file with original and new traces
     print("Writing combined file...")
     with open("combined_inputs.txt", "w") as f:
         # Combine scaled traces by operator
@@ -389,7 +388,6 @@ def process_operator_traces(url: str, n_largest: int = 5):
         for op_name, args_str in scaled_traces:
             scaled_by_op[op_name].append(args_str)
 
-        # Write each operator only once with all inputs
         for op_name, original_inputs in tqdm(op_inputs.items(), desc="Writing combined traces"):
             f.write(f"Operator: {op_name}\n")
 
