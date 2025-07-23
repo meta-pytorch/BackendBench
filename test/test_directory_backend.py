@@ -19,7 +19,9 @@ def backend():
         # Import and run the existing script
         import subprocess
 
-        subprocess.run([sys.executable, "BackendBench/scripts/create_simple_test_ops.py"], check=True)
+        subprocess.run(
+            [sys.executable, "BackendBench/scripts/create_simple_test_ops.py"], check=True
+        )
 
     return DirectoryBackend(ops_dir="generated_kernels")
 
