@@ -154,9 +154,7 @@ class TorchBenchTestSuite:
             filename.startswith("http://") or filename.startswith("https://")
         ):
             with (
-                tempfile.NamedTemporaryFile(
-                    mode="w+", suffix=".txt", delete=False
-                ) as tmp_file,
+                tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
                 requests.get(filename) as response,
             ):
                 response.raise_for_status()
