@@ -10,7 +10,7 @@ import torch
 from BackendBench.llm_client import ClaudeKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
-from BackendBench.torchbench_suite import TorchBenchTestSuite
+from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL, TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def setup_logging(log_level):
 )
 @click.option(
     "--torchbench-data-path",
-    default="third_party/tritonbench/tritonbench/data/input_configs",
+    default=DEFAULT_HUGGINGFACE_URL,
     type=str,
     help="Path to TorchBench operator data",
 )
