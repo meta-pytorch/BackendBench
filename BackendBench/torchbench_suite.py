@@ -14,7 +14,7 @@ from torch.testing import make_tensor
 
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
-DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/blob/main/tritonbench_op_trace.txt"
+DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
 
 dtype_abbrs = {
@@ -139,19 +139,14 @@ class TorchBenchTestSuite:
         if isinstance(filename, str) and (
             filename.startswith("http://") or filename.startswith("https://")
         ):
-            # For HuggingFace blob URLs, we need to convert to raw URL
-            if "huggingface.co" in filename and "/blob/" in filename:
-                filename = filename.replace("/blob/", "/resolve/")
-
-            # Download URL content to a temporary file using double context manager
-            with tempfile.NamedTemporaryFile(
-                mode="w+", suffix=".txt", delete=False
-            ) as tmp_file, requests.get(filename) as response:
+            with (
+                tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+                requests.get(filename) as response,
+            ):
                 response.raise_for_status()
                 tmp_file.write(response.text)
                 tmp_file.flush()
                 _parse_inputs(tmp_file.name, filter, self.optests)
-                # Clean up temp file
                 Path(tmp_file.name).unlink(missing_ok=True)
         elif Path(filename).is_dir():
             for file_path in Path(filename).glob("**/*.txt"):
