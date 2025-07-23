@@ -18,8 +18,8 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Install ruff
-      run: pip install ruff==0.12.1
+    - name: Install package with dev dependencies
+      run: pip install -e .[dev]
     
     - name: Run ruff check
       run: ruff check .

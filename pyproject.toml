@@ -7,28 +7,32 @@ name = "backendbench"
 version = "0.1.0"
 description = "A PyTorch backend evaluation suite"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-    "torch>=2.0.0",
-    "click>=8.0.0",
-    "anthropic>=0.3.0",
+    "torch",
+    "click",
+    "numpy",
+    "expecttest",
+    "anthropic>=0.34.0",
+    "pytest",
+    "requests",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=6.0",
-    "ruff>=0.1.0",
-    "black>=22.0.0",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-timeout",
+    "ruff==0.12.1",
 ]
 flaggems = [
     "flag_gems",

@@ -20,14 +20,9 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Install dependencies
+    - name: Install package and dependencies
       run: |
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-    
-    - name: Install package
-      run: |
-        pip install .
+        pip install -e .[dev]
     
     - name: Run smoke test
       run: |
