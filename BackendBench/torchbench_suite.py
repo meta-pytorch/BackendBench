@@ -37,6 +37,20 @@ dtype_abbrs_parsing = {value: key for key, value in dtype_abbrs.items()}
 
 _FLOATING_TYPES = [torch.float16, torch.bfloat16, torch.float32, torch.float64]
 
+# Operators to skip for indexing ops that need valid indices
+SKIP_OPERATORS = [
+    "embedding",
+    "scatter",
+    "gather",
+    "index",
+    "nll_loss",
+    "im2col_backward",
+    "col2im_backward",
+    "native_layer_norm_backward",
+    "upsample_nearest2d_backward.vec",
+    "upsample_bilinear2d_backward.vec",
+]
+
 
 def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
     kwargs = {}
@@ -140,7 +154,9 @@ class TorchBenchTestSuite:
             filename.startswith("http://") or filename.startswith("https://")
         ):
             with (
-                tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+                tempfile.NamedTemporaryFile(
+                    mode="w+", suffix=".txt", delete=False
+                ) as tmp_file,
                 requests.get(filename) as response,
             ):
                 response.raise_for_status()
@@ -159,23 +175,6 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(
-                s in op
-                for s in [
-                    "embedding",
-                    "scatter",
-                    "gather",
-                    "index",
-                    "nll_loss",
-                    "im2col_backward",
-                    "col2im_backward",
-                    "native_layer_norm_backward",
-                    "upsample_nearest2d_backward.vec",
-                    "upsample_bilinear2d_backward.vec",
-                    "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
-                    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
-                ]
-            ):
-                # TODO: indexing ops need valid indices
+            if any(s in op for s in SKIP_OPERATORS):
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)
