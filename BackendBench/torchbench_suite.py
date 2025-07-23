@@ -49,6 +49,8 @@ SKIP_OPERATORS = [
     "native_layer_norm_backward",
     "upsample_nearest2d_backward.vec",
     "upsample_bilinear2d_backward.vec",
+    "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
+    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
 ]
 
 
@@ -154,7 +156,9 @@ class TorchBenchTestSuite:
             filename.startswith("http://") or filename.startswith("https://")
         ):
             with (
-                tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+                tempfile.NamedTemporaryFile(
+                    mode="w+", suffix=".txt", delete=False
+                ) as tmp_file,
                 requests.get(filename) as response,
             ):
                 response.raise_for_status()
