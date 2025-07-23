@@ -366,7 +366,9 @@ def merge_inputs_with_huggingface(
                     if current_op is not None:
                         inputs[current_op].append(line.strip())
                     else:
-                        raise ValueError("miformed file from huggingface url, cannot parse")
+                        raise ValueError(
+                            "miformed file from huggingface url, cannot parse"
+                        )
 
         return inputs
 
@@ -391,7 +393,9 @@ def merge_inputs_with_huggingface(
         if op_name not in inputs:
             missing_ops.append(op_name)
         else:
-            inputs[op_name].extend([f"cnt: 0, {args_str}" for args_str in new_inputs[op_name]])
+            inputs[op_name].extend(
+                [f"cnt: 0, {args_str}" for args_str in new_inputs[op_name]]
+            )
 
     if missing_ops:
         raise ValueError(
@@ -451,10 +455,14 @@ def process_operator_traces(
         for op, inputs in op_inputs.items()
         if not any(s in op for s in scaling_skip_list)
     }
-    skipped_ops = [op for op in op_inputs.keys() if any(s in op for s in scaling_skip_list)]
+    skipped_ops = [
+        op for op in op_inputs.keys() if any(s in op for s in scaling_skip_list)
+    ]
 
     if skipped_ops:
-        log.info(f"Skipped {len(skipped_ops)} operators: {', '.join(sorted(skipped_ops)[:10])}...")
+        log.info(
+            f"Skipped {len(skipped_ops)} operators: {', '.join(sorted(skipped_ops)[:10])}..."
+        )
 
     # Process each operator
     scaled_traces = []
@@ -481,14 +489,18 @@ def process_operator_traces(
                 args, kwargs = _deserialize_args(args_str)
 
                 # Find uniform scale factor for all tensors
-                uniform_scale, scaled_args_str = binary_search_max_scale(args, kwargs, op_name)
+                uniform_scale, scaled_args_str = binary_search_max_scale(
+                    args, kwargs, op_name
+                )
 
                 if uniform_scale >= MIN_ACCEPTABLE_SCALING_FACTOR:
                     scaled_traces.append((op_name, scaled_args_str))
                     log.debug(
                         f"Scaled input {args_str} to {scaled_args_str} which is {uniform_scale}x"
                     )
-                    op_pbar.write(f"  Scaled input {i + 1}/{len(largest_inputs)} for {op_name}")
+                    op_pbar.write(
+                        f"  Scaled input {i + 1}/{len(largest_inputs)} for {op_name}"
+                    )
                     success_ops_and_inputs.append((op_name, scaled_args_str))
                 else:
                     op_pbar.write(
@@ -569,4 +581,6 @@ if __name__ == "__main__":
     n_largest = args.n_largest
     manually_scaled_ops_url = args.manually_scaled_ops_url
     # Process the file directly from URL
-    scaled_traces, op_inputs = process_operator_traces(url, n_largest, manually_scaled_ops_url)
+    scaled_traces, op_inputs = process_operator_traces(
+        url, n_largest, manually_scaled_ops_url
+    )

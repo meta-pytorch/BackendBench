@@ -49,8 +49,11 @@ SKIP_OPERATORS = [
     "native_layer_norm_backward",
     "upsample_nearest2d_backward.vec",
     "upsample_bilinear2d_backward.vec",
+<<<<<<< HEAD
     "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
     "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
+=======
+>>>>>>> 2528bc9 ([experimental] Add large inputs to our dataset)
 ]
 
 
@@ -178,6 +181,5 @@ class TorchBenchTestSuite:
     def __iter__(self):
         for op, inputs in self.optests.items():
             if any(s in op for s in SKIP_OPERATORS):
-                # TODO: indexing ops need valid indices
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)
