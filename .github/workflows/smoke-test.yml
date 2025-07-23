@@ -2,7 +2,11 @@ name: Smoke Test
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   smoke-test:
@@ -16,11 +20,14 @@ jobs:
       with:
         python-version: '3.x'
     
-    - name: Install dependencies
+    - name: Install package and dependencies
       run: |
-        pip install -r requirements.txt
-        pip install -r requirements-dev.txt
+        pip install -e .[dev]
     
     - name: Run smoke test
       run: |
-        PYTHONPATH=. pytest test/
+        python -m BackendBench.scripts.main --suite smoke --backend aten 
+    
+    - name: Run pytest tests
+      run: |
+        pytest test/
