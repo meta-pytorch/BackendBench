@@ -14,7 +14,7 @@ from torch.testing import make_tensor
 
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
-DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/augmented_hf_op_traces.txt"
+DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/augmented_tritonbench_op_trace.txt"
 
 
 dtype_abbrs = {
@@ -49,11 +49,8 @@ SKIP_OPERATORS = [
     "native_layer_norm_backward",
     "upsample_nearest2d_backward.vec",
     "upsample_bilinear2d_backward.vec",
-<<<<<<< HEAD
     "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
     "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
-=======
->>>>>>> 2528bc9 ([experimental] Add large inputs to our dataset)
 ]
 
 
