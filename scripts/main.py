@@ -1,6 +1,7 @@
 import logging
 import os
 import sys
+import time
 from typing import Dict
 
 import BackendBench.backends as backends
@@ -84,6 +85,18 @@ def setup_logging(log_level):
     type=str,
     help="Path to TorchBench operator data",
 )
+@click.option(
+    "--num-gpus",
+    default=8,
+    type=int,
+    help="Number of GPUs to use for parallel evaluation (default: 8)",
+)
+@click.option(
+    "--parallel",
+    is_flag=True,
+    default=False,
+    help="Enable parallel evaluation across multiple GPUs",
+)
 def cli(
     log_level,
     suite,
@@ -94,6 +107,8 @@ def cli(
     kernel_agent_workers,
     kernel_agent_max_rounds,
     torchbench_data_path,
+    num_gpus,
+    parallel,
 ):
     setup_logging(log_level)
     if ops:
@@ -137,27 +152,73 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    for test in suite:
-        if test.op not in backend:
-            continue
+    if parallel:
+        # Collect all operations to evaluate
+        op_impl_tests = []
+        for test in suite:
+            if test.op not in backend:
+                continue
+            op_impl_tests.append((
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests
+            ))
+        
+        if op_impl_tests:
+            # Run parallel evaluation
+            logger.info(f"Running parallel evaluation with {num_gpus} GPUs")
+            start_time = time.time()
+            
+            results = eval.eval_multiple_ops_parallel(
+                op_impl_tests,
+                num_gpus=num_gpus,
+                timeout=600  # 10 minute timeout per operation
+            )
+            
+            # Extract results
+            for op_name, (correctness, perf), error in results:
+                if not error:
+                    overall_correctness.append(correctness)
+                    overall_performance.append(perf)
+                else:
+                    logger.warning(f"Failed to evaluate {op_name}: {error}")
+            
+            total_time = time.time() - start_time
+            logger.info(f"Total evaluation time: {total_time:.2f} seconds")
+        else:
+            logger.warning("No operations to evaluate")
+    else:
+        # Sequential evaluation (original behavior)
+        start_time = time.time()
+        
+        for test in suite:
+            if test.op not in backend:
+                continue
 
-        logger.debug(test.op)
+            logger.debug(test.op)
 
-        correctness, perf = eval.eval_one_op(
-            test.op,
-            backend[test.op],
-            test.correctness_tests,
-            test.performance_tests,
-        )
-        overall_correctness.append(correctness)
-        overall_performance.append(perf)
+            correctness, perf = eval.eval_one_op(
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests,
+            )
+            overall_correctness.append(correctness)
+            overall_performance.append(perf)
 
-        logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+        
+        total_time = time.time() - start_time
+        logger.info(f"Total evaluation time: {total_time:.2f} seconds")
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
-    geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
-    print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    if overall_correctness:
+        mean_correctness = torch.tensor(overall_correctness).mean().item()
+        geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+        print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
+        print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    else:
+        print("No operations were evaluated")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
