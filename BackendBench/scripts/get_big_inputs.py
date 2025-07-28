@@ -18,7 +18,6 @@ from BackendBench.torchbench_suite import (
     _deserialize_args,
     _deserialize_tensor,
     _parse_inputs,
-    DEFAULT_HUGGINGFACE_URL,
     dtype_abbrs,
     SKIP_OPERATORS,
 )
@@ -28,7 +27,7 @@ from tqdm import tqdm
 MAX_ITERATIONS = 100  # Maximum number of iterations for binary search
 
 MANUALLY_SCALED_OPS_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/manually_scaled_op_traces.txt"
-SCRAPED_HF_URL = ""
+SCRAPED_HF_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
 log = logging.getLogger(__name__)
 
@@ -340,7 +339,7 @@ def validate_inputs(op_name: str, args_str: str):
 def merge_inputs_with_huggingface(
     new_inputs: Dict[str, List[str]],
     output_file: str = "merged_inputs.txt",
-    huggingface_url: str = DEFAULT_HUGGINGFACE_URL,
+    huggingface_url: str = SCRAPED_HF_URL,
 ) -> None:
     """
     Merge additional inputs with the original HuggingFace trace file.
@@ -563,7 +562,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--url",
         type=str,
-        default=DEFAULT_HUGGINGFACE_URL,
+        default=SCRAPED_HF_URL,
     )
     parser.add_argument(
         "--manually_scaled_ops_url",
