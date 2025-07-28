@@ -11,6 +11,7 @@ try:
 except ImportError:
     flag_gems = None
 
+
 class Backend:
     def __init__(self, name):
         self.name = name
