@@ -2,11 +2,14 @@ import os
 import importlib.util
 import logging
 from typing import Dict, Callable, List
-import flag_gems
 import torch
 
 logger = logging.getLogger(__name__)
 
+try:
+    import flag_gems
+except ImportError:
+    flag_gems = None
 
 class Backend:
     def __init__(self, name):
