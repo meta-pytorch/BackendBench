@@ -588,6 +588,7 @@ if __name__ == "__main__":
         "--url",
         type=str,
         default=SCRAPED_HF_URL,
+<<<<<<< HEAD
     )
     parser.add_argument(
         "--manually_scaled_ops_url",
@@ -598,6 +599,8 @@ if __name__ == "__main__":
         "--log-level",
         type=str,
         default="INFO",
+=======
+>>>>>>> 75ac4e5 (update url)
     )
     parser.add_argument(
         "--manually_scaled_ops_url",
