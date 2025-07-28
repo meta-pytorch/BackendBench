@@ -73,7 +73,7 @@ class TestFlagGemsBackend:
     @patch("BackendBench.backends.flag_gems")
     def test_flag_gems_backend_getitem(self, mock_flag_gems):
         mock_abs_impl = Mock()
-        mock_flag_gems.abs = mock_abs_impl
+        mock_flag_gems.ops.abs = mock_abs_impl
 
         backend = FlagGemsBackend()
 
