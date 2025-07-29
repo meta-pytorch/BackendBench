@@ -3,10 +3,13 @@ import gc
 import logging
 import os
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import re
 import sys
 >>>>>>> 47c40ef (cleanup)
+=======
+>>>>>>> 033c348 (lint)
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -243,10 +246,14 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
     # Find upper bound
     test_scale = max_scale
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 033c348 (lint)
     original_inputs = serialize_args(args, kwargs)
     best_args_str = serialize_args(args, kwargs)
 
     # 1024x should be sufficiently large
+<<<<<<< HEAD
     while test_scale <= 1024:
 =======
     original_inputs = _reserialize_args(args, kwargs)
@@ -255,6 +262,8 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
     while test_scale <= 10000:
 >>>>>>> afed2a9 (fix url)
 =======
+=======
+>>>>>>> 033c348 (lint)
     while test_scale <= 1024:
 >>>>>>> 47c40ef (cleanup)
         # Scale all tensors by same factor
@@ -273,10 +282,14 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
             test_scale *= 2
             max_scale = test_scale
 <<<<<<< HEAD
+<<<<<<< HEAD
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
 =======
             best_args_str = _reserialize_args(scaled_args, scaled_kwargs)
 >>>>>>> afed2a9 (fix url)
+=======
+            best_args_str = serialize_args(scaled_args, scaled_kwargs)
+>>>>>>> 033c348 (lint)
             # Test the operator with scaled inputs
             with torch.no_grad():
                 _ = op_func(*scaled_args, **scaled_kwargs)
@@ -286,10 +299,14 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
             test_scale *= 2
             max_scale = test_scale
 <<<<<<< HEAD
+<<<<<<< HEAD
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
 =======
             best_args_str = _reserialize_args(scaled_args, scaled_kwargs)
 >>>>>>> afed2a9 (fix url)
+=======
+            best_args_str = serialize_args(scaled_args, scaled_kwargs)
+>>>>>>> 033c348 (lint)
         except torch.cuda.OutOfMemoryError as e:
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
             max_scale = test_scale
@@ -341,14 +358,15 @@ def validate_inputs(op_name: str, args_str: str):
     ret = True
     args, kwargs = None, None
     try:
-        print(f"validating {op_name} with args: {args_str}")
-        print(f"args: {len(_deserialize_args(args_str))}")
         args, kwargs = _deserialize_args(args_str)
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
         print(len(args), len(kwargs))
 
 >>>>>>> 47c40ef (cleanup)
+=======
+>>>>>>> 033c348 (lint)
         eval(f"torch.ops.{op_name}")(*args, **kwargs)
     except Exception as e:
         log.info(f"Error validating inputs for {op_name}: {e}")
@@ -396,9 +414,7 @@ def merge_inputs_with_huggingface(
                     if current_op is not None:
                         inputs[current_op].append(line.strip())
                     else:
-                        raise ValueError(
-                            "miformed file from huggingface url, cannot parse"
-                        )
+                        raise ValueError("miformed file from huggingface url, cannot parse")
 
         return inputs
 
@@ -423,9 +439,7 @@ def merge_inputs_with_huggingface(
         if op_name not in inputs:
             missing_ops.append(op_name)
         else:
-            inputs[op_name].extend(
-                [f"cnt: 0, {args_str}" for args_str in new_inputs[op_name]]
-            )
+            inputs[op_name].extend([f"cnt: 0, {args_str}" for args_str in new_inputs[op_name]])
 
     if missing_ops:
         raise ValueError(
@@ -485,14 +499,10 @@ def process_operator_traces(
         for op, inputs in op_inputs.items()
         if not any(s in op for s in scaling_skip_list)
     }
-    skipped_ops = [
-        op for op in op_inputs.keys() if any(s in op for s in scaling_skip_list)
-    ]
+    skipped_ops = [op for op in op_inputs.keys() if any(s in op for s in scaling_skip_list)]
 
     if skipped_ops:
-        log.info(
-            f"Skipped {len(skipped_ops)} operators: {', '.join(sorted(skipped_ops)[:10])}..."
-        )
+        log.info(f"Skipped {len(skipped_ops)} operators: {', '.join(sorted(skipped_ops)[:10])}...")
 
     # Process each operator
     scaled_traces = []
@@ -516,6 +526,7 @@ def process_operator_traces(
 
             # Process and scale each input
             for i, args_str in enumerate(largest_inputs):
+<<<<<<< HEAD
                 args, kwargs = _deserialize_args(args_str)
 
 <<<<<<< HEAD
@@ -526,12 +537,12 @@ def process_operator_traces(
 
                 if uniform_scale >= MIN_ACCEPTABLE_SCALING_FACTOR:
 =======
+=======
+>>>>>>> 033c348 (lint)
                 args, kwargs = _deserialize_args(args_str)
 
                 # Find uniform scale factor for all tensors
-                uniform_scale, scaled_args_str = binary_search_max_scale(
-                    args, kwargs, op_name
-                )
+                uniform_scale, scaled_args_str = binary_search_max_scale(args, kwargs, op_name)
 
 <<<<<<< HEAD
                 if uniform_scale >= 2.0:
@@ -543,9 +554,7 @@ def process_operator_traces(
                     log.debug(
                         f"Scaled input {args_str} to {scaled_args_str} which is {uniform_scale}x"
                     )
-                    op_pbar.write(
-                        f"  Scaled input {i + 1}/{len(largest_inputs)} for {op_name}"
-                    )
+                    op_pbar.write(f"  Scaled input {i + 1}/{len(largest_inputs)} for {op_name}")
                     success_ops_and_inputs.append((op_name, scaled_args_str))
                 else:
                     op_pbar.write(
@@ -606,18 +615,6 @@ def process_operator_traces(
     return scaled_traces, op_inputs
 
 
-def validate_new_inputs():
-    input_dict = defaultdict(list)
-    new_input_file_name = "/home/sahanp/repos/BackendBench/outputs/new_inputs.txt"
-    _parse_inputs(new_input_file_name, None, input_dict)
-    print(len(input_dict))
-    for op_name, inputs in tqdm(input_dict.items(), desc="Validating inputs"):
-        print(f"validating {op_name}")
-        for args_str in inputs:
-            if not validate_inputs(op_name, args_str):
-                log.info(f"Invalid input for {op_name}: {args_str}")
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -659,7 +656,4 @@ if __name__ == "__main__":
     n_largest = args.n_largest
     manually_scaled_ops_url = args.manually_scaled_ops_url
     # Process the file directly from URL
-    scaled_traces, op_inputs = process_operator_traces(
-        url, n_largest, manually_scaled_ops_url
-    )
-    # validate_new_inputs()
+    scaled_traces, op_inputs = process_operator_traces(url, n_largest, manually_scaled_ops_url)
