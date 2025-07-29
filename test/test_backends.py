@@ -1,7 +1,13 @@
+from unittest.mock import Mock, patch
+
 import pytest
 import torch
-from unittest.mock import Mock, patch
-from BackendBench.backends import AtenBackend, FlagGemsBackend, LLMBackend, KernelAgentBackend
+from BackendBench.backends import (
+    AtenBackend,
+    FlagGemsBackend,
+    KernelAgentBackend,
+    LLMBackend,
+)
 
 try:
     import importlib.util
@@ -11,9 +17,9 @@ except ImportError:
     HAS_FLAG_GEMS = False
 
 try:
-    import sys
-    import os
     import importlib.util
+    import os
+    import sys
 
     kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
     sys.path.insert(0, os.path.abspath(kernel_agent_path))
@@ -159,27 +165,24 @@ def generated_kernel(x):
 class TestKernelAgentBackend:
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_initialization(self):
-        with patch("os.makedirs"):
-            backend = KernelAgentBackend()
-            assert backend.name == "kernel_agent"
-            assert "kernel_agent_run_" in backend.kernels_dir
-            assert backend.num_workers == 4  # default value
-            assert backend.max_rounds == 10  # default value
+        backend = KernelAgentBackend()
+        assert backend.name == "kernel_agent"
+        assert "kernel_agent_run_" in backend.kernels_dir
+        assert backend.num_workers == 4  # default value
+        assert backend.max_rounds == 10  # default value
 
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_set_config(self):
-        with patch("os.makedirs"):
-            backend = KernelAgentBackend()
+        backend = KernelAgentBackend()
 
-            backend.set_config(num_workers=8, max_rounds=20)
+        backend.set_config(num_workers=8, max_rounds=20)
 
-            assert backend.num_workers == 8
-            assert backend.max_rounds == 20
+        assert backend.num_workers == 8
+        assert backend.max_rounds == 20
 
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_generate_kernel(self):
         with (
-            patch("os.makedirs"),
             patch("triton_kernel_agent.TritonKernelAgent") as mock_kernel_agent_class,
         ):
             backend = KernelAgentBackend()
@@ -187,7 +190,13 @@ class TestKernelAgentBackend:
             mock_agent = Mock()
             mock_kernel_agent_class.return_value = mock_agent
 
-            mock_agent.generate_kernel.return_value = (True, "def kernel(): pass")
+            mock_agent.generate_kernel.return_value = {
+                "success": True,
+                "kernel_code": "def kernel(): pass",
+                "rounds": 1,
+                "session_dir": "test_session_dir",
+                "worker_id": 0,
+            }
 
             mock_op = Mock()
             mock_op.__str__ = Mock(return_value="test_op")
@@ -205,9 +214,8 @@ class TestBackendIntegration:
         backends.append(AtenBackend())
         with patch("BackendBench.backends.flag_gems"):
             backends.append(FlagGemsBackend())
-        with patch("os.makedirs"):
-            backends.append(LLMBackend())
-            backends.append(KernelAgentBackend())
+        backends.append(LLMBackend())
+        backends.append(KernelAgentBackend())
         for backend in backends:
             assert hasattr(backend, "name")
             assert hasattr(backend, "__contains__")
