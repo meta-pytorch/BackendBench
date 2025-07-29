@@ -27,24 +27,39 @@ def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
     kwargs = {}
     if dtype in _FLOATING_TYPES:
         kwargs.update({"low": 0, "high": 1})
+<<<<<<< HEAD
 
     # Fall back to CPU if CUDA is not available
     if device == "cuda" and not torch.cuda.is_available():
         device = "cpu"
 
+=======
+    
+    # Fall back to CPU if CUDA is not available
+    if device == "cuda" and not torch.cuda.is_available():
+        device = "cpu"
+    
+>>>>>>> 201e39a (Add tests for serialization and deserialization)
     if stride is not None:
         extent = 1 + sum((size - 1) * stride for size, stride in zip(size, stride))
         data = make_tensor(extent, dtype=dtype, device=device, **kwargs)
         return data.as_strided(size, stride)
     return make_tensor(size, dtype=dtype, device=device, **kwargs)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 201e39a (Add tests for serialization and deserialization)
 def _serialize_tensor(tensor):
     """Helper function to serialize a tensor to string format"""
     shape = list(tensor.shape)
     dtype = dtype_abbrs[tensor.dtype]
     stride = tensor.stride() if not tensor.is_contiguous() else None
+<<<<<<< HEAD
 
+=======
+    
+>>>>>>> 201e39a (Add tests for serialization and deserialization)
     if stride:
         return f"T({shape}, {dtype}, {list(stride)})"
     else:
@@ -79,12 +94,22 @@ def serialize_args(args, kwargs) -> str:
     parts = [_serialize_value(arg) for arg in args]
 
     # Process keyword arguments
+<<<<<<< HEAD
     kwargs_parts = [f"'{key}': {_serialize_value(val)}" for key, val in kwargs.items()]
 
     # Handle empty args tuple properly
     args_str = f"({', '.join(parts)},)" if parts else "()"
 
     return f"({args_str}, {{{', '.join(kwargs_parts)}}})"
+=======
+    kwargs_parts = [f"{key}={_serialize_value(val)}" for key, val in kwargs.items()]
+    
+    return f"(({', '.join(parts)},), {{{', '.join(kwargs_parts)}}})"
+
+
+# Alias for backward compatibility
+reserialize_args = serialize_args
+>>>>>>> 201e39a (Add tests for serialization and deserialization)
 
 
 def deserialize_args(inps):
