@@ -1,6 +1,7 @@
 import argparse
 import gc
 import logging
+import os
 import re
 import sys
 import tempfile
@@ -30,6 +31,7 @@ MANUALLY_SCALED_OPS_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_o
 SCRAPED_HF_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
 log = logging.getLogger(__name__)
+MIN_ACCEPTABLE_SCALING_FACTOR = 2.0
 
 
 def scale_shape(shape: List[int], scale_factor: float) -> List[int]:
@@ -57,7 +59,7 @@ def _reserialize_args(args, kwargs) -> str:
         return "None"
 
     # Process positional arguments
-    for arg in args:
+    for idx, arg in enumerate(args):
         if isinstance(arg, torch.Tensor):
             shape = list(arg.shape)
             dtype = dtype_abbrs[arg.dtype]
@@ -117,8 +119,7 @@ def _reserialize_args(args, kwargs) -> str:
             kwargs_parts.append(f"{key}=[{', '.join(list_parts)}]")
         else:
             kwargs_parts.append(f"{key}={repr(val)}")
-
-    return f"({', '.join(parts)}, {{{', '.join(kwargs_parts)}}})"
+    return f"(({', '.join(parts)},), {{{', '.join(kwargs_parts)}}})"
 
 
 # we need to keep track of the indices of the tensors in the args and kwargs
@@ -242,7 +243,7 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
     test_scale = max_scale
     original_inputs = _reserialize_args(args, kwargs)
     best_args_str = _reserialize_args(args, kwargs)
-    while test_scale <= 10000:
+    while test_scale <= 1024:
         # Scale all tensors by same factor
         scale_factors = [test_scale] * len(tensors)
         scaled_args, scaled_kwargs = None, None
@@ -319,8 +320,12 @@ def validate_inputs(op_name: str, args_str: str):
     ret = True
     args, kwargs = None, None
     try:
+        print(f"validating {op_name} with args: {args_str}")
+        print(f"args: {len(_deserialize_args(args_str))}")
         args, kwargs = _deserialize_args(args_str)
-        _ = eval(f"torch.ops.{op_name}")(*args, **kwargs)
+        print(len(args), len(kwargs))
+
+        eval(f"torch.ops.{op_name}")(*args, **kwargs)
     except Exception as e:
         log.info(f"Error validating inputs for {op_name}: {e}")
         ret = False
@@ -352,6 +357,9 @@ def merge_inputs_with_huggingface(
     Raises:
         ValueError: If an operator in new_inputs is not found in the original file
     """
+
+    # put output file in outputs
+    output_file = os.path.join("outputs", output_file)
 
     def parse_inputs_with_count(tmp_file_name: str):
         inputs = defaultdict(list)
@@ -495,7 +503,7 @@ def process_operator_traces(
                     args, kwargs, op_name
                 )
 
-                if uniform_scale >= 2.0:
+                if uniform_scale >= MIN_ACCEPTABLE_SCALING_FACTOR:
                     scaled_traces.append((op_name, scaled_args_str))
                     log.debug(
                         f"Scaled input {args_str} to {scaled_args_str} which is {uniform_scale}x"
@@ -506,7 +514,7 @@ def process_operator_traces(
                     success_ops_and_inputs.append((op_name, scaled_args_str))
                 else:
                     op_pbar.write(
-                        f"  No scaling for {op_name} input {i + 1} - scale factor not > 2.0"
+                        f"  No scaling for {op_name} input {i + 1} - scale factor not > {MIN_ACCEPTABLE_SCALING_FACTOR}"
                     )
                     failed_ops_and_inputs.append((op_name, args_str))
 
@@ -520,6 +528,14 @@ def process_operator_traces(
     for op_name, inputs in manually_scaled_ops.items():
         new_ops[op_name].extend(inputs)
 
+    # write the new inputs to a file
+    # this is mostly for debugging purposes
+    with open(os.path.join("outputs", "new_inputs.txt"), "w") as f:
+        for op_name, inputs in new_ops.items():
+            f.write(f"Operator: {op_name}\n")
+            for args_str in inputs:
+                f.write(f"cnt: 0, {args_str}\n")
+
     # verify that all inputs are valid
     for op_name, inputs in tqdm(new_ops.items(), desc="Validating inputs"):
         for args_str in inputs:
@@ -528,16 +544,6 @@ def process_operator_traces(
                 failed_ops_and_inputs.append((op_name, args_str))
             else:
                 verified_ops[op_name].append(args_str)
-
-    log.info("\nWriting new inputs file...")
-    # we mostly just write this file for the pr
-    with open("new_inputs.txt", "w") as f:
-        current_op = None
-        for op_name, args_str in tqdm(scaled_traces, desc="Writing new inputs"):
-            if op_name != current_op:
-                f.write(f"Operator: {op_name}\n")
-                current_op = op_name
-            f.write(f"cnt: 0, {args_str}\n")
 
     merge_inputs_with_huggingface(verified_ops, "augmented_hf_op_traces.txt")
 
@@ -555,6 +561,18 @@ def process_operator_traces(
     log.info(f"Successfully scaled {len(verified_ops)} operators")
 
     return scaled_traces, op_inputs
+
+
+def validate_new_inputs():
+    input_dict = defaultdict(list)
+    new_input_file_name = "/home/sahanp/repos/BackendBench/outputs/new_inputs.txt"
+    _parse_inputs(new_input_file_name, None, input_dict)
+    print(len(input_dict))
+    for op_name, inputs in tqdm(input_dict.items(), desc="Validating inputs"):
+        print(f"validating {op_name}")
+        for args_str in inputs:
+            if not validate_inputs(op_name, args_str):
+                log.info(f"Invalid input for {op_name}: {args_str}")
 
 
 if __name__ == "__main__":
@@ -586,3 +604,4 @@ if __name__ == "__main__":
     scaled_traces, op_inputs = process_operator_traces(
         url, n_largest, manually_scaled_ops_url
     )
+    # validate_new_inputs()
