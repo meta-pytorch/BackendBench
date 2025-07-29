@@ -2,6 +2,11 @@ import argparse
 import gc
 import logging
 import os
+<<<<<<< HEAD
+=======
+import re
+import sys
+>>>>>>> 47c40ef (cleanup)
 import tempfile
 from collections import defaultdict
 from pathlib import Path
@@ -246,8 +251,12 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
 =======
     original_inputs = _reserialize_args(args, kwargs)
     best_args_str = _reserialize_args(args, kwargs)
+<<<<<<< HEAD
     while test_scale <= 10000:
 >>>>>>> afed2a9 (fix url)
+=======
+    while test_scale <= 1024:
+>>>>>>> 47c40ef (cleanup)
         # Scale all tensors by same factor
         scale_factors = [test_scale] * len(tensors)
         scaled_args, scaled_kwargs = None, None
@@ -332,7 +341,14 @@ def validate_inputs(op_name: str, args_str: str):
     ret = True
     args, kwargs = None, None
     try:
+        print(f"validating {op_name} with args: {args_str}")
+        print(f"args: {len(_deserialize_args(args_str))}")
         args, kwargs = _deserialize_args(args_str)
+<<<<<<< HEAD
+=======
+        print(len(args), len(kwargs))
+
+>>>>>>> 47c40ef (cleanup)
         eval(f"torch.ops.{op_name}")(*args, **kwargs)
     except Exception as e:
         log.info(f"Error validating inputs for {op_name}: {e}")
@@ -517,8 +533,12 @@ def process_operator_traces(
                     args, kwargs, op_name
                 )
 
+<<<<<<< HEAD
                 if uniform_scale >= 2.0:
 >>>>>>> afed2a9 (fix url)
+=======
+                if uniform_scale >= MIN_ACCEPTABLE_SCALING_FACTOR:
+>>>>>>> 47c40ef (cleanup)
                     scaled_traces.append((op_name, scaled_args_str))
                     log.debug(
                         f"Scaled input {args_str} to {scaled_args_str} which is {uniform_scale}x"
@@ -530,10 +550,14 @@ def process_operator_traces(
                 else:
                     op_pbar.write(
 <<<<<<< HEAD
+<<<<<<< HEAD
                         f"  No scaling for {op_name} input {i + 1} - scale factor not > {MIN_ACCEPTABLE_SCALING_FACTOR}"
 =======
                         f"  No scaling for {op_name} input {i + 1} - scale factor not > 2.0"
 >>>>>>> afed2a9 (fix url)
+=======
+                        f"  No scaling for {op_name} input {i + 1} - scale factor not > {MIN_ACCEPTABLE_SCALING_FACTOR}"
+>>>>>>> 47c40ef (cleanup)
                     )
                     failed_ops_and_inputs.append((op_name, args_str))
 
@@ -582,6 +606,18 @@ def process_operator_traces(
     return scaled_traces, op_inputs
 
 
+def validate_new_inputs():
+    input_dict = defaultdict(list)
+    new_input_file_name = "/home/sahanp/repos/BackendBench/outputs/new_inputs.txt"
+    _parse_inputs(new_input_file_name, None, input_dict)
+    print(len(input_dict))
+    for op_name, inputs in tqdm(input_dict.items(), desc="Validating inputs"):
+        print(f"validating {op_name}")
+        for args_str in inputs:
+            if not validate_inputs(op_name, args_str):
+                log.info(f"Invalid input for {op_name}: {args_str}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -626,3 +662,4 @@ if __name__ == "__main__":
     scaled_traces, op_inputs = process_operator_traces(
         url, n_largest, manually_scaled_ops_url
     )
+    # validate_new_inputs()
