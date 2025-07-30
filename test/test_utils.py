@@ -153,7 +153,7 @@ class TestCudaStreamDetection:
     def test_opoverload_callables(self):
         """Test that OpOverload objects don't raise exceptions."""
         import torch
-        
+
         # Test OpOverload (torch operators)
         assert not uses_cuda_stream(torch.add)
         assert not uses_cuda_stream(torch.ops.aten.add)
