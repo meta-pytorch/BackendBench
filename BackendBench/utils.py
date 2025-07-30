@@ -1,6 +1,7 @@
 import ast
 import inspect
 import re
+import textwrap
 
 
 def uses_cuda_stream(func) -> bool:
@@ -13,7 +14,12 @@ def uses_cuda_stream(func) -> bool:
     Returns:
         bool: True if CUDA streams are created, False otherwise
     """
-    source = inspect.getsource(func)
+    try:
+        source = inspect.getsource(func)
+    except (TypeError, OSError):
+        # Handle builtin functions, OpOverload objects, and other callables
+        # without source code. These cannot create CUDA streams.
+        return False
 
     # Check for stream creation patterns
     patterns = [
@@ -41,7 +47,7 @@ def uses_cuda_stream(func) -> bool:
                 self.found = True
             self.generic_visit(node)
 
-    tree = ast.parse(source)
+    tree = ast.parse(textwrap.dedent(source))
     finder = StreamCreationFinder()
     finder.visit(tree)
     return finder.found
