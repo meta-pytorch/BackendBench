@@ -129,11 +129,14 @@ def serialize_args(args, kwargs) -> str:
 >>>>>>> a15dcbc (fix)
 
 
+<<<<<<< HEAD
 # Alias for backward compatibility
 reserialize_args = serialize_args
 >>>>>>> 201e39a (Add tests for serialization and deserialization)
 
 
+=======
+>>>>>>> 4ed1e55 (fix)
 def deserialize_args(inps):
     inps = inps.strip().strip("'")
     global_vals = {
