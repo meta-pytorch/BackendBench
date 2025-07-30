@@ -40,6 +40,29 @@ def scale_shape(shape: List[int], scale_factor: float) -> List[int]:
     return scaled
 
 
+def _serialize_tensor(tensor):
+    """Helper function to serialize a tensor to string format"""
+    shape = list(tensor.shape)
+    dtype = dtype_abbrs[tensor.dtype]
+    stride = tensor.stride() if not tensor.is_contiguous() else None
+
+    if stride:
+        return f"T({shape}, {dtype}, {list(stride)})"
+    else:
+        return f"T({shape}, {dtype})"
+
+
+def _serialize_value(value):
+    """Helper function to serialize any value (tensor, list, primitive)"""
+    if isinstance(value, torch.Tensor):
+        return _serialize_tensor(value)
+    elif isinstance(value, list):
+        list_parts = [_serialize_value(item) for item in value]
+        return f"[{', '.join(list_parts)}]"
+    else:
+        return repr(value)
+
+
 def serialize_args(args, kwargs) -> str:
     """Convert args and kwargs back to the BackendBench string format
 
@@ -50,72 +73,19 @@ def serialize_args(args, kwargs) -> str:
     Returns:
         Serialized string in format: (arg1, arg2, ..., key1=val1, key2=val2, ...)
     """
-    parts = []
     if args is None or kwargs is None:
         return "None"
 
     # Process positional arguments
-    for idx, arg in enumerate(args):
-        if isinstance(arg, torch.Tensor):
-            shape = list(arg.shape)
-            dtype = dtype_abbrs[arg.dtype]
-            stride = arg.stride() if not arg.is_contiguous() else None
-
-            if stride:
-                parts.append(f"T({shape}, {dtype}, {list(stride)})")
-            else:
-                parts.append(f"T({shape}, {dtype})")
-        elif isinstance(arg, list):
-            # Handle lists that might contain tensors
-            list_parts = []
-            for item in arg:
-                if isinstance(item, torch.Tensor):
-                    shape = list(item.shape)
-                    dtype = dtype_abbrs[item.dtype]
-                    stride = item.stride() if not item.is_contiguous() else None
-
-                    if stride:
-                        list_parts.append(f"T({shape}, {dtype}, {list(stride)})")
-                    else:
-                        list_parts.append(f"T({shape}, {dtype})")
-                else:
-                    list_parts.append(repr(item))
-            parts.append(f"[{', '.join(list_parts)}]")
-        else:
-            # For primitives and other types, use repr
-            parts.append(repr(arg))
+    parts = [_serialize_value(arg) for arg in args]
 
     # Process keyword arguments
-    kwargs_parts = []
-    for key, val in kwargs.items():
-        if isinstance(val, torch.Tensor):
-            shape = list(val.shape)
-            dtype = dtype_abbrs[val.dtype]
-            stride = val.stride() if not val.is_contiguous() else None
+    kwargs_parts = [f"'{key}': {_serialize_value(val)}" for key, val in kwargs.items()]
 
-            if stride:
-                kwargs_parts.append(f"{key}=T({shape}, {dtype}, {list(stride)})")
-            else:
-                kwargs_parts.append(f"{key}=T({shape}, {dtype})")
-        elif isinstance(val, list):
-            # Handle lists that might contain tensors
-            list_parts = []
-            for item in val:
-                if isinstance(item, torch.Tensor):
-                    shape = list(item.shape)
-                    dtype = dtype_abbrs[item.dtype]
-                    stride = item.stride() if not item.is_contiguous() else None
+    # Handle empty args tuple properly
+    args_str = f"({', '.join(parts)},)" if parts else "()"
 
-                    if stride:
-                        list_parts.append(f"T({shape}, {dtype}, {list(stride)})")
-                    else:
-                        list_parts.append(f"T({shape}, {dtype})")
-                else:
-                    list_parts.append(repr(item))
-            kwargs_parts.append(f"{key}=[{', '.join(list_parts)}]")
-        else:
-            kwargs_parts.append(f"{key}={repr(val)}")
-    return f"(({', '.join(parts)},), {{{', '.join(kwargs_parts)}}})"
+    return f"({args_str}, {{{', '.join(kwargs_parts)}}})"
 
 
 # we need to keep track of the indices of the tensors in the args and kwargs
