@@ -87,10 +87,6 @@ def serialize_args(args, kwargs) -> str:
     return f"({args_str}, {{{', '.join(kwargs_parts)}}})"
 
 
-# Alias for backward compatibility
-reserialize_args = serialize_args
-
-
 def deserialize_args(inps):
     inps = inps.strip().strip("'")
     global_vals = {

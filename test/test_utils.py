@@ -3,7 +3,6 @@ import math
 from BackendBench.scripts.utils import (
     serialize_args,
     deserialize_args,
-    reserialize_args,
     _deserialize_tensor,
 )
 
@@ -286,18 +285,6 @@ class TestSerializeArgs:
         result = serialize_args(args, kwargs)
         expected = "((), {'weight': T([3, 3], f32), 'bias': None, 'alpha': 0.5})"
         assert result == expected
-
-    def test_reserialize_args_alias(self):
-        """Test that reserialize_args is an alias for serialize_args"""
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        tensor = torch.randn(5, 5, dtype=torch.float32, device=device)
-        args = (tensor,)
-        kwargs = {}
-
-        result1 = serialize_args(args, kwargs)
-        result2 = reserialize_args(args, kwargs)
-        assert result1 == result2
-        assert reserialize_args is serialize_args
 
 
 class TestRoundTrip:
