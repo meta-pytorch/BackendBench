@@ -28,6 +28,7 @@ def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
     if dtype in _FLOATING_TYPES:
         kwargs.update({"low": 0, "high": 1})
 <<<<<<< HEAD
+<<<<<<< HEAD
 
     # Fall back to CPU if CUDA is not available
     if device == "cuda" and not torch.cuda.is_available():
@@ -40,6 +41,13 @@ def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
         device = "cpu"
     
 >>>>>>> 201e39a (Add tests for serialization and deserialization)
+=======
+
+    # Fall back to CPU if CUDA is not available
+    if device == "cuda" and not torch.cuda.is_available():
+        device = "cpu"
+
+>>>>>>> a15dcbc (fix)
     if stride is not None:
         extent = 1 + sum((size - 1) * stride for size, stride in zip(size, stride))
         data = make_tensor(extent, dtype=dtype, device=device, **kwargs)
@@ -47,19 +55,27 @@ def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
     return make_tensor(size, dtype=dtype, device=device, **kwargs)
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 >>>>>>> 201e39a (Add tests for serialization and deserialization)
+=======
+
+>>>>>>> a15dcbc (fix)
 def _serialize_tensor(tensor):
     """Helper function to serialize a tensor to string format"""
     shape = list(tensor.shape)
     dtype = dtype_abbrs[tensor.dtype]
     stride = tensor.stride() if not tensor.is_contiguous() else None
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
     
 >>>>>>> 201e39a (Add tests for serialization and deserialization)
+=======
+
+>>>>>>> a15dcbc (fix)
     if stride:
         return f"T({shape}, {dtype}, {list(stride)})"
     else:
@@ -95,16 +111,22 @@ def serialize_args(args, kwargs) -> str:
 
     # Process keyword arguments
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> a15dcbc (fix)
     kwargs_parts = [f"'{key}': {_serialize_value(val)}" for key, val in kwargs.items()]
 
     # Handle empty args tuple properly
     args_str = f"({', '.join(parts)},)" if parts else "()"
 
     return f"({args_str}, {{{', '.join(kwargs_parts)}}})"
+<<<<<<< HEAD
 =======
     kwargs_parts = [f"{key}={_serialize_value(val)}" for key, val in kwargs.items()]
     
     return f"(({', '.join(parts)},), {{{', '.join(kwargs_parts)}}})"
+=======
+>>>>>>> a15dcbc (fix)
 
 
 # Alias for backward compatibility
