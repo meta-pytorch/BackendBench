@@ -5,6 +5,8 @@ import torch
 import triton.testing
 
 
+from BackendBench.utils import uses_cuda_stream
+
 logger = logging.getLogger(__name__)
 
 EXC_MSG = """
@@ -101,6 +103,11 @@ def eval_performance(op, impl, tests):
 
 def eval_one_op(op, impl, correctness_tests, performance_tests):
     """Evaluate impl of op against correctness_tests and performance_tests."""
+    # TODO: We should have proper error reporting instead of just saying this is 0,
+    # but that should be a separate PR.
+    if uses_cuda_stream(impl):
+        logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
+        return 0, 0
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )

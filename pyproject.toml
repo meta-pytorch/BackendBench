@@ -33,6 +33,9 @@ dev = [
     "pytest-mock",
     "pytest-timeout",
     "ruff==0.12.1",
+    "torch",
+    "numpy",
+    "cupy-cuda12x",
 ]
 flaggems = [
     "flag_gems",
