@@ -2,7 +2,6 @@
 Load aten inputs from serialized txt files.
 """
 
-import math
 import re
 import tempfile
 from collections import defaultdict
@@ -10,58 +9,11 @@ from pathlib import Path
 
 import requests
 import torch
-from torch.testing import make_tensor
+from BackendBench.utils import deserialize_args
 
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
 DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
-
-
-dtype_abbrs = {
-    torch.bfloat16: "bf16",
-    torch.float64: "f64",
-    torch.float32: "f32",
-    torch.float16: "f16",
-    torch.complex32: "c32",
-    torch.complex64: "c64",
-    torch.complex128: "c128",
-    torch.int8: "i8",
-    torch.int16: "i16",
-    torch.int32: "i32",
-    torch.int64: "i64",
-    torch.bool: "b8",
-    torch.uint8: "u8",
-}
-
-dtype_abbrs_parsing = {value: key for key, value in dtype_abbrs.items()}
-
-_FLOATING_TYPES = [torch.float16, torch.bfloat16, torch.float32, torch.float64]
-
-
-def _deserialize_tensor(size, dtype, stride=None, device="cuda"):
-    kwargs = {}
-    if dtype in _FLOATING_TYPES:
-        kwargs.update({"low": 0, "high": 1})
-    if stride is not None:
-        extent = 1 + sum((size - 1) * stride for size, stride in zip(size, stride))
-        data = make_tensor(extent, dtype=dtype, device=device, **kwargs)
-        return data.as_strided(size, stride)
-    return make_tensor(size, dtype=dtype, device=device, **kwargs)
-
-
-def _deserialize_args(inps):
-    inps = inps.strip().strip("'")
-    global_vals = {
-        "T": _deserialize_tensor,
-        "th": torch,
-        "inf": math.inf,
-        "torch": torch,
-        **dtype_abbrs_parsing,
-    }
-    # f strings introduce quotations we dont want
-    for key in dtype_abbrs_parsing:
-        inps = inps.replace(f"'{key}'", key)
-    return eval(inps.strip().strip("'").strip('"'), global_vals)
 
 
 class TorchBenchTest:
@@ -89,7 +41,7 @@ class TorchBenchOpTest:
     def tests(self):
         inputs_and_sizes = []
         for inp in self.inputs:
-            args, kwargs = _deserialize_args(inp)
+            args, kwargs = deserialize_args(inp)
             size = _args_size(args) + _args_size(list(kwargs.values()))
             inputs_and_sizes.append((size, inp))
         ret = [x[1] for x in sorted(inputs_and_sizes, reverse=True)]
@@ -98,13 +50,13 @@ class TorchBenchOpTest:
     @property
     def correctness_tests(self):
         for inp in self.tests():
-            args, kwargs = _deserialize_args(inp)
+            args, kwargs = deserialize_args(inp)
             yield TorchBenchTest(*args, **kwargs)
 
     @property
     def performance_tests(self):
         for inp in self.tests():
-            args, kwargs = _deserialize_args(inp)
+            args, kwargs = deserialize_args(inp)
             yield TorchBenchTest(*args, **kwargs)
 
 
