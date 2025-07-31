@@ -2,12 +2,12 @@ import torch
 import math
 import pytest
 
-from BackendBench.scripts.utils import (
+from BackendBench.utils import (
     serialize_args,
     deserialize_args,
     _deserialize_tensor,
+    uses_cuda_stream,
 )
-from BackendBench.utils import uses_cuda_stream
 
 # Check if CUDA is available
 HAS_CUDA = torch.cuda.is_available()
