@@ -8,3 +8,4 @@ CLAUDE.md
 venv/
 ops/
 datasets/
+uv.lock
