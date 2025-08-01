@@ -2,10 +2,10 @@
 Load aten inputs from serialized txt files and parquet files.
 """
 
-from BackendBench.utils import deserialize_args
+import torch  # noqa: F401
+from BackendBench.data_loaders import _args_size, load_ops_from_source
 from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
-from BackendBench.data_loaders import load_ops_from_source, _args_size
-import torch # noqa: F401
+from BackendBench.utils import deserialize_args
 
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt

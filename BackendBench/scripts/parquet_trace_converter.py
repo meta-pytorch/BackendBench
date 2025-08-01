@@ -1,24 +1,26 @@
 # utility functions to convert parquet and trace files back and forth
 
-import pyarrow.parquet as pq
+import hashlib
+import logging
+import os
+import re
+import tempfile
+from pathlib import Path
+from typing import Dict, List
+
+import click
 import pyarrow as pa
-from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
+import pyarrow.parquet as pq
+import requests
 from BackendBench.data_loaders import _args_size
 from BackendBench.scripts.dataset_filters import (
-    _apply_skip_ops_filter,
     _apply_non_interesting_ops_filter,
+    _apply_skip_ops_filter,
 )
+from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
 from BackendBench.utils import deserialize_args
-import os
-import logging
-import click
-import re
-import hashlib
+from huggingface_hub import HfApi
 from tqdm import tqdm
-import tempfile
-import requests
-from pathlib import Path
-from typing import List, Dict
 
 """
 For the dataset release we generally would want to versions
@@ -47,6 +49,21 @@ All columns in the production version, plus:
 """
 
 logger = logging.getLogger(__name__)
+
+
+def _upload_to_hf(file_path: str) -> None:
+    """Upload file to GPUMODE/huggingface_op_trace."""
+    try:
+        api = HfApi()
+        api.upload_file(
+            path_or_fileobj=file_path,
+            path_in_repo=Path(file_path).name,
+            repo_id="GPUMODE/huggingface_op_trace",
+            repo_type="dataset",
+        )
+        logger.info(f"Uploaded {Path(file_path).name} to Hugging Face")
+    except Exception as e:
+        logger.warning(f"Failed to upload {Path(file_path).name}: {e}")
 
 
 def setup_logging(log_level):
@@ -220,7 +237,7 @@ def _validate_parquet_name(parquet_name: str, is_input: bool = False) -> str:
 
     # Ensure local files are in datasets directory
     if not parquet_name.startswith("datasets/"):
-        parquet_name = f"datasets/{parquet_name}"
+        parquet_name = os.path.join("datasets", parquet_name)
 
     return parquet_name
 
@@ -274,11 +291,17 @@ def _generate_dev_parquet_name(parquet_name: str) -> str:
 )
 @click.option(
     "--parquet-name",
-    default="backend_bench_problems-dev.parquet",
+    default="backend_bench_problems.parquet",
     type=str,
     help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/. Dev version auto-generated as filename-dev.parquet.",
 )
-def main(log_level, mode, trace_file, parquet_name):
+@click.option(
+    "--upload-to-hf",
+    is_flag=True,
+    default=False,
+    help="Upload generated parquet files to Hugging Face (GPUMODE/huggingface_op_trace) in trace-to-parquet mode",
+)
+def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
     """Convert trace files to parquet format or vice versa."""
     setup_logging(log_level)
 
@@ -301,6 +324,11 @@ def main(log_level, mode, trace_file, parquet_name):
 
         convert_trace_to_parquets(trace_file, parquet_name, dev_parquet_name)
         logger.info("Conversion completed successfully")
+
+        if upload_to_hf:
+            # Upload to Hugging Face
+            _upload_to_hf(os.path.abspath(parquet_name))
+            _upload_to_hf(os.path.abspath(dev_parquet_name))
 
     elif mode == "parquet-to-trace":
         # Validate parquet input (URLs allowed for input in this mode)
