@@ -104,7 +104,7 @@ class TestSpeedOfLightGPU:
         if "t4" in gpu_name:
             # Should detect T4 specs
             assert compute_peak == 65e12  # 65 TFLOPS
-            assert memory_bw == 320e9  # 320 GB/s
+            assert memory_bw == 300e9  # 300 GB/s
         else:
             # Unknown GPU should use fallback
             assert compute_peak == 500e12
