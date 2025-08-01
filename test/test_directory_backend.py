@@ -16,10 +16,13 @@ from BackendBench.backends import DirectoryBackend
 def backend():
     expected_dirs = ["relu", "add", "mul", "abs", "sum"]
     missing_dirs = [d for d in expected_dirs if not os.path.isdir(f"generated_kernels/{d}")]
-    
+
     if missing_dirs:
         import subprocess
-        subprocess.run([sys.executable, "BackendBench/scripts/create_simple_test_ops.py"], check=True)
+
+        subprocess.run(
+            [sys.executable, "BackendBench/scripts/create_simple_test_ops.py"], check=True
+        )
 
     return DirectoryBackend(ops_dir="generated_kernels")
 
