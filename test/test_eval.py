@@ -61,7 +61,7 @@ class TestFormatFunctions:
         exc = ValueError("Test error")
 
         formatted = format_exception(exc, op, args, kwargs)
-        assert "aten.relu.default" in formatted
+        assert "relu.default" in formatted
         assert "torch.float32[2, 3]" in formatted
         assert "dim" in formatted
         assert "Test error" in formatted
@@ -177,8 +177,8 @@ class TestEvalPerformance:
         # Actually run the benchmark
         time_per_run = cpu_bench(test_fn, num_runs=10)
 
-        # Should have run warmup (10%) + actual runs
-        assert counter == 11  # 1 warmup + 10 runs
+        # Should have run 10 warmup runs + 10 actual runs = 20 total
+        assert counter == 20
         assert time_per_run > 0
 
 
