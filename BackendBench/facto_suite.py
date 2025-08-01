@@ -4,7 +4,6 @@ from collections import defaultdict
 import torch
 from facto.inputgen.argtuple.gen import ArgumentTupleGenerator
 from facto.specdb.db import SpecDictDB
-from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
 from .eval import allclose
@@ -101,7 +100,7 @@ def build_facto_op_tests(device, dtype, filter=None, num_runs=10):
                         op_tests[traced_op].append(
                             FactoTest(*filtered_posargs, **all_kwargs)
                         )
-                except Exception as e:
+                except Exception:
                     logger.debug(
                         f"FACTO spec {spec_name} couldn't run underlying op {traced_op[0]}"
                     )
