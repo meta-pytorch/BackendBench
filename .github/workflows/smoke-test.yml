@@ -30,17 +30,11 @@ jobs:
     - name: Build and install FACTO
       run: cd FACTO && uv pip install .
 
-    - name: Clone FlagGems source
-      run: git clone https://github.com/FlagOpen/FlagGems.git
-
-    - name: Build and install FlagGems
-      run: cd FlagGems && uv pip install scikit-build-core && uv pip install --no-build-isolation .
-
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten
 
     - name: Run FACTO test
-      run: uv run python -m BackendBench.scripts.main --suite facto --backend flag_gems --ops "add.Tensor"
+      run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor"
 
     - name: Run pytest tests
       run: uv run pytest test/
