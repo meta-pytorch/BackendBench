@@ -158,8 +158,6 @@ class TestKernelAgentBackend:
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     @pytest.mark.skip(reason="Requires actual KernelAgent API interaction")
     def test_kernel_agent_backend_generate_kernel(self):
-        # This test would require actual KernelAgent API calls
-        # which should not be done in unit tests
         pass
 
 
