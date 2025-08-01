@@ -21,6 +21,9 @@ jobs:
     - name: Set up Python
       run: uv python install
 
+    - name: Install package and dependencies
+      run: uv sync --dev
+
     - name: Clone FACTO source
       run: |
         git clone https://github.com/pytorch-labs/FACTO.git
@@ -31,9 +34,6 @@ jobs:
       run: |
         cd FACTO
         uv pip install .
-
-    - name: Install package and dependencies
-      run: uv sync --dev
 
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten
