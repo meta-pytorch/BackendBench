@@ -43,7 +43,7 @@ class TestAtenBackend:
 
         relu_op = torch.ops.aten.relu.default
         assert backend[relu_op] == relu_op
-        
+
         add_op = torch.ops.aten.add.Tensor
         assert backend[add_op] == add_op
 
@@ -58,28 +58,36 @@ class TestFlagGemsBackend:
     @pytest.mark.skipif(not HAS_FLAG_GEMS, reason="flag_gems not available")
     def test_flag_gems_backend_contains_op(self):
         backend = FlagGemsBackend()
-        
+
         # Test with actual ops that flag_gems supports
-        if hasattr(torch.ops.aten, 'abs'):
+        if hasattr(torch.ops.aten, "abs"):
             if torch.ops.aten.abs.default in backend:
                 assert torch.ops.aten.abs.default in backend
-        
+
         # Test with an op that might not be in flag_gems
-        unsupported_op = torch.ops.aten.special_log_ndtr.default if hasattr(torch.ops.aten, 'special_log_ndtr') else None
+        unsupported_op = (
+            torch.ops.aten.special_log_ndtr.default
+            if hasattr(torch.ops.aten, "special_log_ndtr")
+            else None
+        )
         if unsupported_op:
             assert unsupported_op not in backend
 
     @pytest.mark.skipif(not HAS_FLAG_GEMS, reason="flag_gems not available")
     def test_flag_gems_backend_getitem(self):
         backend = FlagGemsBackend()
-        
+
         # Test with an op that should exist
-        if hasattr(torch.ops.aten, 'abs') and torch.ops.aten.abs.default in backend:
+        if hasattr(torch.ops.aten, "abs") and torch.ops.aten.abs.default in backend:
             impl = backend[torch.ops.aten.abs.default]
             assert impl is not None
-        
+
         # Test with an op that doesn't exist in flag_gems
-        unsupported_op = torch.ops.aten.special_log_ndtr.default if hasattr(torch.ops.aten, 'special_log_ndtr') else None
+        unsupported_op = (
+            torch.ops.aten.special_log_ndtr.default
+            if hasattr(torch.ops.aten, "special_log_ndtr")
+            else None
+        )
         if unsupported_op and unsupported_op not in backend:
             with pytest.raises(KeyError):
                 _ = backend[unsupported_op]
@@ -95,10 +103,10 @@ class TestLLMBackend:
     @pytest.mark.skip(reason="Requires Triton for kernel compilation")
     def test_llm_backend_add_kernel(self):
         backend = LLMBackend()
-        
+
         # Use a real torch op for testing
         test_op = torch.ops.aten.relu.default
-        
+
         kernel_code = """
 @triton.jit
 def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
@@ -117,9 +125,9 @@ def generated_relu(x):
     relu_kernel[grid](x, output, n_elements, BLOCK_SIZE=1024)
     return output
 """
-        
+
         backend.add_kernel(test_op, kernel_code, "relu")
-        
+
         assert test_op in backend
 
     @pytest.mark.skip(reason="Requires actual kernel compilation and testing")
@@ -159,15 +167,15 @@ class TestBackendIntegration:
     def test_backend_polymorphism(self):
         backends = []
         backends.append(AtenBackend())
-        
+
         if HAS_FLAG_GEMS:
             backends.append(FlagGemsBackend())
-            
+
         backends.append(LLMBackend())
-        
+
         if HAS_KERNEL_AGENT:
             backends.append(KernelAgentBackend())
-            
+
         for backend in backends:
             assert hasattr(backend, "name")
             assert hasattr(backend, "__contains__")
