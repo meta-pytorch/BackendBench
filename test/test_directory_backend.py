@@ -14,9 +14,10 @@ from BackendBench.backends import DirectoryBackend
 
 @pytest.fixture(scope="module")
 def backend():
-    # Ensure generated_kernels directory exists for CI
-    if not os.path.exists("generated_kernels"):
-        # Import and run the existing script
+    expected_dirs = ["relu", "add", "mul", "abs", "sum"]
+    missing_dirs = [d for d in expected_dirs if not os.path.isdir(f"generated_kernels/{d}")]
+
+    if missing_dirs:
         import subprocess
 
         subprocess.run(
