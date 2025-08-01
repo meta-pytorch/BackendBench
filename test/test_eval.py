@@ -13,6 +13,7 @@ try:
         eval_correctness,
         eval_one_op,
         cpu_bench,
+        gpu_bench,
     )
 
     HAS_TRITON = importlib.util.find_spec("triton") is not None
@@ -178,6 +179,18 @@ class TestEvalPerformance:
         time_per_run = cpu_bench(test_fn, num_runs=10)
 
         # Should have run 10 warmup runs + 10 actual runs = 20 total
+        assert counter == 20
+        assert time_per_run > 0
+
+    def test_gpu_bench(self):
+        counter = 0
+
+        def test_fn():
+            nonlocal counter
+            counter += 1
+
+        time_per_run = gpu_bench(test_fn, num_runs=10)
+
         assert counter == 20
         assert time_per_run > 0
 

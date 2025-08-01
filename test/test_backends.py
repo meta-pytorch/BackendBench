@@ -130,12 +130,6 @@ def generated_relu(x):
 
         assert test_op in backend
 
-    @pytest.mark.skip(reason="Requires actual kernel compilation and testing")
-    def test_llm_backend_test_kernel_correctness(self):
-        # This test would require actual kernel compilation which may fail
-        # in test environments without proper GPU setup
-        pass
-
 
 class TestKernelAgentBackend:
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
@@ -154,11 +148,6 @@ class TestKernelAgentBackend:
 
         assert backend.num_workers == 8
         assert backend.max_rounds == 20
-
-    @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
-    @pytest.mark.skip(reason="Requires actual KernelAgent API interaction")
-    def test_kernel_agent_backend_generate_kernel(self):
-        pass
 
 
 class TestBackendIntegration:
