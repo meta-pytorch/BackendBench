@@ -21,15 +21,15 @@ jobs:
     - name: Set up Python
       run: uv python install
 
-    - name: Clone facto source
+    - name: Clone FACTO source
       run: |
         git clone https://github.com/pytorch-labs/FACTO.git
-        cd facto
+        cd FACTO
         uv sync --dev
 
-    - name: Build and install facto
+    - name: Build and install FACTO
       run: |
-        cd facto
+        cd FACTO
         uv pip install .
 
     - name: Install package and dependencies
