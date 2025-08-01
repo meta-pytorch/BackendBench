@@ -25,13 +25,16 @@ jobs:
       run: uv sync --dev
 
     - name: Clone FACTO source
-      run: |
-        git clone https://github.com/pytorch-labs/FACTO.git
+      run: git clone https://github.com/pytorch-labs/FACTO.git
 
     - name: Build and install FACTO
-      run: |
-        cd FACTO
-        uv pip install .
+      run: cd FACTO && uv pip install .
+
+    - name: Clone FlagGems source
+      run: git clone https://github.com/FlagOpen/FlagGems.git
+
+    - name: Build and install FlagGems
+      run: cd FACTO && pip install --no-build-isolation .
 
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten
