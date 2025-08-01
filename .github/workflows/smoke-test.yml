@@ -34,7 +34,7 @@ jobs:
       run: git clone https://github.com/FlagOpen/FlagGems.git
 
     - name: Build and install FlagGems
-      run: cd FlagGems && pip install --no-build-isolation .
+      run: cd FlagGems && uv pip install --no-build-isolation .
 
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten
