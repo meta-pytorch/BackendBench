@@ -4,7 +4,10 @@ import pyarrow.parquet as pq
 import pyarrow as pa
 from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
 from BackendBench.data_loaders import _args_size
-from BackendBench.scripts.dataset_filters import _apply_skip_ops_filter, _apply_non_interesting_ops_filter
+from BackendBench.scripts.dataset_filters import (
+    _apply_skip_ops_filter,
+    _apply_non_interesting_ops_filter,
+)
 from BackendBench.utils import deserialize_args
 import os
 import logging
@@ -62,7 +65,7 @@ def setup_logging(log_level):
 def _parse_trace_file(filename: str) -> List[Dict]:
     """
     Parse a single trace file and return a list of operation dictionaries.
-    
+
     Returns list of dicts with keys: uuid, op_name, args, arg_size, count, is_synthetic
     """
     op_inputs = []
@@ -85,14 +88,16 @@ def _parse_trace_file(filename: str) -> List[Dict]:
                 size = size / (1024 * 1024)
                 # if cnt is 0 then it is synthetic
                 is_synthetic = cnt == 0
-                op_inputs.append({
-                    "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
-                    "op_name": op,
-                    "args": args_str,
-                    "arg_size": size,
-                    "count": cnt,
-                    "is_synthetic": is_synthetic,
-                })
+                op_inputs.append(
+                    {
+                        "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
+                        "op_name": op,
+                        "args": args_str,
+                        "arg_size": size,
+                        "count": cnt,
+                        "is_synthetic": is_synthetic,
+                    }
+                )
     return op_inputs
 
 
@@ -101,7 +106,7 @@ def _load_trace_for_parquet_conversion(source: str) -> List[Dict]:
     Load operations from trace file(s) with detailed metadata for parquet conversion.
     """
     ops = []
-    
+
     # Handle URLs
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
         with (
@@ -113,16 +118,16 @@ def _load_trace_for_parquet_conversion(source: str) -> List[Dict]:
             tmp_file.flush()
             ops.extend(_parse_trace_file(tmp_file.name))
             Path(tmp_file.name).unlink(missing_ok=True)
-    
+
     # Handle directories
     elif Path(source).is_dir():
         for file_path in Path(source).glob("**/*.txt"):
             ops.extend(_parse_trace_file(str(file_path)))
-    
+
     # Handle single files
     else:
         ops.extend(_parse_trace_file(source))
-    
+
     return ops
 
 
@@ -136,26 +141,46 @@ def convert_trace_to_parquets(trace_file, prod_parquet_file=None, dev_parquet_fi
 
     # Add additional metadata fields required for the parquet format
     for op in ops:
+        op["uuid"] = hashlib.sha256(op["args"].encode() + op["op_name"].encode()).hexdigest()
         op["included_in_benchmark"] = True
         op["why_excluded"] = []
-        op["runtime_ms"] = 0
+        op["runtime_ms"] = ""
         op["runnable"] = True
 
     # apply filters
     ops = _apply_skip_ops_filter(ops)
     ops = _apply_non_interesting_ops_filter(ops)
 
-    # create prod dict
-    prod_ops = [op for op in ops if op["included_in_benchmark"]]
+    # create production version (copy ops to avoid modifying original)
+    prod_ops = []
+    for op in ops:
+        if op["included_in_benchmark"]:
+            # Create production version without metadata fields
+            prod_op = {
+                "uuid": op["uuid"],
+                "op_name": op["op_name"],
+                "args": op["args"],
+                "arg_size": op["arg_size"],
+                "count": op["count"],
+                "is_synthetic": op["is_synthetic"],
+            }
+            prod_ops.append(prod_op)
 
-    dev_table = pa.Table.from_pydict(ops)
+    # Create parquet tables with proper headers
+    dev_table = pa.Table.from_pylist(ops)
+    prod_table = pa.Table.from_pylist(prod_ops)
+
+    # Write parquet files
     pq.write_table(dev_table, dev_parquet_file)
-
-    prod_table = pa.Table.from_pydict(prod_ops)
     pq.write_table(prod_table, prod_parquet_file)
 
     logger.info(f"Wrote {len(prod_ops)} ops and inputs to {prod_parquet_file}")
     logger.info(f"Wrote {len(ops)} ops and inputs to {dev_parquet_file}")
+
+    # Log column information for verification
+    logger.debug(f"Production parquet columns: {prod_table.column_names}")
+    logger.debug(f"Dev parquet columns: {dev_table.column_names}")
+
 
 def convert_parquet_to_trace(parquet_file, trace_file):
     """
@@ -163,16 +188,70 @@ def convert_parquet_to_trace(parquet_file, trace_file):
     """
     table = pq.read_table(parquet_file)
     op_inputs = {}
-    # go through each row and add to op_inputs
-    for row in table:
+
+    for row in table.to_pylist():
         formatted_entry = f"cnt: {row['count']}, {row['args']}"
-        op_inputs[row["op_name"]] = formatted_entry
+
+        if row["op_name"] not in op_inputs:
+            op_inputs[row["op_name"]] = []
+        op_inputs[row["op_name"]].append(formatted_entry)
+
     # write to trace file
     with open(trace_file, "w") as f:
         for op, args in op_inputs.items():
             f.write(f"Operator: {op}\n")
             for arg in args:
                 f.write(f"{arg}\n")
+    total_args = sum(len(op_inputs[op]) for op in op_inputs)
+    logging.info(f"Wrote {total_args} ops and inputs to {trace_file}")
+
+
+def _validate_parquet_name(parquet_name: str, is_input: bool = False) -> str:
+    """Validate parquet filename. URLs allowed only for inputs."""
+    # URLs are allowed only if this is an input file
+    if parquet_name.startswith(("http://", "https://")):
+        if is_input:
+            return parquet_name  # URL allowed for input
+        else:
+            raise click.BadParameter("Output parquet file cannot be a URL")
+
+    if not parquet_name.endswith(".parquet"):
+        raise click.BadParameter("Parquet file must end with .parquet suffix")
+
+    # Ensure local files are in datasets directory
+    if not parquet_name.startswith("datasets/"):
+        parquet_name = f"datasets/{parquet_name}"
+
+    return parquet_name
+
+
+def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
+    """Validate trace file. URLs allowed only for inputs."""
+    # URLs are allowed only if this is an input file
+    if trace_file.startswith(("http://", "https://")):
+        if is_input:
+            return trace_file  # URL allowed for input
+        else:
+            raise click.BadParameter("Output trace file cannot be a URL")
+
+    # For local files, check extension
+    if not (trace_file.endswith(".txt") or Path(trace_file).is_dir()):
+        raise click.BadParameter("Local trace file must end with .txt or be a directory")
+
+    if Path(trace_file).is_dir() and not is_input:
+        raise click.BadParameter("Output trace file cannot be a directory")
+
+    return trace_file
+
+
+def _generate_dev_parquet_name(parquet_name: str) -> str:
+    """Generate dev parquet name by appending -dev before .parquet suffix."""
+    if parquet_name.endswith(".parquet"):
+        base_name = parquet_name[:-8]  # Remove .parquet
+        return f"{base_name}-dev.parquet"
+    else:
+        return f"{parquet_name}-dev"
+
 
 @click.command()
 @click.option(
@@ -182,59 +261,55 @@ def convert_parquet_to_trace(parquet_file, trace_file):
     help="Set the logging level",
 )
 @click.option(
-    "--trace-file",
-    default=DEFAULT_HUGGINGFACE_URL,
-    type=str,
-    help="Path to trace file (can be URL, file path, or directory)",
-)
-@click.option(
-    "--prod-parquet",
-    default="backend_bench_problems.parquet",
-    type=str,
-    help="Output path for production parquet file",
-)
-@click.option(
-    "--dev-parquet", 
-    default="backend_bench_problems_dev.parquet",
-    type=str,
-    help="Output path for dev parquet file",
-)
-@click.option(
     "--mode",
     default="trace-to-parquet",
     type=click.Choice(["trace-to-parquet", "parquet-to-trace"]),
     help="Conversion mode",
 )
 @click.option(
-    "--parquet-file",
-    default="datasets/backend_bench_problems.parquet",
+    "--trace-file",
+    default=DEFAULT_HUGGINGFACE_URL,
     type=str,
-    help="Input parquet file path (for parquet-to-trace mode)",
+    help="Input trace file: URL (for downloads), local .txt file, or directory. Output trace files cannot be URLs",
 )
 @click.option(
-    "--output-trace",
-    default="datasets/output.txt",
+    "--parquet-name",
+    default="backend_bench_problems-dev.parquet",
     type=str,
-    help="Output trace file path (for parquet-to-trace mode)",
+    help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/. Dev version auto-generated as filename-dev.parquet.",
 )
-def main(log_level, trace_file, prod_parquet, dev_parquet, mode, parquet_file, output_trace):
+def main(log_level, mode, trace_file, parquet_name):
     """Convert trace files to parquet format or vice versa."""
     setup_logging(log_level)
-    
+
+    # Create datasets directory
     os.makedirs("datasets", exist_ok=True)
-    
+
     if mode == "trace-to-parquet":
+        # Validate inputs/outputs
+        trace_file = _validate_trace_file(trace_file, is_input=True)  # Input: URLs allowed
+        parquet_name = _validate_parquet_name(
+            parquet_name, is_input=False
+        )  # Output: URLs not allowed
+
+        # Generate dev version name
+        dev_parquet_name = _generate_dev_parquet_name(parquet_name)
+
         logger.info(f"Converting trace file {trace_file} to parquet files")
-        convert_trace_to_parquets(trace_file, prod_parquet, dev_parquet)
-        logger.info(f"Production parquet: {prod_parquet}")
-        logger.info(f"Dev parquet: {dev_parquet}")
+        logger.info(f"Production parquet: {parquet_name}")
+        logger.info(f"Dev parquet: {dev_parquet_name}")
+
+        convert_trace_to_parquets(trace_file, parquet_name, dev_parquet_name)
         logger.info("Conversion completed successfully")
+
     elif mode == "parquet-to-trace":
-        if parquet_file is None:
-            logger.error("--parquet-file is required for parquet-to-trace mode")
-            return
-        logger.info(f"Converting parquet file {parquet_file} to trace file {output_trace}")
-        convert_parquet_to_trace(parquet_file, output_trace)
+        # Validate parquet input (URLs allowed for input in this mode)
+        parquet_input = _validate_parquet_name(parquet_name, is_input=True)  # Input: URLs allowed
+        # Validate trace output (URLs not allowed for output)
+        trace_output = _validate_trace_file(trace_file, is_input=False)  # Output: URLs not allowed
+
+        logger.info(f"Converting parquet file {parquet_input} to trace file {trace_output}")
+        convert_parquet_to_trace(parquet_input, trace_output)
         logger.info("Conversion completed successfully")
 
 

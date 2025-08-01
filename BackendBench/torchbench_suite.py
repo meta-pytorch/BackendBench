@@ -2,8 +2,6 @@
 Load aten inputs from serialized txt files and parquet files.
 """
 
-import torch
-from collections import defaultdict
 from BackendBench.utils import deserialize_args
 from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
 from BackendBench.data_loaders import load_ops_from_source, _args_size
@@ -11,6 +9,8 @@ from BackendBench.data_loaders import load_ops_from_source, _args_size
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
 DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
+
+
 class TorchBenchTest:
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -60,9 +60,9 @@ class TorchBenchTestSuite:
             source=filename,
             format="auto",  # Auto-detect based on file extension
             filter=filter,
-            simple_format=True
+            simple_format=True,
         )
-        
+
         # Deduplicate the strings in self.optests
         for op in self.optests:
             self.optests[op] = list(set(self.optests[op]))
