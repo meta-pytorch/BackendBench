@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "backendbench"
@@ -27,22 +27,27 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-cov",
-    "pytest-mock",
-    "pytest-timeout",
-    "ruff==0.12.1",
-]
 flaggems = [
-    "flag_gems",
+    # flag_gems must be installed from source: https://github.com/FlagOpen/FlagGems
 ]
 
 [project.scripts]
 backendbench = "BackendBench.scripts.main:cli"
 
-[tool.setuptools.packages.find]
-include = ["BackendBench*"]
+[tool.hatch.build.targets.wheel]
+packages = ["BackendBench"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest",
+    "pytest-cov", 
+    "pytest-mock",
+    "pytest-timeout",
+    "ruff==0.12.1",
+    "torch",
+    "numpy",
+    # cupy-cuda12x is platform specific, install manually if needed
+]
 
 [tool.ruff]
 line-length = 100

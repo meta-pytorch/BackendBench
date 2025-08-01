@@ -13,16 +13,17 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      
     - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      run: uv python install
     
     - name: Install package with dev dependencies
-      run: pip install -e .[dev]
+      run: uv sync --dev
     
     - name: Run ruff check
-      run: ruff check .
+      run: uv run ruff check .
     
     - name: Run ruff format check
-      run: ruff format --check . 
+      run: uv run ruff format --check . 

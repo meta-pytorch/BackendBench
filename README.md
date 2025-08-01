@@ -10,31 +10,43 @@ We provide both
 1. Comprehensive operator level correctness checks using the PyTorch OpInfo test suite
 2. Performance checks using the ops that show up in the most popular Hugging Face models with realistic tensor shapes
 
+# Installation:
+
+Install using uv (recommended):
+```bash
+uv add backendbench
+```
+
+Or install in development mode:
+```bash
+uv sync --dev
+```
+
 # Usage:
 
 Run a simple smoke test (relu) with the default ATen backend:
 ```bash
-python scripts/main.py --suite smoke --backend aten
+uv run python scripts/main.py --suite smoke --backend aten
 ```
 
 Run the smoke test with FlagGems:
 ```bash
-python scripts/main.py --suite smoke --backend flag_gems
+uv run python scripts/main.py --suite smoke --backend flag_gems
 ```
 
 Run opinfo tests (correctness only) with ATen
 ```bash
-python scripts/main.py --suite opinfo --backend aten
+uv run python scripts/main.py --suite opinfo --backend aten
 ```
 
 Run a filtered set of opinfo tests with FlagGems
 ```bash
-python scripts/main.py --suite opinfo --backend flag_gems --ops "add,sub"
+uv run python scripts/main.py --suite opinfo --backend flag_gems --ops "add,sub"
 ```
 
 Run all the opinfo tests with FlagGems (takes a few minutes)
 ```bash
-python scripts/main.py --suite opinfo --backend flag_gems
+uv run python scripts/main.py --suite opinfo --backend flag_gems
 ```
 
 ## LLM-Based Kernel Generation and Evaluation
@@ -44,7 +56,7 @@ Generate and evaluate PyTorch kernels using Claude API:
 Run LLM evaluation on smoke test (relu operation):
 ```bash
 export ANTHROPIC_API_KEY=your_api_key_here
-python scripts/main.py --suite smoke --backend llm
+uv run python scripts/main.py --suite smoke --backend llm
 ```
 
 ## KernelAgent-Based Triton Kernel Generation
@@ -59,19 +71,19 @@ git submodule update --init --recursive
 Run KernelAgent evaluation on smoke test (relu operation):
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-python scripts/main.py --suite smoke --backend kernel_agent
+uv run python scripts/main.py --suite smoke --backend kernel_agent
 ```
 
 Run KernelAgent with custom configuration:
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-python scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
+uv run python scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
 ```
 
 Run KernelAgent on opinfo tests with a specific operation:
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
+uv run python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
 
 ## Directory-Based Kernel Development
@@ -160,10 +172,10 @@ if __name__ == "__main__":
 
 Test individual implementations:
 ```bash
-python generated_kernels/relu/relu_implementation_1.py
+uv run python generated_kernels/relu/relu_implementation_1.py
 ```
 
 Test with BackendBench:
 ```bash
-python scripts/main.py --suite smoke --backend directory
+uv run python scripts/main.py --suite smoke --backend directory
 ```
