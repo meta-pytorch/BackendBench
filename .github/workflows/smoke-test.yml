@@ -27,8 +27,6 @@ jobs:
     - name: Clone FACTO source
       run: |
         git clone https://github.com/pytorch-labs/FACTO.git
-        cd FACTO
-        uv sync --dev
 
     - name: Build and install FACTO
       run: |
