@@ -7,6 +7,7 @@ import BackendBench.backends as backends
 import BackendBench.eval as eval
 import click
 import torch
+from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
@@ -32,13 +33,15 @@ def setup_logging(log_level):
 @click.option(
     "--log-level",
     default=os.getenv("LOG_LEVEL", "INFO"),
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
     help="Set the logging level",
 )
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
     help="Which suite to run",
 )
 @click.option(
@@ -132,6 +135,13 @@ def cli(
             filter=ops,
             topn=topn_inputs,
         ),
+        "facto": lambda: FactoTestSuite(
+            "facto_cpu_float32",
+            "cuda",
+            torch.bfloat16,
+            filter=ops,
+            num_runs=10,
+        ),
     }[suite]()
 
     overall_correctness = []
@@ -156,7 +166,9 @@ def cli(
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
+    print(
+        f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}"
+    )
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
 
@@ -223,29 +235,41 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
                     successful_ops += 1
 
                     # Save summary of this operation
-                    summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
+                    summary_file = os.path.join(
+                        llm_backend.kernels_dir, f"{op_name}_summary.txt"
+                    )
                     with open(summary_file, "w") as f:
                         f.write(f"Operation: {op_name}\n")
                         f.write(f"Full op: {op_str}\n")
                         f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
                         f.write("Final status: Success\n")
-                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                        f.write(
+                            f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n"
+                        )
 
                 except Exception as e:
-                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
+                    print(
+                        f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}"
+                    )
                     success = False
 
             if not success:
                 print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
 
                 # Save summary of this operation
-                summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
+                summary_file = os.path.join(
+                    llm_backend.kernels_dir, f"{op_name}_summary.txt"
+                )
                 with open(summary_file, "w") as f:
                     f.write(f"Operation: {op_name}\n")
                     f.write(f"Full op: {op_str}\n")
                     f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                    f.write("Final status: Failed - All attempts failed correctness tests\n")
-                    f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                    f.write(
+                        "Final status: Failed - All attempts failed correctness tests\n"
+                    )
+                    f.write(
+                        f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n"
+                    )
                 # Continue with other operations
 
         # Print summary
@@ -264,7 +288,9 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         print(f"{'=' * 60}\n")
 
         # Save overall summary
-        overall_summary_file = os.path.join(llm_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        overall_summary_file = os.path.join(
+            llm_backend.kernels_dir, "OVERALL_SUMMARY.txt"
+        )
         with open(overall_summary_file, "w") as f:
             f.write("LLM Backend Generation Summary\n")
             f.write(f"{'=' * 40}\n")
@@ -333,16 +359,22 @@ def setup_kernel_agent_backend(
 
             print(f"\n[{total_ops}] {op_name.upper()} - KernelAgent Generation")
             print(f"    Operation: {op_str}")
-            print(f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each")
+            print(
+                f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each"
+            )
 
             # Generate kernel using KernelAgent's sophisticated system
-            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(op, op_name)
+            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(
+                op, op_name
+            )
 
             if success:
                 try:
                     # Add the successful kernel to the backend
                     kernel_agent_backend.add_kernel(op, kernel_code, op_name)
-                    print(f"✓ Successfully generated and compiled KernelAgent kernel for {op_name}")
+                    print(
+                        f"✓ Successfully generated and compiled KernelAgent kernel for {op_name}"
+                    )
                     successful_ops += 1
 
                     # Save summary of this operation
@@ -356,7 +388,9 @@ def setup_kernel_agent_backend(
                         f.write(f"Workers: {num_workers}\n")
                         f.write(f"Max rounds: {max_rounds}\n")
                         f.write("Final status: Success\n")
-                        f.write("Generated using: Parallel workers + iterative refinement\n")
+                        f.write(
+                            "Generated using: Parallel workers + iterative refinement\n"
+                        )
 
                 except Exception as e:
                     print(
@@ -365,7 +399,9 @@ def setup_kernel_agent_backend(
                     success = False
 
             if not success:
-                print(f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel")
+                print(
+                    f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel"
+                )
 
                 # Save summary of this operation
                 summary_file = os.path.join(
@@ -397,11 +433,15 @@ def setup_kernel_agent_backend(
         print("Configuration used:")
         print(f"  - Parallel workers: {num_workers}")
         print(f"  - Max refinement rounds: {max_rounds}")
-        print("  - Features: Triton guidelines, conversation history, auto test generation")
+        print(
+            "  - Features: Triton guidelines, conversation history, auto test generation"
+        )
         print(f"{'=' * 80}\n")
 
         # Save overall summary
-        overall_summary_file = os.path.join(kernel_agent_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        overall_summary_file = os.path.join(
+            kernel_agent_backend.kernels_dir, "OVERALL_SUMMARY.txt"
+        )
         with open(overall_summary_file, "w") as f:
             f.write("KernelAgent Backend Generation Summary\n")
             f.write(f"{'=' * 50}\n")

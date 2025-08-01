@@ -5,6 +5,8 @@ from typing import Callable, Dict, List
 
 import torch
 
+from .opregistry import register_operator
+
 logger = logging.getLogger(__name__)
 
 try:
@@ -59,7 +61,9 @@ class DirectoryBackend(Backend):
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
 
-        logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
+        logger.info(
+            f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/"
+        )
 
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
         spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
@@ -95,7 +99,9 @@ class DirectoryBackend(Backend):
         return key
 
     def __contains__(self, key):
-        return key in self.compiled_kernels or True  # Always claim to contain ops for fallback
+        return (
+            key in self.compiled_kernels or True
+        )  # Always claim to contain ops for fallback
 
 
 class AtenBackend(Backend):
@@ -375,6 +381,9 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.eye.m: flag_gems.ops.eye_m,
             torch.ops.aten.to.dtype: flag_gems.ops.to_dtype,
         }
+        # Register all operators in the global registry to ensure consistent object identity
+        for op in self.ops.keys():
+            register_operator(op)
 
     def __getitem__(self, key):
         return self.ops[key]
@@ -432,13 +441,17 @@ You can inspect these files to debug kernel generation, manually test implementa
             else:
                 full_code = self._prepare_torch_code(kernel_code)
 
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            kernel_file = os.path.join(
+                self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py"
+            )
             with open(kernel_file, "w") as f:
                 f.write(full_code)
 
             print(f"Saved kernel to: {kernel_file}")
 
-            spec = importlib.util.spec_from_file_location(f"kernel_{op_name}", kernel_file)
+            spec = importlib.util.spec_from_file_location(
+                f"kernel_{op_name}", kernel_file
+            )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -491,7 +504,9 @@ import torch.nn.functional as F
 
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
-        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+        compiled_kernel = self.compile_kernel_from_string(
+            kernel_code, op_name, attempt=1
+        )
         self.compiled_kernels[op] = compiled_kernel
 
     def test_kernel_correctness(
@@ -511,7 +526,9 @@ import torch.nn.functional as F
         }
 
         try:
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            kernel_file = os.path.join(
+                self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py"
+            )
 
             if not os.path.exists(kernel_file):
                 is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
@@ -568,7 +585,9 @@ import torch.nn.functional as F
                     ref_result = op(*args, **kwargs)
                     kernel_result = compiled_kernel(*args, **kwargs)
 
-                    torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
+                    torch.testing.assert_close(
+                        ref_result, kernel_result, equal_nan=True
+                    )
                     correct_count += 1
                     print(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
 
@@ -682,7 +701,9 @@ or understand the sophisticated generation process used by KernelAgent.
                 # Import KernelAgent from the submodule
                 import sys
 
-                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
+                kernel_agent_path = os.path.join(
+                    os.path.dirname(__file__), "..", "KernelAgent"
+                )
                 if kernel_agent_path not in sys.path:
                     sys.path.insert(0, os.path.abspath(kernel_agent_path))
 
@@ -765,7 +786,9 @@ Please generate a complete, production-ready Triton kernel implementation.
 
         # Replace 'def kernel_function' with 'def {op_name}_kernel_impl'
         if "def kernel_function(" in kernel_code:
-            adapted_code = kernel_code.replace("def kernel_function(", f"def {expected_name}(")
+            adapted_code = kernel_code.replace(
+                "def kernel_function(", f"def {expected_name}("
+            )
 
             # Also replace any docstring references
             adapted_code = adapted_code.replace(
@@ -808,7 +831,9 @@ def {expected_name}(*args, **kwargs):
             print(f"Saved KernelAgent kernel to: {kernel_file}")
 
             # Import and compile the kernel
-            spec = importlib.util.spec_from_file_location(f"kernel_agent_{op_name}", kernel_file)
+            spec = importlib.util.spec_from_file_location(
+                f"kernel_agent_{op_name}", kernel_file
+            )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -828,7 +853,9 @@ def {expected_name}(*args, **kwargs):
                 )
 
         except Exception as e:
-            raise RuntimeError(f"Failed to compile KernelAgent kernel for {op_name}: {str(e)}")
+            raise RuntimeError(
+                f"Failed to compile KernelAgent kernel for {op_name}: {str(e)}"
+            )
 
     def _prepare_triton_code(self, kernel_code: str) -> str:
         """Prepare Triton kernel code with necessary imports."""
@@ -853,11 +880,15 @@ import torch.nn.functional as F
 
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
-        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+        compiled_kernel = self.compile_kernel_from_string(
+            kernel_code, op_name, attempt=1
+        )
         self.compiled_kernels[op] = compiled_kernel
 
         # Save the original KernelAgent code as well
-        original_file = os.path.join(self.kernels_dir, f"{op_name}_original_kernel_agent.py")
+        original_file = os.path.join(
+            self.kernels_dir, f"{op_name}_original_kernel_agent.py"
+        )
         with open(original_file, "w") as f:
             f.write(kernel_code)
 
