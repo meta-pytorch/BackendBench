@@ -97,9 +97,7 @@ def build_facto_op_tests(device, dtype, filter=None, num_runs=10):
                     # Verify the traced op produces the same result
                     res = traced_op(*filtered_posargs, **all_kwargs)
                     if allclose(ref, res):
-                        op_tests[traced_op].append(
-                            FactoTest(*filtered_posargs, **all_kwargs)
-                        )
+                        op_tests[traced_op].append(FactoTest(*filtered_posargs, **all_kwargs))
                 except Exception:
                     logger.debug(
                         f"FACTO spec {spec_name} couldn't run underlying op {traced_op[0]}"

@@ -75,9 +75,7 @@ class OpRegistry:
             fallback_name = str(op_obj)
             if fallback_name not in self._registry:
                 self._registry[fallback_name] = op_obj
-                logger.debug(
-                    f"Registered operator with fallback name: {fallback_name} -> {op_obj}"
-                )
+                logger.debug(f"Registered operator with fallback name: {fallback_name} -> {op_obj}")
             return self._registry[fallback_name]
 
         # Check if we already have this operator registered
