@@ -26,7 +26,7 @@ For the dataset release we generally would want to versions
 2. A "dev" version. This version is much more verbose, has more information on each test, includes tests/ops we decided to axe (and why they were axed), and possibly some runtime numbers
 
 The point of 1 is for something to have folks able to benchmark their agents against. Therefore, there is a high quality bar for inclusion
-At the end of the day we still need solutions to be general for inclusion in pytorch, therefore, the mroe verbose dev version is useful in this case. It also allows us to record information on the ops and decisions as well
+At the end of the day we still need solutions to be general for inclusion in pytorch, therefore, the more verbose dev version is useful in this case. It also allows us to record information on the ops and decisions as well
 
 Columns for the production version:
 - uuid (int) (hash of op + args)
