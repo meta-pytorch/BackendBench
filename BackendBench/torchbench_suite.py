@@ -1,49 +1,20 @@
 """
-Load aten inputs from serialized txt files.
+Load aten inputs from serialized txt files and parquet files.
 """
 
-import re
-import tempfile
-from collections import defaultdict
-from pathlib import Path
-
-import requests
 import torch
+from collections import defaultdict
 from BackendBench.utils import deserialize_args
+from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
+from BackendBench.data_loaders import load_ops_from_source, _args_size
 
 # the schema for this dataset is the one defined in tritonbench traces.
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
 DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
-
-# Operators to skip for indexing ops that need valid indices
-SKIP_OPERATORS = [
-    "embedding",
-    "scatter",
-    "gather",
-    "index",
-    "nll_loss",
-    "im2col_backward",
-    "col2im_backward",
-    "native_layer_norm_backward",
-    "upsample_nearest2d_backward.vec",
-    "upsample_bilinear2d_backward.vec",
-    "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
-    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
-]
 class TorchBenchTest:
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
-
-
-def _args_size(args):
-    size = 0
-    for arg in args:
-        if isinstance(arg, torch.Tensor):
-            size += arg.numel() * arg.element_size()
-        elif isinstance(arg, (tuple, list)):
-            size += _args_size(arg)
-    return size
 
 
 class TorchBenchOpTest:
@@ -74,61 +45,31 @@ class TorchBenchOpTest:
             yield TorchBenchTest(*args, **kwargs)
 
 
-def _parse_inputs(filename, filter, op_inputs):
-    op = None
-
-    with open(filename, "r") as f:
-        for line in f:
-            if m := re.match("Operator: (.*)", line):
-                op = m.group(1)
-                if op == "aten.sum.SymInt":
-                    op = "aten.sum.dim_IntList"
-            if m := re.match("cnt: \\d+, (.*)", line):
-                assert op is not None
-                args = m.group(1)
-                if filter is None or any(f in op for f in filter):
-                    op_inputs[op].append(args)
-    return op_inputs
-
-
 class TorchBenchTestSuite:
     def __init__(self, name, filename=None, filter=None, topn=None):
         self.name = name
         self.topn = topn
-        self.optests = defaultdict(list)
 
         # Use default URL if no filename provided
         if filename is None:
             filename = DEFAULT_HUGGINGFACE_URL
 
-        # Check if filename is a URL
-        if isinstance(filename, str) and (
-            filename.startswith("http://") or filename.startswith("https://")
-        ):
-            with (
-                tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-                requests.get(filename) as response,
-            ):
-                response.raise_for_status()
-                tmp_file.write(response.text)
-                tmp_file.flush()
-                _parse_inputs(tmp_file.name, filter, self.optests)
-                Path(tmp_file.name).unlink(missing_ok=True)
-        elif Path(filename).is_dir():
-            for file_path in Path(filename).glob("**/*.txt"):
-                _parse_inputs(str(file_path), filter, self.optests)
-        else:
-            _parse_inputs(filename, filter, self.optests)
+        # Load operations using the shared data loader
+        # Use simple_format=True to get the defaultdict format for compatibility
+        self.optests = load_ops_from_source(
+            source=filename,
+            format="auto",  # Auto-detect based on file extension
+            filter=filter,
+            simple_format=True
+        )
+        
         # Deduplicate the strings in self.optests
         for op in self.optests:
             self.optests[op] = list(set(self.optests[op]))
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(
-                s in op
-                for s in SKIP_OPERATORS
-            ):
+            if any(s in op for s in SKIP_OPERATORS):
                 # TODO: indexing ops need valid indices
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)

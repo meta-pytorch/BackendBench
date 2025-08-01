@@ -1,20 +1,21 @@
 # utility functions to convert parquet and trace files back and forth
 
 import pyarrow.parquet as pq
-import pyarrow.csv as csv
 import pyarrow as pa
-from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL, _args_size
+from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
+from BackendBench.data_loaders import _args_size
+from BackendBench.scripts.dataset_filters import _apply_skip_ops_filter, _apply_non_interesting_ops_filter
 from BackendBench.utils import deserialize_args
 import os
-import requests
-import tempfile
-from pathlib import Path
-import hashlib
-import re
-from tqdm import tqdm
-from BackendBench.torchbench_suite import SKIP_OPERATORS
 import logging
 import click
+import re
+import hashlib
+from tqdm import tqdm
+import tempfile
+import requests
+from pathlib import Path
+from typing import List, Dict
 
 """
 For the dataset release we generally would want to versions
@@ -57,75 +58,18 @@ def setup_logging(log_level):
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
-# Memory and view operations - create copies or views of tensors
-MEMORY_VIEW_OPS = [
-    "copy",
-    "view", 
-    "clone",
-    "as_strided_",
-]
 
-# Tensor creation and initialization operations
-TENSOR_CREATION_OPS = [
-    "fill",
-    "ones", 
-    "zeros",
-    "empty",
-    "full",
-]
-
-# Shape manipulation operations - change tensor structure
-SHAPE_MANIPULATION_OPS = [
-    "cat",
-    "repeat",
-    "roll", # @NOTE: I'm also not sure about aten.roll.default
-    "unbind",
-]
-
-# Element-wise predicates and boolean operations
-PREDICATE_OPS = [
-    "any", # @NOTE: I don't think this is intereting as I'm unsure how'd it'd be optimized
-    "isinf", # @NOTE: Similar to any I'm not sure about this one
-    "isnan",  # @NOTE: Similar to any I'm not sure about this one
-    "nonzero", # @NOTE: I'm also not sure about aten.nonzero.default
-    "where",
-]
-
-
-def _apply_skip_ops_filter(ops):
-    for op in ops:
-        if any(skip_op in op["op_name"] for skip_op in SKIP_OPERATORS):
-            op["included_in_benchmark"] = False
-            op["runnable"] = False
-            op["why_excluded"].append("Operation is not runnable in BackendBench yet.")
-    return ops
-
-
-def _apply_non_interesting_ops_filter(ops):
-    for op in ops:
-        if any(skip_op in op["op_name"] for skip_op in MEMORY_VIEW_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Memory view ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in TENSOR_CREATION_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Tensor creation ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in SHAPE_MANIPULATION_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Shape manipulation ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in PREDICATE_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Predicate ops are excluded from the benchmark.")
-    return ops
-
-def _parse_trace(filename):
+def _parse_trace_file(filename: str) -> List[Dict]:
+    """
+    Parse a single trace file and return a list of operation dictionaries.
     
-    # given a trace file it returns a list of dicts which include
-    # uuid, op_name, args, arg_size, count
-
+    Returns list of dicts with keys: uuid, op_name, args, arg_size, count, is_synthetic
+    """
     op_inputs = []
+    op = None
 
     with open(filename, "r") as f:
-        for line in tqdm(f, desc="Parsing trace file"):
+        for line in tqdm(f, desc=f"Parsing {Path(filename).name}"):
             if m := re.match("Operator: (.*)", line):
                 op = m.group(1)
                 if op == "aten.sum.SymInt":
@@ -148,38 +92,54 @@ def _parse_trace(filename):
                     "arg_size": size,
                     "count": cnt,
                     "is_synthetic": is_synthetic,
-                    "included_in_benchmark": True,
-                    "why_excluded": [],
-                    "runtime_ms": 0,
-                    "runnable": True,
                 })
     return op_inputs
+
+
+def _load_trace_for_parquet_conversion(source: str) -> List[Dict]:
+    """
+    Load operations from trace file(s) with detailed metadata for parquet conversion.
+    """
+    ops = []
+    
+    # Handle URLs
+    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+        with (
+            tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+            requests.get(source) as response,
+        ):
+            response.raise_for_status()
+            tmp_file.write(response.text)
+            tmp_file.flush()
+            ops.extend(_parse_trace_file(tmp_file.name))
+            Path(tmp_file.name).unlink(missing_ok=True)
+    
+    # Handle directories
+    elif Path(source).is_dir():
+        for file_path in Path(source).glob("**/*.txt"):
+            ops.extend(_parse_trace_file(str(file_path)))
+    
+    # Handle single files
+    else:
+        ops.extend(_parse_trace_file(source))
+    
+    return ops
+
 
 def convert_trace_to_parquets(trace_file, prod_parquet_file=None, dev_parquet_file=None):
     """
     Convert a trace file to a parquet file
     """
 
-    ops = []
+    # Load operations using local trace parsing function
+    ops = _load_trace_for_parquet_conversion(trace_file)
 
-    # Check if filename is a URL
-    if isinstance(trace_file, str) and (
-        trace_file.startswith("http://") or trace_file.startswith("https://")
-    ):
-        with (
-            tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-            requests.get(trace_file) as response,
-        ):
-            response.raise_for_status()
-            tmp_file.write(response.text)
-            tmp_file.flush()
-            ops.extend(_parse_trace(tmp_file.name))
-            Path(tmp_file.name).unlink(missing_ok=True)
-    elif Path(trace_file).is_dir():
-        for file_path in Path(trace_file).glob("**/*.txt"):
-            ops.extend(_parse_trace(str(file_path)))
-    else:
-        ops.extend(_parse_trace(trace_file))
+    # Add additional metadata fields required for the parquet format
+    for op in ops:
+        op["included_in_benchmark"] = True
+        op["why_excluded"] = []
+        op["runtime_ms"] = 0
+        op["runnable"] = True
 
     # apply filters
     ops = _apply_skip_ops_filter(ops)
@@ -193,7 +153,10 @@ def convert_trace_to_parquets(trace_file, prod_parquet_file=None, dev_parquet_fi
 
     prod_table = pa.Table.from_pydict(prod_ops)
     pq.write_table(prod_table, prod_parquet_file)
-    
+
+    logger.info(f"Wrote {len(prod_ops)} ops and inputs to {prod_parquet_file}")
+    logger.info(f"Wrote {len(ops)} ops and inputs to {dev_parquet_file}")
+
 def convert_parquet_to_trace(parquet_file, trace_file):
     """
     Convert a parquet file to a trace file
@@ -226,13 +189,13 @@ def convert_parquet_to_trace(parquet_file, trace_file):
 )
 @click.option(
     "--prod-parquet",
-    default="prod.parquet",
+    default="backend_bench_problems.parquet",
     type=str,
     help="Output path for production parquet file",
 )
 @click.option(
     "--dev-parquet", 
-    default="dev.parquet",
+    default="backend_bench_problems_dev.parquet",
     type=str,
     help="Output path for dev parquet file",
 )
@@ -244,13 +207,13 @@ def convert_parquet_to_trace(parquet_file, trace_file):
 )
 @click.option(
     "--parquet-file",
-    default=None,
+    default="datasets/backend_bench_problems.parquet",
     type=str,
     help="Input parquet file path (for parquet-to-trace mode)",
 )
 @click.option(
     "--output-trace",
-    default="output.txt",
+    default="datasets/output.txt",
     type=str,
     help="Output trace file path (for parquet-to-trace mode)",
 )
@@ -258,11 +221,13 @@ def main(log_level, trace_file, prod_parquet, dev_parquet, mode, parquet_file, o
     """Convert trace files to parquet format or vice versa."""
     setup_logging(log_level)
     
+    os.makedirs("datasets", exist_ok=True)
+    
     if mode == "trace-to-parquet":
         logger.info(f"Converting trace file {trace_file} to parquet files")
+        convert_trace_to_parquets(trace_file, prod_parquet, dev_parquet)
         logger.info(f"Production parquet: {prod_parquet}")
         logger.info(f"Dev parquet: {dev_parquet}")
-        convert_trace_to_parquets(trace_file, prod_parquet, dev_parquet)
         logger.info("Conversion completed successfully")
     elif mode == "parquet-to-trace":
         if parquet_file is None:
