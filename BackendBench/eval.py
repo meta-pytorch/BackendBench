@@ -86,103 +86,136 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
+# First value is maximum theoretical flops for FP16
+# Second value is maximum theoretical memory bandwidth across all SKUs in that generation
+# Sources:
+# T4: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
+# V100: https://images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf
+# A100: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+# H100: https://resources.nvidia.com/en-us-gpu-resources/h100-datasheet-24306
+GPU_SPECS = {
+    "t4": (65e12, 300e9),
+    "v100": (112e12, 900e9),
+    "a100": (312e12, 2039e9),
+    "h100": (1979e12, 3350e9),
+}
+
+FALLBACK_GPU_SPECS = (500e12, 1000e9)
+CPU_FALLBACK_SPECS = (10e12, 100e9)
+
+
 def get_gpu_specs():
     if not torch.cuda.is_available():
-        return 10e12, 100e9
+        return CPU_FALLBACK_SPECS
 
     props = torch.cuda.get_device_properties(0)
     gpu_name = props.name.lower()
 
-    # Theoretical peak performance from NVIDIA official datasheets
-    # Values are with Tensor Cores but without sparsity optimizations
-    # Sources:
-    # T4: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
-    # V100: https://images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf
-    # A100: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
-    # H100: https://resources.nvidia.com/en-us-gpu-resources/h100-datasheet-24306
-    # B200: https://resources.nvidia.com/en-us-blackwell-architecture
-    gpu_specs = {
-        "t4": (65e12, 300e9),  # NVIDIA T4: 65 TFLOPS (FP16), 300 GB/s
-        "v100": (112e12, 900e9),  # NVIDIA V100: 112 TFLOPS (FP16), 900 GB/s
-        "a100": (312e12, 2039e9),  # NVIDIA A100: 312 TFLOPS (FP16), 2039 GB/s
-        "h100": (1979e12, 3350e9),  # NVIDIA H100: 1,979 TFLOPS (FP16), 3350 GB/s
-    }
-
-    for gpu_key, (compute_peak, memory_bw) in gpu_specs.items():
+    for gpu_key, specs in GPU_SPECS.items():
         if gpu_key in gpu_name:
+            compute_peak, memory_bw = specs
             logger.debug(
                 f"Detected {gpu_name}, using {compute_peak / 1e12:.0f} TFLOP/s, {memory_bw / 1e9:.0f} GB/s"
             )
-            return compute_peak, memory_bw
+            return specs
 
     logger.debug(f"Unknown GPU {gpu_name}, using fallback 500 TFLOP/s, 1000 GB/s")
-    return 500e12, 1000e9
+    return FALLBACK_GPU_SPECS
+
+
+def calculate_tensor_memory_bytes(args, kwargs):
+    total_bytes = 0
+    for arg in args:
+        if isinstance(arg, torch.Tensor):
+            total_bytes += arg.numel() * arg.element_size()
+    for v in kwargs.values():
+        if isinstance(v, torch.Tensor):
+            total_bytes += v.numel() * v.element_size()
+    return total_bytes
 
 
 def calculate_memory_bandwidth_limit(args, kwargs, runtime_ms):
     runtime_s = runtime_ms / 1000.0
-    total_bytes = 0
+    total_bytes = calculate_tensor_memory_bytes(args, kwargs)
+    return total_bytes / runtime_s
 
-    for arg in args:
-        if isinstance(arg, torch.Tensor):
-            total_bytes += arg.numel() * arg.element_size()
 
-    for v in kwargs.values():
-        if isinstance(v, torch.Tensor):
-            total_bytes += v.numel() * v.element_size()
+def calculate_efficiency_metrics(op, args, kwargs, runtime_ms):
+    flop_counter = FlopCounterMode()
+    with flop_counter:
+        op(*args, **kwargs)
 
-    achieved_bandwidth = total_bytes / runtime_s
-    return achieved_bandwidth
+    total_flops = flop_counter.get_total_flops()
+    compute_peak, memory_bandwidth = get_gpu_specs()
+    runtime_s = runtime_ms / 1000.0
+
+    compute_efficiency = None
+    if total_flops > 0:
+        achieved_flops_per_s = total_flops / runtime_s
+        compute_efficiency = achieved_flops_per_s / compute_peak
+
+    achieved_bandwidth = calculate_memory_bandwidth_limit(args, kwargs, runtime_ms)
+    memory_efficiency = achieved_bandwidth / memory_bandwidth
+
+    return compute_efficiency, memory_efficiency
 
 
 def calculate_speed_of_light(op, args, kwargs, runtime_ms):
     try:
-        flop_counter = FlopCounterMode()
-        with flop_counter:
-            op(*args, **kwargs)
-
-        total_flops = flop_counter.get_total_flops()
-        compute_peak, memory_bandwidth = get_gpu_specs()
-
-        runtime_s = runtime_ms / 1000.0
+        compute_efficiency, memory_efficiency = calculate_efficiency_metrics(
+            op, args, kwargs, runtime_ms
+        )
 
         violations = []
-
-        if total_flops > 0:
-            achieved_flops_per_s = total_flops / runtime_s
-            compute_efficiency = achieved_flops_per_s / compute_peak
-            if compute_efficiency > 1.0:
-                violations.append(f"compute: {compute_efficiency:.1%}")
-
-        achieved_bandwidth = calculate_memory_bandwidth_limit(args, kwargs, runtime_ms)
-        memory_efficiency = achieved_bandwidth / memory_bandwidth
+        if compute_efficiency is not None and compute_efficiency > 1.0:
+            violations.append(f"compute: {compute_efficiency:.1%}")
         if memory_efficiency > 1.0:
             violations.append(f"memory: {memory_efficiency:.1%}")
 
         if violations:
             return f"VIOLATION: {', '.join(violations)}"
 
-        if total_flops > 0:
-            return achieved_flops_per_s / compute_peak
-        else:
-            return memory_efficiency
-
+        return compute_efficiency if compute_efficiency is not None else memory_efficiency
     except Exception as e:
         logger.debug(f"Could not calculate speed of light: {e}")
         return None
 
 
-def eval_performance(op, impl, tests):
-    bench_fn = (
+def get_bench_function():
+    return (
         triton.testing.do_bench if (torch.cuda.is_available() and triton is not None) else cpu_bench
     )
+
+
+def benchmark_op(bench_fn, op, args, kwargs):
+    return bench_fn(lambda: op(*args, **kwargs))
+
+
+def log_speed_of_light_efficiency(op_name, efficiency):
+    if efficiency is None:
+        return
+
+    if isinstance(efficiency, str) and "VIOLATION" in efficiency:
+        warnings.warn(
+            f"Speed of light violation for {op_name}: {efficiency}. "
+            f"This indicates a measurement error - kernel may not be computing the result or timing is wrong.",
+            UserWarning,
+        )
+        logger.info(f"{op_name} speed of light: {efficiency}")
+    else:
+        logger.info(f"{op_name} speed of light efficiency: {efficiency:.1%}")
+
+
+def eval_performance(op, impl, tests):
+    bench_fn = get_bench_function()
     base_times = []
     test_times = []
+
     for test in tests:
         logging.debug(
             f"Benchmarking {op.__name__} with args {format_args(test.args)} and kwargs {format_kwargs(test.kwargs)}"
         )
-        base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
+        base_time = benchmark_op(bench_fn, op, test.args, test.kwargs)
         base_times.append(base_time)
 
         try:
@@ -191,20 +224,11 @@ def eval_performance(op, impl, tests):
             test_times.append(base_times[-1])
             continue
 
-        test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
+        test_time = benchmark_op(bench_fn, impl, test.args, test.kwargs)
         test_times.append(test_time)
 
         efficiency = calculate_speed_of_light(impl, test.args, test.kwargs, test_time)
-        if efficiency is not None:
-            if isinstance(efficiency, str) and "VIOLATION" in efficiency:
-                warnings.warn(
-                    f"Speed of light violation for {op.__name__}: {efficiency}. "
-                    f"This indicates a measurement error - kernel may not be computing the result or timing is wrong.",
-                    UserWarning,
-                )
-                logger.info(f"{op.__name__} speed of light: {efficiency}")
-            else:
-                logger.info(f"{op.__name__} speed of light efficiency: {efficiency:.1%}")
+        log_speed_of_light_efficiency(op.__name__, efficiency)
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
     return speedups.log().mean().exp()
