@@ -125,12 +125,10 @@ def get_gpu_specs():
 
 def calculate_tensor_memory_bytes(args, kwargs):
     total_bytes = 0
-    for arg in args:
-        if isinstance(arg, torch.Tensor):
-            total_bytes += arg.numel() * arg.element_size()
-    for v in kwargs.values():
-        if isinstance(v, torch.Tensor):
-            total_bytes += v.numel() * v.element_size()
+    all_values = list(args) + list(kwargs.values())
+    for value in all_values:
+        if isinstance(value, torch.Tensor):
+            total_bytes += value.numel() * value.element_size()
     return total_bytes
 
 
