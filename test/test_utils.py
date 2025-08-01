@@ -28,9 +28,9 @@ class TestCudaStreamDetection:
 
     @pytest.mark.skipif(not HAS_CUDA, reason="CUDA not available")
     def test_cupy_stream_creation(self):
-        import cupy
-
         """Test detection of CuPy CUDA stream creation."""
+        pytest.importorskip("cupy")
+        import cupy
 
         def func_with_cupy_stream():
             stream = cupy.cuda.Stream()
