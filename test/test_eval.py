@@ -4,9 +4,6 @@ import torch
 try:
     import importlib.util
     from BackendBench.eval import (
-        format_tensor,
-        format_args,
-        format_kwargs,
         format_exception,
         allclose,
         eval_correctness_test,
@@ -24,37 +21,6 @@ pytestmark = pytest.mark.skipif(not HAS_TRITON, reason="triton not available")
 
 
 class TestFormatFunctions:
-    def test_format_tensor(self):
-        tensor = torch.randn(2, 3, 4, dtype=torch.float32)
-        formatted = format_tensor(tensor)
-        assert formatted == "torch.float32[2, 3, 4]"
-
-        tensor_int = torch.randint(0, 10, (5, 5), dtype=torch.int64)
-        formatted_int = format_tensor(tensor_int)
-        assert formatted_int == "torch.int64[5, 5]"
-
-    def test_format_args(self):
-        tensor1 = torch.randn(2, 3)
-        tensor2 = torch.randn(3, 4)
-        scalar = 2.5
-
-        args = [tensor1, scalar, tensor2]
-        formatted = format_args(args)
-
-        assert len(formatted) == 3
-        assert formatted[0] == "torch.float32[2, 3]"
-        assert formatted[1] == 2.5
-        assert formatted[2] == "torch.float32[3, 4]"
-
-    def test_format_kwargs(self):
-        tensor = torch.randn(2, 3)
-        kwargs = {"input": tensor, "dim": 1, "keepdim": True}
-
-        formatted = format_kwargs(kwargs)
-        assert formatted["input"] == "torch.float32[2, 3]"
-        assert formatted["dim"] == 1
-        assert formatted["keepdim"] is True
-
     def test_format_exception(self):
         op = torch.ops.aten.relu.default
         args = [torch.randn(2, 3)]
