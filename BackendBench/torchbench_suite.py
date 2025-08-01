@@ -15,7 +15,21 @@ from BackendBench.utils import deserialize_args
 # ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
 DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
-
+# Operators to skip for indexing ops that need valid indices
+SKIP_OPERATORS = [
+    "embedding",
+    "scatter",
+    "gather",
+    "index",
+    "nll_loss",
+    "im2col_backward",
+    "col2im_backward",
+    "native_layer_norm_backward",
+    "upsample_nearest2d_backward.vec",
+    "upsample_bilinear2d_backward.vec",
+    "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
+    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
+]
 class TorchBenchTest:
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -113,20 +127,7 @@ class TorchBenchTestSuite:
         for op, inputs in self.optests.items():
             if any(
                 s in op
-                for s in [
-                    "embedding",
-                    "scatter",
-                    "gather",
-                    "index",
-                    "nll_loss",
-                    "im2col_backward",
-                    "col2im_backward",
-                    "native_layer_norm_backward",
-                    "upsample_nearest2d_backward.vec",
-                    "upsample_bilinear2d_backward.vec",
-                    "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
-                    "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
-                ]
+                for s in SKIP_OPERATORS
             ):
                 # TODO: indexing ops need valid indices
                 continue
