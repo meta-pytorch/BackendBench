@@ -88,27 +88,32 @@ def cpu_bench(fn, num_runs=100):
 
 def get_gpu_specs():
     if not torch.cuda.is_available():
-        logger.debug("No GPU available, using fallback 10 TFLOP/s, 100 GB/s")
         return 10e12, 100e9
-
+    
     props = torch.cuda.get_device_properties(0)
     gpu_name = props.name.lower()
-
+    
+    # Theoretical peak performance from NVIDIA official datasheets
+    # Values are with Tensor Cores but without sparsity optimizations
+    # Sources:
+    # T4: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/tesla-t4/t4-tensor-core-datasheet-951643.pdf
+    # V100: https://images.nvidia.com/content/technologies/volta/pdf/tesla-volta-v100-datasheet-letter-fnl-web.pdf
+    # A100: https://www.nvidia.com/content/dam/en-zz/Solutions/Data-Center/a100/pdf/nvidia-a100-datasheet-us-nvidia-1758950-r4-web.pdf
+    # H100: https://resources.nvidia.com/en-us-tensor-core/nvidia-tensor-core-gpu-datasheet
+    # B200: https://resources.nvidia.com/en-us-blackwell-architecture (Blackwell architecture whitepaper)
     gpu_specs = {
-        "t4": (65e12, 320e9),
-        "v100": (125e12, 900e9),
-        "a100": (156e12, 2000e9),
-        "h100": (756e12, 3350e9),
-        "b200": (2250e12, 8000e9),
+        't4': (65e12, 320e9),        # NVIDIA T4: 65 TFLOPS (FP16), 320 GB/s
+        'v100': (125e12, 900e9),     # NVIDIA V100: 125 TFLOPS (FP16), 900 GB/s  
+        'a100': (312e12, 2000e9),    # NVIDIA A100: 312 TFLOPS (FP16), 2000 GB/s
+        'h100': (756e12, 3350e9),    # NVIDIA H100: 756 TFLOPS (FP16), 3350 GB/s
+        'b200': (2250e12, 8000e9),   # NVIDIA B200: 2250 TFLOPS (FP16), 8000 GB/s
     }
-
+    
     for gpu_key, (compute_peak, memory_bw) in gpu_specs.items():
         if gpu_key in gpu_name:
-            logger.debug(
-                f"Detected {gpu_name}, using {compute_peak / 1e12:.0f} TFLOP/s, {memory_bw / 1e9:.0f} GB/s"
-            )
+            logger.debug(f"Detected {gpu_name}, using {compute_peak/1e12:.0f} TFLOP/s, {memory_bw/1e9:.0f} GB/s")
             return compute_peak, memory_bw
-
+    
     logger.debug(f"Unknown GPU {gpu_name}, using fallback 500 TFLOP/s, 1000 GB/s")
     return 500e12, 1000e9
 
