@@ -21,27 +21,46 @@ from BackendBench.torchbench_suite import (
 from main import setup_logging
 from tqdm import tqdm
 
-MAX_ITERATIONS = 100  # Maximum number of iterations for binary search
+# Magic numbers and constants
+MAX_ITERATIONS = 100  # Maximum binary search iterations to prevent infinite loops
+MIN_ACCEPTABLE_SCALING_FACTOR = (
+    2.0  # Minimum scale factor to consider worthwhile (2x larger tensors)
+)
+MAX_SCALE_SEARCH_LIMIT = (
+    1024  # Maximum scale factor to test (1024x) - prevents excessive memory usage
+)
+BINARY_SEARCH_PRECISION = 0.1  # Stop binary search when scale range is smaller than this
+INITIAL_MAX_SCALE = 2.0  # Starting scale factor for exponential search phase
+SCALE_MULTIPLIER = 2  # Factor to multiply by during exponential search (doubles each iteration)
+DEFAULT_N_LARGEST = 10  # Default number of largest inputs to process per operator
+MIN_TENSOR_DIM = 1  # Minimum tensor dimension after scaling (prevents zero-size tensors)
 
+# The format for the below inputs are the traces described here:huggingface.co/datasets/GPUMODE/huggingface_op_trace/blob/main/README.md
+# manually scaled ops which we will mixin at the end
 MANUALLY_SCALED_OPS_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/manually_scaled_op_traces.txt"
+# url for ops which we have gotten for traces and will scale
 SCRAPED_HF_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
 log = logging.getLogger(__name__)
-MIN_ACCEPTABLE_SCALING_FACTOR = 2.0
+
+def cleanup_memory_and_gpu(*variables):
+    """Helper function to delete variables and clean up GPU memory"""
+    for var in variables:
+        if var is not None:
+            del var
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
+    gc.collect()
 
 
 def scale_shape(shape: List[int], scale_factor: float) -> List[int]:
     """Scale tensor shape by a factor"""
-    # Scale all dimensions proportionally
-    scaled = []
-    for dim in shape:
-        scaled_dim = max(1, int(dim * scale_factor))
-        scaled.append(scaled_dim)
-    return scaled
+    return [max(MIN_TENSOR_DIM, int(dim * scale_factor)) for dim in shape]
 
 
 def _serialize_tensor(tensor):
     """Helper function to serialize a tensor to string format"""
+    """The format is described here: huggingface.co/datasets/GPUMODE/huggingface_op_trace/blob/main/README.md"""
     shape = list(tensor.shape)
     dtype = dtype_abbrs[tensor.dtype]
     stride = tensor.stride() if not tensor.is_contiguous() else None
@@ -121,49 +140,46 @@ def _extract_tensors(args, kwargs):
     return tensors, tensor_indices
 
 
+def _scale_tensor_at_location(container, loc_type: str, idx, sub_idx, scale: float):
+    """Helper to scale a tensor at a specific location"""
+    if loc_type in ["arg", "kwarg"]:
+        tensor = container[idx]
+        if isinstance(tensor, torch.Tensor):
+            new_shape = scale_shape(list(tensor.shape), scale)
+            container[idx] = _deserialize_tensor(new_shape, tensor.dtype, device=tensor.device)
+    elif loc_type in ["arg_list", "kwarg_list"]:
+        tensor = container[idx][sub_idx]
+        if isinstance(tensor, torch.Tensor):
+            new_shape = scale_shape(list(tensor.shape), scale)
+            container[idx][sub_idx] = _deserialize_tensor(
+                new_shape, tensor.dtype, device=tensor.device
+            )
+
+
 def apply_scale_to_args(args, kwargs, tensor_indices, scale_factors):
     """Apply scale factors to specific tensors in args/kwargs"""
-    # Deep copy to avoid modifying original
     import copy
 
     scaled_args = copy.deepcopy(list(args))
     scaled_kwargs = copy.deepcopy(dict(kwargs))
 
     for (loc_type, idx, sub_idx), scale in zip(tensor_indices, scale_factors):
-        if loc_type == "arg":
-            if isinstance(scaled_args[idx], torch.Tensor):
-                original_tensor = scaled_args[idx]
-                new_shape = scale_shape(list(original_tensor.shape), scale)
-                scaled_args[idx] = _deserialize_tensor(
-                    new_shape, original_tensor.dtype, device=original_tensor.device
-                )
-        elif loc_type == "arg_list":
-            if isinstance(scaled_args[idx][sub_idx], torch.Tensor):
-                original_tensor = scaled_args[idx][sub_idx]
-                new_shape = scale_shape(list(original_tensor.shape), scale)
-                scaled_args[idx][sub_idx] = _deserialize_tensor(
-                    new_shape, original_tensor.dtype, device=original_tensor.device
-                )
-        elif loc_type == "kwarg":
-            if isinstance(scaled_kwargs[idx], torch.Tensor):
-                original_tensor = scaled_kwargs[idx]
-                new_shape = scale_shape(list(original_tensor.shape), scale)
-                scaled_kwargs[idx] = _deserialize_tensor(
-                    new_shape, original_tensor.dtype, device=original_tensor.device
-                )
-        elif loc_type == "kwarg_list":
-            if isinstance(scaled_kwargs[idx][sub_idx], torch.Tensor):
-                original_tensor = scaled_kwargs[idx][sub_idx]
-                new_shape = scale_shape(list(original_tensor.shape), scale)
-                scaled_kwargs[idx][sub_idx] = _deserialize_tensor(
-                    new_shape, original_tensor.dtype, device=original_tensor.device
-                )
+        if loc_type.startswith("arg"):
+            _scale_tensor_at_location(scaled_args, loc_type, idx, sub_idx, scale)
+        elif loc_type.startswith("kwarg"):
+            _scale_tensor_at_location(scaled_kwargs, loc_type, idx, sub_idx, scale)
 
     return scaled_args, scaled_kwargs
 
 
 def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
     """Use binary search to find maximum uniform scale factor without OOM
+
+    This function finds the largest scaling factor that can be applied uniformly to all
+    tensors in the operator inputs without causing out-of-memory errors. It uses a
+    two-phase approach:
+    1. Exponential search to find an upper bound where OOM occurs
+    2. Binary search between last successful scale and first OOM scale
 
     Args:
         args: Original arguments to the operator
@@ -183,101 +199,94 @@ def binary_search_max_scale(args, kwargs, op_name: str) -> Tuple[float, str]:
         error_args = serialize_args(scaled_args, scaled_kwargs)
         log.debug(f"error_args: {error_args}")
 
-    # Clear cache before starting
+    # Prepare GPU memory - clear cache before starting
     if device == "cuda":
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-        gc.collect()
+        cleanup_memory_and_gpu()
     else:
         raise ValueError("Non-CUDA devices are not supported")
 
-    # Get operator function
+    # Get the PyTorch operator function to test
     op_func = eval(f"torch.ops.{op_name}")
 
-    # Extract all tensors
+    # Extract all tensors from args/kwargs and their locations for later scaling
     tensors, tensor_indices = _extract_tensors(args, kwargs)
 
+    # If no tensors found, return original inputs unchanged
     if not tensors:
         return 1.0, serialize_args(args, kwargs)
 
-    # Scale all tensors by same factor
-    min_scale = 1.0
-    max_scale = 2.0
-    best_scale = 1.0
+    def _test_scale(scale: float):
+        """Test if a scale factor works without OOM"""
+        # Apply the same scale factor to all tensors
+        scale_factors = [scale] * len(tensors)
+        scaled_args, scaled_kwargs = apply_scale_to_args(
+            args, kwargs, tensor_indices, scale_factors
+        )
+        # Test the operator execution without gradients
+        with torch.no_grad():
+            _ = op_func(*scaled_args, **scaled_kwargs)
+        return scaled_args, scaled_kwargs
 
-    # Find upper bound
+    # Initialize binary search bounds
+    min_scale = 1.0  # Known working scale (original inputs)
+    max_scale = INITIAL_MAX_SCALE  # Start testing from 2x
+    best_scale = 1.0  # Best scale found so far
     test_scale = max_scale
     original_inputs = serialize_args(args, kwargs)
-    best_args_str = serialize_args(args, kwargs)
+    best_args_str = original_inputs  # String representation of best scaling
 
-    # 1024x should be sufficiently large
-    while test_scale <= 1024:
-        # Scale all tensors by same factor
-        scale_factors = [test_scale] * len(tensors)
+    # Phase 1: Exponential search to find upper bound where OOM occurs
+    # Keep doubling the scale until we hit OOM or reach the search limit
+    while test_scale <= MAX_SCALE_SEARCH_LIMIT:
         scaled_args, scaled_kwargs = None, None
         try:
-            scaled_args, scaled_kwargs = apply_scale_to_args(
-                args, kwargs, tensor_indices, scale_factors
-            )
-            # Test the operator with scaled inputs
-            with torch.no_grad():
-                _ = op_func(*scaled_args, **scaled_kwargs)
-            # Success, try larger
+            # Test current scale factor
+            scaled_args, scaled_kwargs = _test_scale(test_scale)
+            # Success! Update our best known working scale
             min_scale = test_scale
             best_scale = test_scale
-            test_scale *= 2
-            max_scale = test_scale
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
-            # Test the operator with scaled inputs
-            with torch.no_grad():
-                _ = op_func(*scaled_args, **scaled_kwargs)
-            # Success, try larger
-            min_scale = test_scale
-            best_scale = test_scale
-            test_scale *= 2
+            # Try an even larger scale next iteration
+            test_scale *= SCALE_MULTIPLIER
             max_scale = test_scale
-            best_args_str = serialize_args(scaled_args, scaled_kwargs)
         except torch.cuda.OutOfMemoryError as e:
+            # Hit OOM - we found our upper bound
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
             max_scale = test_scale
             break
         except Exception as e:  # noqa: E722
+            # Other error - stop searching
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
             break
         finally:
-            del scaled_args, scaled_kwargs
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            gc.collect()
+            # Always clean up memory after each test
+            cleanup_memory_and_gpu(scaled_args, scaled_kwargs)
 
-    # Binary search
+    # Phase 2: Binary search between min_scale (works) and max_scale (OOM)
+    # Narrow down to find the precise maximum scale that works
     iterations = 0
-    while max_scale - min_scale > 0.1 and iterations < MAX_ITERATIONS:
+    while max_scale - min_scale > BINARY_SEARCH_PRECISION and iterations < MAX_ITERATIONS:
+        # Test the midpoint between our current bounds
         mid_scale = (min_scale + max_scale) / 2
         scaled_args, scaled_kwargs = None, None
         try:
-            scale_factors = [mid_scale] * len(tensors)
-
-            with torch.no_grad():
-                scaled_args, scaled_kwargs = apply_scale_to_args(
-                    args, kwargs, tensor_indices, scale_factors
-                )
-                _ = op_func(*scaled_args, **scaled_kwargs)
+            # Test the midpoint scale
+            scaled_args, scaled_kwargs = _test_scale(mid_scale)
+            # Success! Midpoint works, so increase lower bound
             min_scale = mid_scale
             best_scale = mid_scale
             best_args_str = serialize_args(scaled_args, scaled_kwargs)
         except torch.cuda.OutOfMemoryError as e:
+            # OOM at midpoint, so decrease upper bound
             max_scale = mid_scale
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
         except Exception as e:  # noqa: E722
-            max_scale = mid_scale
+            # Other error at midpoint, so just stop and return what we have
             _log_error(e, scaled_args, scaled_kwargs, original_inputs, op_name)
             break
         finally:
-            del scaled_args, scaled_kwargs
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
-            gc.collect()
+            # Always clean up memory after each test
+            cleanup_memory_and_gpu(scaled_args, scaled_kwargs)
         iterations += 1
 
     return best_scale, best_args_str
@@ -294,17 +303,41 @@ def validate_inputs(op_name: str, args_str: str):
         log.info(f"Error validating inputs for {op_name}: {e}")
         ret = False
     finally:
-        if args is not None:
-            del args
-        if kwargs is not None:
-            del kwargs
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-        gc.collect()
+        cleanup_memory_and_gpu(args, kwargs)
     return ret
 
 
 # as _parse_inputs does not preserve count, we need to manually merge the inputs
+def _download_and_parse_file(url: str, parse_func):
+    """Download file from URL and parse it using the provided function"""
+    with (
+        tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
+        requests.get(url) as response,
+    ):
+        response.raise_for_status()
+        tmp_file.write(response.text)
+        tmp_file.flush()
+        result = parse_func(tmp_file.name)
+        Path(tmp_file.name).unlink(missing_ok=True)
+        return result
+
+
+def _parse_inputs_with_count(tmp_file_name: str):
+    """Parse inputs file preserving count information"""
+    inputs = defaultdict(list)
+    current_op = None
+    with open(tmp_file_name, "r") as f:
+        for line in f:
+            if line.startswith("Operator:"):
+                current_op = line.split(" ")[1].strip()
+            elif line.startswith("cnt:"):
+                if current_op is not None:
+                    inputs[current_op].append(line.strip())
+                else:
+                    raise ValueError("miformed file from huggingface url, cannot parse")
+    return inputs
+
+
 def merge_inputs_with_huggingface(
     new_inputs: Dict[str, List[str]],
     output_file: str = "merged_inputs.txt",
@@ -321,36 +354,8 @@ def merge_inputs_with_huggingface(
     Raises:
         ValueError: If an operator in new_inputs is not found in the original file
     """
-
-    # put output file in outputs
     output_file = os.path.join("outputs", output_file)
-
-    def parse_inputs_with_count(tmp_file_name: str):
-        inputs = defaultdict(list)
-        current_op = None
-        with open(tmp_file_name, "r") as f:
-            for line in f:
-                if line.startswith("Operator:"):
-                    current_op = line.split(" ")[1].strip()
-                elif line.startswith("cnt:"):
-                    if current_op is not None:
-                        inputs[current_op].append(line.strip())
-                    else:
-                        raise ValueError("miformed file from huggingface url, cannot parse")
-
-        return inputs
-
-    inputs = defaultdict(list)
-
-    with (
-        tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-        requests.get(huggingface_url) as response,
-    ):
-        response.raise_for_status()
-        tmp_file.write(response.text)
-        tmp_file.flush()
-        inputs = parse_inputs_with_count(tmp_file.name)
-        Path(tmp_file.name).unlink(missing_ok=True)
+    inputs = _download_and_parse_file(huggingface_url, _parse_inputs_with_count)
 
     log.info(f"Loaded {len(inputs)} operators from HuggingFace file")
     log.info(f"Total original inputs: {sum(len(v) for v in inputs.values())}")
@@ -387,25 +392,13 @@ def process_operator_traces(
     op_inputs = defaultdict(list)
     manually_scaled_ops = defaultdict(list)
 
-    with (
-        tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-        requests.get(url) as response,
-    ):
-        response.raise_for_status()
-        tmp_file.write(response.text)
-        tmp_file.flush()
-        _parse_inputs(tmp_file.name, None, op_inputs)
-        Path(tmp_file.name).unlink(missing_ok=True)
+    def _parse_op_inputs(tmp_file_name: str):
+        result = defaultdict(list)
+        _parse_inputs(tmp_file_name, None, result)
+        return result
 
-    with (
-        tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-        requests.get(manually_scaled_ops_url) as response,
-    ):
-        response.raise_for_status()
-        tmp_file.write(response.text)
-        tmp_file.flush()
-        _parse_inputs(tmp_file.name, None, manually_scaled_ops)
-        Path(tmp_file.name).unlink(missing_ok=True)
+    op_inputs = _download_and_parse_file(url, _parse_op_inputs)
+    manually_scaled_ops = _download_and_parse_file(manually_scaled_ops_url, _parse_op_inputs)
 
     log.info(f"Successfully parsed {sum(len(v) for v in op_inputs.values())} traces")
     log.info(f"Found {len(op_inputs)} unique operators")
@@ -528,7 +521,7 @@ if __name__ == "__main__":
         type=str,
         default="INFO",
     )
-    parser.add_argument("--n_largest", type=int, default=10)
+    parser.add_argument("--n_largest", type=int, default=DEFAULT_N_LARGEST)
     args = parser.parse_args()
 
     setup_logging(args.log_level)
