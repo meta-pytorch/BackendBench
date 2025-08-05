@@ -100,7 +100,6 @@ def cli(
 def run_suite(ctx, suite):
     """Common function to run any test suite."""
     backend = ctx.obj["backend"]
-    ops = ctx.obj["ops"]
     llm_max_attempts = ctx.obj["llm_max_attempts"]
     kernel_agent_workers = ctx.obj["kernel_agent_workers"]
     kernel_agent_max_rounds = ctx.obj["kernel_agent_max_rounds"]
@@ -159,8 +158,8 @@ def run_suite(ctx, suite):
 @click.pass_context
 def smoke(ctx):
     """Run the smoke test suite."""
-    suite_instance = SmokeTestSuite
-    run_suite(ctx, suite_instance, "smoke")
+    suite = SmokeTestSuite
+    run_suite(ctx, suite)
 
 
 @cli.command()
@@ -168,13 +167,13 @@ def smoke(ctx):
 def opinfo(ctx):
     """Run the OpInfo test suite."""
     ops = ctx.obj["ops"]
-    suite_instance = OpInfoTestSuite(
+    suite = OpInfoTestSuite(
         "opinfo_cuda_bfloat16",
         "cuda",
         torch.bfloat16,
         filter=ops,
     )
-    run_suite(ctx, suite_instance, "opinfo")
+    run_suite(ctx, suite)
 
 
 @cli.command()
@@ -195,13 +194,13 @@ def opinfo(ctx):
 def torchbench(ctx, data_path, topn_inputs):
     """Run the TorchBench test suite."""
     ops = ctx.obj["ops"]
-    suite_instance = TorchBenchTestSuite(
+    suite = TorchBenchTestSuite(
         "torchbench",
         data_path,
         filter=ops,
         topn=topn_inputs,
     )
-    run_suite(ctx, suite_instance, "torchbench")
+    run_suite(ctx, suite)
 
 
 @cli.command()
@@ -226,7 +225,7 @@ def torchbench(ctx, data_path, topn_inputs):
 def facto(ctx, num_runs, empty, probability):
     """Run the FACTO test suite."""
     ops = ctx.obj["ops"]
-    suite_instance = FactoTestSuite(
+    suite = FactoTestSuite(
         "facto_cpu_float32",
         "cuda",
         torch.bfloat16,
@@ -235,7 +234,7 @@ def facto(ctx, num_runs, empty, probability):
         empty=empty,
         probability=probability,
     )
-    run_suite(ctx, suite_instance, "facto")
+    run_suite(ctx, suite)
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):

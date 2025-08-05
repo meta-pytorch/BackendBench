@@ -1,8 +1,8 @@
 import torch
 
-from .base import Backend
+from ..opregistry import register_operator
 
-from .opregistry import register_operator
+from .base import Backend
 
 try:
     import flag_gems
