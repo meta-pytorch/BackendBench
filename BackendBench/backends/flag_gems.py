@@ -1,6 +1,6 @@
 import torch
 
-from ..opregistry import register_operator
+from BackendBench.opregistry import get_operator
 
 from .base import Backend
 

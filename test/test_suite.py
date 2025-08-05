@@ -1,5 +1,6 @@
 import pytest
 import torch
+from BackendBench.opregistry import get_operator
 from BackendBench.suite import OpTest, randn, SmokeTestSuite, Test, TestSuite
 
 
