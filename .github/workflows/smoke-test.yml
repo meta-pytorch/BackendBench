@@ -34,7 +34,7 @@ jobs:
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
     
     - name: Run FACTO test
-      run: uv run python -m BackendBench.scripts.main --backend aten --ops "add.Tensor" facto
+      run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
     
     - name: Run pytest tests
       run: uv run pytest test/
