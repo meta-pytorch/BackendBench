@@ -30,7 +30,7 @@ class TestFactoSuite:
             probability=probability,
         )
 
-        backend = backends.FlagGemsBackend()
+        backend = backends.AtenBackend()
 
         # Track overall correctness and performance
         overall_correctness = []
