@@ -28,9 +28,7 @@ class TestTestClass:
         assert test._args == (1, 2, 3)
         assert test._kwargs == {"key1": "value1", "key2": "value2"}
 
-    @pytest.mark.skip(
-        reason="Test expects mixed callable/non-callable args - needs clarification"
-    )
+    @pytest.mark.skip(reason="Test expects mixed callable/non-callable args - needs clarification")
     def test_test_args_property(self):
         def fn1():
             return 10
