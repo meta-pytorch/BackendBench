@@ -1,5 +1,3 @@
-from unittest.mock import Mock, patch
-
 import pytest
 import torch
 
@@ -85,8 +83,6 @@ class TestFactoSuite:
             empty=empty,
             probability=probability,
         )
-
-        backend = backends.FlagGemsBackend()
 
         for test in suite:
             assert len(list(test.correctness_tests)) == num_runs, (
