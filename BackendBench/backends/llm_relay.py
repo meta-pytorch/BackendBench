@@ -70,17 +70,13 @@ You can inspect these files to debug kernel generation, manually test implementa
             else:
                 full_code = self._prepare_torch_code(kernel_code)
 
-            kernel_file = os.path.join(
-                self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py"
-            )
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
             with open(kernel_file, "w") as f:
                 f.write(full_code)
 
             print(f"Saved kernel to: {kernel_file}")
 
-            spec = importlib.util.spec_from_file_location(
-                f"kernel_{op_name}", kernel_file
-            )
+            spec = importlib.util.spec_from_file_location(f"kernel_{op_name}", kernel_file)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -133,9 +129,7 @@ import torch.nn.functional as F
 
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
-        compiled_kernel = self.compile_kernel_from_string(
-            kernel_code, op_name, attempt=1
-        )
+        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
         self.compiled_kernels[op] = compiled_kernel
 
     def test_kernel_correctness(
@@ -155,9 +149,7 @@ import torch.nn.functional as F
         }
 
         try:
-            kernel_file = os.path.join(
-                self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py"
-            )
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
 
             if not os.path.exists(kernel_file):
                 is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
@@ -214,9 +206,7 @@ import torch.nn.functional as F
                     ref_result = op(*args, **kwargs)
                     kernel_result = compiled_kernel(*args, **kwargs)
 
-                    torch.testing.assert_close(
-                        ref_result, kernel_result, equal_nan=True
-                    )
+                    torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
                     correct_count += 1
                     print(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
 

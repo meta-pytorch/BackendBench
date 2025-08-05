@@ -159,13 +159,9 @@ class LLMKernelGenerator:
         try:
             requests.get(f"{self.server_url}/", timeout=5)
         except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                f"Cannot connect to LLM relay server at {self.server_url}. "
-            )
+            raise ConnectionError(f"Cannot connect to LLM relay server at {self.server_url}. ")
         except requests.exceptions.Timeout:
-            raise TimeoutError(
-                f"Timeout connecting to LLM relay server at {self.server_url}. "
-            )
+            raise TimeoutError(f"Timeout connecting to LLM relay server at {self.server_url}. ")
 
     def generate_kernel(
         self,
@@ -199,10 +195,11 @@ class LLMKernelGenerator:
             }
 
             # Bypass proxy for localhost connections
-            proxies = {
-                'http': None,
-                'https': None
-            } if '127.0.0.1' in self.server_url or 'localhost' in self.server_url else None
+            proxies = (
+                {"http": None, "https": None}
+                if "127.0.0.1" in self.server_url or "localhost" in self.server_url
+                else None
+            )
 
             response = requests.post(
                 self.server_url,
@@ -286,14 +283,10 @@ class LLMKernelGenerator:
 
     def _format_feedback(self, feedback_info: Dict) -> str:
         """Format feedback information for the LLM."""
-        feedback_parts = [
-            "PREVIOUS ATTEMPT FAILED - Please fix the following issues:\n"
-        ]
+        feedback_parts = ["PREVIOUS ATTEMPT FAILED - Please fix the following issues:\n"]
 
         if feedback_info.get("compilation_error"):
-            feedback_parts.append(
-                f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n"
-            )
+            feedback_parts.append(f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n")
 
         if feedback_info.get("test_errors"):
             feedback_parts.append("TEST ERRORS:")
