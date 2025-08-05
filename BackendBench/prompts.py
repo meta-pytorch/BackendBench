@@ -4,7 +4,7 @@ Operation: {op_signature}
 {op_description}
 
 Requirements:
-- Triton kernel function MUST be named: {op_name}_triton_kernel  
+- Triton kernel function MUST be named: {op_name}_triton_kernel
 - Wrapper function MUST be named: {op_name}_kernel_impl
 - Use modern Triton syntax with proper grid computation
 - Include all necessary imports (torch, triton, triton.language as tl)
@@ -17,7 +17,9 @@ The {op_name}_kernel_impl wrapper function MUST handle complete device managemen
 - Handle both args and kwargs properly
 - Preserve original tensor devices and restore them for outputs
 
-Generate complete, runnable code only - no framework will add device handling wrapper code."""
+Generate complete, runnable code only - no framework will add device handling wrapper code.
+
+IMPORTANT: Wrap your response in a Python code block using ```python and ``` markers."""
 
 PYTORCH_KERNEL_PROMPT = """Generate a PyTorch implementation for: {op_name}
 
@@ -29,7 +31,9 @@ Requirements:
 - Handle edge cases
 - Match PyTorch reference behavior
 
-Generate complete, runnable code only."""
+Generate complete, runnable code only.
+
+IMPORTANT: Wrap your response in a Python code block using ```python and ``` markers."""
 
 TRITON_OPTIMIZATIONS = {
     "default": "Use efficient memory access patterns and appropriate block sizes."
