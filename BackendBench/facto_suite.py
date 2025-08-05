@@ -137,17 +137,7 @@ def build_facto_op_tests(device, dtype, filter=None, num_runs=10, empty=False, p
 
 
 class FactoTestSuite(TestSuite):
-    def __init__(
-        self,
-        name,
-        device,
-        dtype,
-        filter=None,
-        num_runs=10,
-        empty=False,
-        probability=1.0,
-    ):
+    def __init__(self, name, device, dtype, filter=None, num_runs=10, empty=False, probability=1.0):
         super().__init__(
-            name,
-            build_facto_op_tests(device, dtype, filter, num_runs, empty, probability),
+            name, build_facto_op_tests(device, dtype, filter, num_runs, empty, probability)
         )
