@@ -66,6 +66,12 @@ def setup_logging(log_level):
     type=int,
     help="Maximum refinement rounds per worker for KernelAgent backend",
 )
+@click.option(
+    "--ops-directory",
+    default="generated_kernels",
+    type=str,
+    help="Path to directory containing generated kernels",
+)
 @click.pass_context
 def cli(
     ctx,
@@ -75,6 +81,7 @@ def cli(
     llm_max_attempts,
     kernel_agent_workers,
     kernel_agent_max_rounds,
+    ops_directory,
 ):
     setup_logging(log_level)
     if ops:
@@ -87,15 +94,17 @@ def cli(
     ctx.obj["llm_max_attempts"] = llm_max_attempts
     ctx.obj["kernel_agent_workers"] = kernel_agent_workers
     ctx.obj["kernel_agent_max_rounds"] = kernel_agent_max_rounds
+    ctx.obj["ops_directory"] = ops_directory
 
 
-def run_suite(ctx, suite_instance, suite_name):
+def run_suite(ctx, suite):
     """Common function to run any test suite."""
     backend = ctx.obj["backend"]
     ops = ctx.obj["ops"]
     llm_max_attempts = ctx.obj["llm_max_attempts"]
     kernel_agent_workers = ctx.obj["kernel_agent_workers"]
     kernel_agent_max_rounds = ctx.obj["kernel_agent_max_rounds"]
+    ops_directory = ctx.obj["ops_directory"]
 
     backend = {
         "aten": backends.AtenBackend,
@@ -108,18 +117,22 @@ def run_suite(ctx, suite_instance, suite_name):
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
-        backend = setup_llm_backend(backend, llm_client, suite_name, ops, llm_max_attempts)
+        backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts)
 
     # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
         backend = setup_kernel_agent_backend(
-            backend, suite_name, ops, kernel_agent_workers, kernel_agent_max_rounds
+            backend, suite, kernel_agent_workers, kernel_agent_max_rounds
         )
+
+    # For Directory backend, we need to load existing kernels from a directory
+    elif backend.name == "directory":
+        backend = backends.DirectoryBackend(ops_directory)
 
     overall_correctness = []
     overall_performance = []
 
-    for test in suite_instance:
+    for test in suite:
         if test.op not in backend:
             continue
 
@@ -225,21 +238,9 @@ def facto(ctx, num_runs, empty, probability):
     run_suite(ctx, suite_instance, "facto")
 
 
-def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):
+def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
     """Setup LLM backend by generating kernels for all operations in the suite."""
     try:
-        if suite_name == "smoke":
-            suite = SmokeTestSuite
-        elif suite_name == "opinfo":
-            suite = OpInfoTestSuite(
-                "opinfo_cuda_bfloat16",
-                "cuda",
-                torch.bfloat16,
-                filter=ops_filter,
-            )
-        else:
-            raise ValueError(f"Unknown suite: {suite_name}")
-
         successful_ops = 0
         total_ops = 0
 
@@ -352,24 +353,11 @@ def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attem
         sys.exit(1)
 
 
-def setup_kernel_agent_backend(
-    kernel_agent_backend, suite_name, ops_filter, num_workers=4, max_rounds=10
-):
+def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_rounds=10):
     """Setup KernelAgent backend by generating kernels using the sophisticated agent system."""
     try:
         # Configure the backend with the specified parameters
         kernel_agent_backend.set_config(num_workers, max_rounds)
-        if suite_name == "smoke":
-            suite = SmokeTestSuite
-        elif suite_name == "opinfo":
-            suite = OpInfoTestSuite(
-                "opinfo_cuda_bfloat16",
-                "cuda",
-                torch.bfloat16,
-                filter=ops_filter,
-            )
-        else:
-            raise ValueError(f"Unknown suite: {suite_name}")
 
         successful_ops = 0
         total_ops = 0
