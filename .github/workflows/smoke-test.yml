@@ -14,27 +14,27 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
+    
     - name: Install uv
       uses: astral-sh/setup-uv@v3
-
+    
     - name: Set up Python
       run: uv python install
-
+    
     - name: Install package and dependencies
       run: uv sync --dev
-
+    
     - name: Clone FACTO source
       run: git clone https://github.com/pytorch-labs/FACTO.git
-
+    
     - name: Build and install FACTO
       run: cd FACTO && uv pip install .
-
+    
     - name: Run smoke test
-      run: uv run python -m BackendBench.scripts.main --backend aten smoke
-
+      run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
+    
     - name: Run FACTO test
       run: uv run python -m BackendBench.scripts.main --backend aten --ops "add.Tensor" facto
-
+    
     - name: Run pytest tests
       run: uv run pytest test/

@@ -1,6 +1,6 @@
 import torch
 
-from .opregistry import get_operator
+from BackendBench.opregistry import get_operator
 
 
 def randn(*args, **kwargs):

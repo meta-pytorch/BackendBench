@@ -26,37 +26,27 @@ uv sync --dev
 
 Run a simple smoke test (relu) with the default ATen backend:
 ```bash
-uv run python scripts/main.py --backend aten smoke
+uv run python scripts/main.py --suite smoke --backend aten
 ```
 
 Run the smoke test with FlagGems:
 ```bash
-uv run python scripts/main.py --backend flag_gems smoke
+uv run python scripts/main.py --suite smoke --backend flag_gems
 ```
 
 Run opinfo tests (correctness only) with ATen
 ```bash
-uv run python scripts/main.py --backend aten opinfo
+uv run python scripts/main.py --suite opinfo --backend aten
 ```
 
 Run a filtered set of opinfo tests with FlagGems
 ```bash
-uv run python scripts/main.py --backend flag_gems --ops "add,sub" opinfo
+uv run python scripts/main.py --suite opinfo --backend flag_gems --ops "add,sub"
 ```
 
 Run all the opinfo tests with FlagGems (takes a few minutes)
 ```bash
-uv run python scripts/main.py --backend flag_gems opinfo
-```
-
-Run TorchBench tests with custom settings:
-```bash
-uv run python scripts/main.py --backend aten torchbench --topn-inputs 5
-```
-
-Run FACTO tests with custom number of runs:
-```bash
-uv run python scripts/main.py --backend aten facto --num-runs 10
+uv run python scripts/main.py --suite opinfo --backend flag_gems
 ```
 
 ## LLM-Based Kernel Generation and Evaluation
@@ -66,7 +56,7 @@ Generate and evaluate PyTorch kernels using Claude API:
 Run LLM evaluation on smoke test (relu operation):
 ```bash
 export ANTHROPIC_API_KEY=your_api_key_here
-uv run python scripts/main.py --backend llm smoke
+uv run python scripts/main.py --suite smoke --backend llm
 ```
 
 ## KernelAgent-Based Triton Kernel Generation
@@ -81,19 +71,19 @@ git submodule update --init --recursive
 Run KernelAgent evaluation on smoke test (relu operation):
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --backend kernel_agent smoke
+uv run python scripts/main.py --suite smoke --backend kernel_agent
 ```
 
 Run KernelAgent with custom configuration:
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15 smoke
+uv run python scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
 ```
 
 Run KernelAgent on opinfo tests with a specific operation:
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --backend kernel_agent --ops "add" opinfo
+uv run python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
 
 ## Directory-Based Kernel Development
@@ -107,7 +97,7 @@ Create kernels in the following structure:
 generated_kernels/
 ├── relu/
 │   └── relu_implementation_1.py
-├── add/
+├── add/  
 │   └── add_implementation_1.py
 ├── mul/
 │   └── mul_implementation_1.py
@@ -129,7 +119,7 @@ generated_kernels/
 3. **Write your kernel following this template:**
    ```python
    import torch
-
+   
    def {op_name}_kernel_impl(*args, **kwargs):
        """
        Your kernel implementation.
@@ -137,7 +127,7 @@ generated_kernels/
        """
        # Your implementation here
        return result
-
+   
    # Optional: Add a test
    if __name__ == "__main__":
        pass
@@ -146,9 +136,9 @@ generated_kernels/
 ### Operation Name Mapping
 
 Use these exact directory names for common operations:
-- `relu` → `torch.ops.aten.relu.default`
+- `relu` → `torch.ops.aten.relu.default`  
 - `add` → `torch.ops.aten.add.Tensor`
-- `mul` → `torch.ops.aten.mul.Tensor`
+- `mul` → `torch.ops.aten.mul.Tensor` 
 - `div` → `torch.ops.aten.div.Tensor`
 
 To find the correct name for other operations:
@@ -187,5 +177,5 @@ uv run python generated_kernels/relu/relu_implementation_1.py
 
 Test with BackendBench:
 ```bash
-uv run python scripts/main.py --backend directory smoke
+uv run python scripts/main.py --suite smoke --backend directory
 ```
