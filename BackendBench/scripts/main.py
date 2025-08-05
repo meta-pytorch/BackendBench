@@ -29,18 +29,12 @@ def setup_logging(log_level):
     )
 
 
-@click.command()
+@click.group()
 @click.option(
     "--log-level",
     default=os.getenv("LOG_LEVEL", "INFO"),
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
     help="Set the logging level",
-)
-@click.option(
-    "--suite",
-    default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
-    help="Which suite to run",
 )
 @click.option(
     "--backend",
@@ -53,13 +47,6 @@ def setup_logging(log_level):
     default=None,
     type=str,
     help="Comma-separated list of ops to run",
-)
-@click.option(
-    "--topn-inputs",
-    "--topn",
-    default=None,
-    type=int,
-    help="Select the top N largest inputs for each op (default: all inputs)",
 )
 @click.option(
     "--llm-max-attempts",
@@ -79,26 +66,36 @@ def setup_logging(log_level):
     type=int,
     help="Maximum refinement rounds per worker for KernelAgent backend",
 )
-@click.option(
-    "--torchbench-data-path",
-    default=DEFAULT_HUGGINGFACE_URL,
-    type=str,
-    help="Path to TorchBench operator data",
-)
+@click.pass_context
 def cli(
+    ctx,
     log_level,
-    suite,
     backend,
     ops,
-    topn_inputs,
     llm_max_attempts,
     kernel_agent_workers,
     kernel_agent_max_rounds,
-    torchbench_data_path,
 ):
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
+
+    # Store common parameters in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj["backend"] = backend
+    ctx.obj["ops"] = ops
+    ctx.obj["llm_max_attempts"] = llm_max_attempts
+    ctx.obj["kernel_agent_workers"] = kernel_agent_workers
+    ctx.obj["kernel_agent_max_rounds"] = kernel_agent_max_rounds
+
+
+def run_suite(ctx, suite_instance, suite_name):
+    """Common function to run any test suite."""
+    backend = ctx.obj["backend"]
+    ops = ctx.obj["ops"]
+    llm_max_attempts = ctx.obj["llm_max_attempts"]
+    kernel_agent_workers = ctx.obj["kernel_agent_workers"]
+    kernel_agent_max_rounds = ctx.obj["kernel_agent_max_rounds"]
 
     backend = {
         "aten": backends.AtenBackend,
@@ -111,41 +108,18 @@ def cli(
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
-        backend = setup_llm_backend(backend, llm_client, suite, ops, llm_max_attempts)
+        backend = setup_llm_backend(backend, llm_client, suite_name, ops, llm_max_attempts)
 
     # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
         backend = setup_kernel_agent_backend(
-            backend, suite, ops, kernel_agent_workers, kernel_agent_max_rounds
+            backend, suite_name, ops, kernel_agent_workers, kernel_agent_max_rounds
         )
-
-    suite = {
-        "smoke": lambda: SmokeTestSuite,
-        "opinfo": lambda: OpInfoTestSuite(
-            "opinfo_cuda_bfloat16",
-            "cuda",
-            torch.bfloat16,
-            filter=ops,
-        ),
-        "torchbench": lambda: TorchBenchTestSuite(
-            "torchbench",
-            torchbench_data_path,
-            filter=ops,
-            topn=topn_inputs,
-        ),
-        "facto": lambda: FactoTestSuite(
-            "facto_cpu_float32",
-            "cuda",
-            torch.bfloat16,
-            filter=ops,
-            num_runs=10,
-        ),
-    }[suite]()
 
     overall_correctness = []
     overall_performance = []
 
-    for test in suite:
+    for test in suite_instance:
         if test.op not in backend:
             continue
 
@@ -166,6 +140,89 @@ def cli(
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+
+
+@cli.command()
+@click.pass_context
+def smoke(ctx):
+    """Run the smoke test suite."""
+    suite_instance = SmokeTestSuite
+    run_suite(ctx, suite_instance, "smoke")
+
+
+@cli.command()
+@click.pass_context
+def opinfo(ctx):
+    """Run the OpInfo test suite."""
+    ops = ctx.obj["ops"]
+    suite_instance = OpInfoTestSuite(
+        "opinfo_cuda_bfloat16",
+        "cuda",
+        torch.bfloat16,
+        filter=ops,
+    )
+    run_suite(ctx, suite_instance, "opinfo")
+
+
+@cli.command()
+@click.option(
+    "--data-path",
+    default=DEFAULT_HUGGINGFACE_URL,
+    type=str,
+    help="Path to TorchBench operator data",
+)
+@click.option(
+    "--topn-inputs",
+    "--topn",
+    default=None,
+    type=int,
+    help="Select the top N largest inputs for each op (default: all inputs)",
+)
+@click.pass_context
+def torchbench(ctx, data_path, topn_inputs):
+    """Run the TorchBench test suite."""
+    ops = ctx.obj["ops"]
+    suite_instance = TorchBenchTestSuite(
+        "torchbench",
+        data_path,
+        filter=ops,
+        topn=topn_inputs,
+    )
+    run_suite(ctx, suite_instance, "torchbench")
+
+
+@cli.command()
+@click.option(
+    "--num-runs",
+    default=10,
+    type=int,
+    help="Number of tests FACTO generates for each operation",
+)
+@click.option(
+    "--empty",
+    is_flag=True,
+    help="Allow FACTO to generate empty inputs",
+)
+@click.option(
+    "--probability",
+    default=0.7,
+    type=float,
+    help="Probability of generating empty inputs",
+)
+@click.pass_context
+def facto(ctx, num_runs, empty, probability):
+    """Run the FACTO test suite."""
+    ops = ctx.obj["ops"]
+    suite_instance = FactoTestSuite(
+        "facto_cpu_float32",
+        "cuda",
+        torch.bfloat16,
+        filter=ops,
+        num_runs=num_runs,
+        empty=empty,
+        probability=probability,
+    )
+    run_suite(ctx, suite_instance, "facto")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite_name, ops_filter, max_attempts=5):

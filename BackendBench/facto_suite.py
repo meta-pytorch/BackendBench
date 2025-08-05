@@ -2,9 +2,17 @@ import logging
 from collections import defaultdict
 
 import torch
-from facto.inputgen.argtuple.gen import ArgumentTupleGenerator
-from facto.specdb.db import SpecDictDB
 from torch.utils._python_dispatch import TorchDispatchMode
+
+try:
+    from facto.inputgen.argtuple.gen import ArgumentTupleGenerator
+    from facto.inputgen.utils.config import TensorConfig
+    from facto.specdb.db import SpecDictDB
+except ImportError:
+    ArgumentTupleGenerator = None
+    TensorConfig = None
+    SpecDictDB = None
+
 
 from .eval import allclose
 from .opregistry import get_operator
@@ -44,74 +52,102 @@ class OpTracerMode(TorchDispatchMode):
         return fn(*args, **kwargs)
 
 
-def build_facto_op_tests(device, dtype, filter=None, num_runs=10):
+def build_facto_op_tests(device, dtype, filter=None, num_runs=10, empty=False, probability=1.0):
     facto_op_tests = []
+    failed = []
     for spec_name in SpecDictDB:
-        if filter and spec_name not in filter:
-            continue
+        try:
+            if filter and spec_name not in filter:
+                continue
 
-        # Get canonical operator from registry
-        op = get_operator(spec_name)
-        if op is None:
-            logger.debug(f"Skipping {spec_name}: operator resolution failed")
-            continue
+            # Get canonical operator from registry
+            op = get_operator(spec_name)
+            if op is None:
+                logger.debug(f"Skipping {spec_name}: operator resolution failed")
+                continue
 
-        spec = SpecDictDB[spec_name]
-        generator = ArgumentTupleGenerator(spec)
+            config = TensorConfig(
+                empty=empty,
+            ).set_probability(probability)
 
-        op_tests = defaultdict(list)
+            spec = SpecDictDB[spec_name]
+            generator = ArgumentTupleGenerator(spec, config)
 
-        for idx, (posargs, inkwargs, outargs) in enumerate(generator.gen()):
-            if idx >= num_runs:
-                break
+            op_tests = defaultdict(list)
 
-            # Filter arguments to target device/dtype
-            filtered_posargs = []
-            for arg in posargs:
-                if isinstance(arg, torch.Tensor):
-                    arg = arg.to(device=device, dtype=dtype)
-                filtered_posargs.append(arg)
+            for idx, (posargs, inkwargs, outargs) in enumerate(generator.gen()):
+                if idx >= num_runs:
+                    break
 
-            filtered_inkwargs = {}
-            for k, v in inkwargs.items():
-                if isinstance(v, torch.Tensor):
-                    v = v.to(device=device, dtype=dtype)
-                filtered_inkwargs[k] = v
+                # Filter arguments to target device/dtype
+                filtered_posargs = []
+                for arg in posargs:
+                    if isinstance(arg, torch.Tensor):
+                        arg = arg.to(device=device, dtype=dtype)
+                    filtered_posargs.append(arg)
 
-            filtered_outargs = {}
-            for k, v in outargs.items():
-                if isinstance(v, torch.Tensor):
-                    v = v.to(device=device, dtype=dtype)
-                filtered_outargs[k] = v
+                filtered_inkwargs = {}
+                for k, v in inkwargs.items():
+                    if isinstance(v, torch.Tensor):
+                        v = v.to(device=device, dtype=dtype)
+                    filtered_inkwargs[k] = v
 
-            all_kwargs = {**filtered_inkwargs, **filtered_outargs}
+                filtered_outargs = {}
+                for k, v in outargs.items():
+                    if isinstance(v, torch.Tensor):
+                        v = v.to(device=device, dtype=dtype)
+                    filtered_outargs[k] = v
 
-            # Trace execution to find underlying PyTorch ops
-            with OpTracerMode() as tracer:
-                ref = op(*filtered_posargs, **all_kwargs)
+                all_kwargs = {**filtered_inkwargs, **filtered_outargs}
 
-            # Check if we captured exactly one op (clean mapping)
-            if len(tracer.ops) == 1:
-                traced_op = tracer.ops[0]
                 try:
-                    # Verify the traced op produces the same result
-                    res = traced_op(*filtered_posargs, **all_kwargs)
-                    if allclose(ref, res):
-                        op_tests[traced_op].append(FactoTest(*filtered_posargs, **all_kwargs))
+                    # Trace execution to find underlying PyTorch ops
+                    with OpTracerMode() as tracer:
+                        ref = op(*filtered_posargs, **all_kwargs)
                 except Exception:
-                    logger.debug(
-                        f"FACTO spec {spec_name} couldn't run underlying op {traced_op[0]}"
-                    )
-            else:
-                logger.debug(f"FACTO spec {spec_name} has {len(tracer.ops)} ops")
+                    logger.debug(f"FACTO spec {spec_name} couldn't run underlying op {op}")
+                    continue
 
-        for traced_op, tests in op_tests.items():
-            if len(tests) > 0:
-                facto_op_tests.append(FactoOpTest(traced_op, tests))
+                # Check if we captured exactly one op (clean mapping)
+                if len(tracer.ops) == 1:
+                    try:
+                        # Verify the traced op produces the same result
+                        res = tracer.ops[0](*filtered_posargs, **all_kwargs)
+                        if allclose(ref, res):
+                            op_tests[tracer.ops[0]].append(
+                                FactoTest(*filtered_posargs, **all_kwargs)
+                            )
+                    except Exception:
+                        logger.debug(
+                            f"FACTO spec {spec_name} couldn't run underlying op {tracer.ops[0]}"
+                        )
+                else:
+                    logger.debug(f"FACTO spec {spec_name} has {len(tracer.ops)} ops")
+
+            for traced_op, tests in op_tests.items():
+                if len(tests) > 0:
+                    facto_op_tests.append(FactoOpTest(traced_op, tests))
+        except Exception:
+            logger.debug(f"FACTO spec {spec_name} failed")
+            failed.append(spec_name)
+
+    logger.debug(f"Failed specs: {failed}")
 
     return facto_op_tests
 
 
 class FactoTestSuite(TestSuite):
-    def __init__(self, name, device, dtype, filter=None, num_runs=10):
-        super().__init__(name, build_facto_op_tests(device, dtype, filter, num_runs))
+    def __init__(
+        self,
+        name,
+        device,
+        dtype,
+        filter=None,
+        num_runs=10,
+        empty=False,
+        probability=1.0,
+    ):
+        super().__init__(
+            name,
+            build_facto_op_tests(device, dtype, filter, num_runs, empty, probability),
+        )

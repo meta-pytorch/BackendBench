@@ -15,16 +15,6 @@ def _extract_spec_name_from_op(op_obj):
                 # Remove the "aten::" prefix
                 spec_name = full_name.split("::", 1)[1]
                 return spec_name
-
-        # Fallback: try to extract from string representation
-        op_str = str(op_obj)
-        # op_str is typically like "<OpOverload(op='aten.add', overload='Tensor')>"
-        if "op='aten." in op_str and "overload='" in op_str:
-            # Extract op name and overload
-            op_part = op_str.split("op='aten.")[1].split("'")[0]
-            overload_part = op_str.split("overload='")[1].split("'")[0]
-            return f"{op_part}.{overload_part}"
-
         return None
 
     except Exception as e:
@@ -58,7 +48,7 @@ class OpRegistry:
 
             # Cache the resolved operator
             self._registry[spec_name] = op
-            logger.debug(f"Registered operator: {spec_name} -> {op}")
+            # logger.debug(f"Registered operator: {spec_name} -> {op}")
             return op
 
         except AttributeError as e:
@@ -69,22 +59,13 @@ class OpRegistry:
         # Extract spec name from the operator object
         spec_name = _extract_spec_name_from_op(op_obj)
 
-        if spec_name is None:
-            # If we can't extract the spec name, register this object directly
-            # using a fallback naming scheme
-            fallback_name = str(op_obj)
-            if fallback_name not in self._registry:
-                self._registry[fallback_name] = op_obj
-                logger.debug(f"Registered operator with fallback name: {fallback_name} -> {op_obj}")
-            return self._registry[fallback_name]
-
         # Check if we already have this operator registered
         if spec_name in self._registry:
             return self._registry[spec_name]
 
         # Register the provided operator object
         self._registry[spec_name] = op_obj
-        logger.debug(f"Registered operator from object: {spec_name} -> {op_obj}")
+        # logger.debug(f"Registered operator from object: {spec_name} -> {op_obj}")
         return op_obj
 
     def register_operator(self, op_obj):
