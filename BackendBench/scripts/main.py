@@ -113,14 +113,16 @@ def cli(
     if ops:
         ops = ops.split(",")
 
-    backend = {
-        "aten": backends.AtenBackend,
-        "flag_gems": backends.FlagGemsBackend,
-        "llm": backends.LLMBackend,
-        "llm-relay": backends.LLMRelayBackend,
-        "kernel_agent": backends.KernelAgentBackend,
-        "directory": backends.DirectoryBackend,
-    }[backend]()
+    if backend == "llm-relay":
+        backend = backends.LLMRelayBackend(model=llm_relay_model)
+    else:
+        backend = {
+            "aten": backends.AtenBackend,
+            "flag_gems": backends.FlagGemsBackend,
+            "llm": backends.LLMBackend,
+            "kernel_agent": backends.KernelAgentBackend,
+            "directory": backends.DirectoryBackend,
+        }[backend]()
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -326,6 +328,7 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
 
             # Create feedback callback
             def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
+                # TODO: Add performance testing in addition to correctness testing
                 return llm_relay_backend.test_kernel_correctness(
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
