@@ -7,6 +7,7 @@ import BackendBench.backends as backends
 import BackendBench.eval as eval
 import click
 import torch
+from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
@@ -38,7 +39,7 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
     help="Which suite to run",
 )
 @click.option(
@@ -137,6 +138,12 @@ def cli(
             torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
+        ),
+        "facto": lambda: FactoTestSuite(
+            "facto_cuda_bfloat16",
+            "cuda",
+            torch.bfloat16,
+            filter=ops,
         ),
     }[suite]()
 
