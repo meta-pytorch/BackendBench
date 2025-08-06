@@ -8,7 +8,7 @@ import BackendBench.eval as eval
 import click
 import torch
 from BackendBench.facto_suite import FactoTestSuite
-from BackendBench.llm_client import ClaudeKernelGenerator
+from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.suite import SmokeTestSuite
 from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL, TorchBenchTestSuite
@@ -45,7 +45,7 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "kernel_agent", "directory"]),
+    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
@@ -66,6 +66,12 @@ def setup_logging(log_level):
     default=5,
     type=int,
     help="Maximum attempts for LLM kernel generation with feedback",
+)
+@click.option(
+    "--llm-relay-model",
+    default="gcp-claude-4-sonnet",
+    type=str,
+    help="Model name for LLM Relay backend (default: gcp-claude-4-sonnet)",
 )
 @click.option(
     "--kernel-agent-workers",
@@ -98,6 +104,7 @@ def cli(
     ops,
     topn_inputs,
     llm_max_attempts,
+    llm_relay_model,
     kernel_agent_workers,
     kernel_agent_max_rounds,
     torchbench_data_path,
@@ -107,13 +114,16 @@ def cli(
     if ops:
         ops = ops.split(",")
 
-    backend = {
-        "aten": backends.AtenBackend,
-        "flag_gems": backends.FlagGemsBackend,
-        "llm": backends.LLMBackend,
-        "kernel_agent": backends.KernelAgentBackend,
-        "directory": backends.DirectoryBackend,
-    }[backend]()
+    if backend == "llm-relay":
+        backend = backends.LLMRelayBackend(model=llm_relay_model)
+    else:
+        backend = {
+            "aten": backends.AtenBackend,
+            "flag_gems": backends.FlagGemsBackend,
+            "llm": backends.LLMBackend,
+            "kernel_agent": backends.KernelAgentBackend,
+            "directory": backends.DirectoryBackend,
+        }[backend]()
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -141,6 +151,11 @@ def cli(
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
         backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts)
+
+    # For LLM Relay backend, we need to generate kernels using the local server
+    elif backend.name == "llm-relay":
+        llm_client = LLMKernelGenerator(model=llm_relay_model)
+        backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts)
 
     # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
@@ -290,6 +305,136 @@ def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
         print(f"Error setting up LLM backend: {e}")
         if "ANTHROPIC_API_KEY" in str(e):
             print("Please set ANTHROPIC_API_KEY environment variable")
+        sys.exit(1)
+
+
+def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5):
+    """Setup LLM Relay backend by generating kernels using the local plugboard server."""
+    try:
+        successful_ops = 0
+        total_ops = 0
+
+        for op_test in suite:
+            op = op_test.op
+            total_ops += 1
+
+            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
+            op_str = str(op)
+            if "aten." in op_str:
+                # Extract the operation name before any variant (like .default)
+                op_name = op_str.split("aten.")[-1].split(".")[0]
+            else:
+                op_name = op_str.split(".")[-1]
+
+            op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
+            op_description = f"PyTorch operation: {op_name}"
+
+            print(
+                f"\n[{total_ops}] Generating kernel for {op_name} (full op: {op_str}) with up to {max_attempts} attempts"
+            )
+
+            # Create feedback callback
+            def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
+                # TODO: Add performance testing in addition to correctness testing
+                return llm_relay_backend.test_kernel_correctness(
+                    op, kernel_code, op_test.correctness_tests, attempt
+                )
+
+            # Generate kernel with iterative refinement
+            kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
+                op_name,
+                op_signature,
+                op_description,
+                framework="triton",
+                max_attempts=max_attempts,
+                feedback_callback=feedback_callback,
+            )
+
+            if success:
+                try:
+                    # Add the successful kernel to the backend
+                    llm_relay_backend.add_kernel(op, kernel_code, op_name)
+                    print(
+                        f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
+                    )
+                    successful_ops += 1
+
+                    # Save summary of this operation
+                    summary_file = os.path.join(
+                        llm_relay_backend.kernels_dir, f"{op_name}_summary.txt"
+                    )
+                    with open(summary_file, "w") as f:
+                        f.write(f"Operation: {op_name}\n")
+                        f.write(f"Full op: {op_str}\n")
+                        f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+                        f.write("Final status: Success\n")
+                        f.write(f"Model: {llm_client.model}\n")
+                        f.write(f"Server: {llm_client.server_url}\n")
+                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+
+                except Exception as e:
+                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
+                    success = False
+
+            if not success:
+                print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
+
+                # Save summary of this operation
+                summary_file = os.path.join(llm_relay_backend.kernels_dir, f"{op_name}_summary.txt")
+                with open(summary_file, "w") as f:
+                    f.write(f"Operation: {op_name}\n")
+                    f.write(f"Full op: {op_str}\n")
+                    f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+                    f.write("Final status: Failed - All attempts failed correctness tests\n")
+                    f.write(f"Model: {llm_client.model}\n")
+                    f.write(f"Server: {llm_client.server_url}\n")
+                    f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+                # Continue with other operations
+
+        # Print summary
+        print(f"\n{'=' * 60}")
+        print("LLM RELAY BACKEND SETUP SUMMARY")
+        print(f"{'=' * 60}")
+        print(f"Total operations: {total_ops}")
+        print(f"Successful: {successful_ops}")
+        print(f"Failed: {total_ops - successful_ops}")
+        print(
+            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
+            if total_ops > 0
+            else "Success rate: 0.0%"
+        )
+        print(f"Model used: {llm_client.model}")
+        print(f"Server: {llm_client.server_url}")
+        print(f"Generated kernels saved to: {llm_relay_backend.kernels_dir}")
+        print(f"{'=' * 60}\n")
+
+        # Save overall summary
+        overall_summary_file = os.path.join(llm_relay_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        with open(overall_summary_file, "w") as f:
+            f.write("LLM Relay Backend Generation Summary\n")
+            f.write(f"{'=' * 40}\n")
+            f.write(f"Total operations: {total_ops}\n")
+            f.write(f"Successful: {successful_ops}\n")
+            f.write(f"Failed: {total_ops - successful_ops}\n")
+            f.write(
+                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
+                if total_ops > 0
+                else "Success rate: 0.0%\n"
+            )
+            f.write(f"Max attempts per operation: {max_attempts}\n")
+            f.write(f"Model: {llm_client.model}\n")
+            f.write(f"Server: {llm_client.server_url}\n")
+            f.write("Backend: LLM Relay (using local plugboard server)\n")
+
+        return llm_relay_backend
+
+    except Exception as e:
+        print(f"Error setting up LLM Relay backend: {e}")
+        if "Cannot connect to LLM relay server" in str(e):
+            print("Please start the plugboard server with:")
+            print(
+                "buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --pipeline usecase-dev-ai-user"
+            )
         sys.exit(1)
 
 
