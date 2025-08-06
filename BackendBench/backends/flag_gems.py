@@ -1,5 +1,7 @@
 import torch
 
+from BackendBench.opregistry import register_operator
+
 from .base import Backend
 
 try:
@@ -284,6 +286,9 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.eye.m: flag_gems.ops.eye_m,
             torch.ops.aten.to.dtype: flag_gems.ops.to_dtype,
         }
+        # Register all operators in the global registry to ensure consistent object identity
+        for op in self.ops.keys():
+            register_operator(op)
 
     def __getitem__(self, key):
         return self.ops[key]
