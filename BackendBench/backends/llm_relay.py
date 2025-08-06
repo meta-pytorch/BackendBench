@@ -207,6 +207,11 @@ import torch.nn.functional as F
                     kwargs = test.kwargs
 
                     ref_result = op(*args, **kwargs)
+
+                    # Clear CUDA cache after running each kernel to prevent grabbing previous solutions
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+
                     kernel_result = compiled_kernel(*args, **kwargs)
 
                     torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
@@ -224,6 +229,13 @@ import torch.nn.functional as F
                             "traceback": traceback.format_exc(),
                         }
                     )
+
+                finally:
+                    # Clean up memory by deleting args and kwargs if they exist
+                    if "args" in locals():
+                        del args
+                    if "kwargs" in locals():
+                        del kwargs
 
                 total_count += 1
 
