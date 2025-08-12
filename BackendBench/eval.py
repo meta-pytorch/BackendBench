@@ -55,7 +55,7 @@ def _run_single_test(op_spec_name, impl, args, kwargs):
         ref = op(*args, **kwargs)
         res = impl(*args, **kwargs)
         return allclose(ref, res)
-    except Exception as e:
+    except Exception:
         return False
 
 
@@ -131,11 +131,10 @@ def eval_one_op(op, impl, correctness_tests, performance_tests, num_workers=0):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
         return 0, 0
     if num_workers > 0:
-        eval_correctness_fun = lambda op, impl, correctness_tests: eval_correctness_multiprocessing(
-            op, impl, correctness_tests, num_workers
+        return eval_correctness_multiprocessing(op, impl, correctness_tests, num_workers), eval_performance(
+            op, impl, performance_tests
         )
     else:
-        eval_correctness_fun = eval_correctness
-    return eval_correctness_fun(op, impl, correctness_tests), eval_performance(
-        op, impl, performance_tests
-    )
+        return eval_correctness_test(op, impl, correctness_tests), eval_performance(
+            op, impl, performance_tests
+        )
