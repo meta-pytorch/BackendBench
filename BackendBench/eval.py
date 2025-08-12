@@ -1,12 +1,15 @@
 import logging
+import multiprocessing
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from tqdm import tqdm
 
 import torch
 
 import triton.testing
 
 
-from BackendBench.utils import uses_cuda_stream
-from BackendBench.utils import serialize_args
+from BackendBench.utils import uses_cuda_stream, serialize_args, deserialize_args
+from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +46,41 @@ def eval_correctness_test(op, impl, test):
     except Exception as e:
         logger.warning(format_exception(e, op, args, kwargs))
         return False
+
+
+def _run_single_test(op_spec_name, impl, args, kwargs):
+    """Helper function to run a single test in a subprocess."""
+    # args, kwargs = (inps)
+    op = get_operator(op_spec_name)
+    try:
+        ref = op(*args, **kwargs)
+        res = impl(*args, **kwargs)
+        return allclose(ref, res)
+    except Exception as e:
+        # Note: logging in subprocess may not work as expected
+        return False
+
+
+def eval_correctness_multiprocessing(op, impl, tests, num_workers=10):
+    """
+    Multiprocessing version of eval_correctness_test.
+    Runs the test in a separate process to isolate CUDA errors.
+    """
+    correct, total = 0, 0
+    multiprocessing.set_start_method("spawn", force=True)
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        futures = {
+            executor.submit(
+                _run_single_test, _extract_spec_name_from_op(op), impl, test.args, test.kwargs
+            ): None
+            for test in tests
+        }
+        for future in as_completed(futures):
+            result = future.result()
+            if result:
+                correct += 1
+            total += 1
+    return correct / total
 
 
 def eval_correctness(op, impl, tests):
@@ -87,13 +125,19 @@ def eval_performance(op, impl, tests):
     return speedups.log().mean().exp()
 
 
-def eval_one_op(op, impl, correctness_tests, performance_tests):
+def eval_one_op(op, impl, correctness_tests, performance_tests, num_workers=0):
     """Evaluate impl of op against correctness_tests and performance_tests."""
     # TODO: We should have proper error reporting instead of just saying this is 0,
     # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
         return 0, 0
-    return eval_correctness(op, impl, correctness_tests), eval_performance(
+    if num_workers > 0:
+        eval_correctness_fun = lambda op, impl, correctness_tests: eval_correctness_multiprocessing(
+            op, impl, correctness_tests, num_workers
+        )
+    else:
+        eval_correctness_fun = eval_correctness
+    return eval_correctness_fun(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
