@@ -22,6 +22,7 @@ class TestAdaptiveAvgPool2dBackward:
             None,
         )
 
+        # run test that should brick the gpu due to an illegal memory access
         backend = backends.AtenBackend()
         with pytest.raises(RuntimeError):
             _, _ = eval_one_op(
@@ -31,11 +32,11 @@ class TestAdaptiveAvgPool2dBackward:
                 list(op_test_should_error.performance_tests),
             )
 
-        # add these in case code changes in eval_one_op
+        # add these in case code changes in eval_one_op. There shouldn't be any errors here
         torch.cuda.synchronize()
         torch.cuda.empty_cache()
 
-        # tests that a simple op works afterwards
+        # tests that a simple op works afterwards to make sure we recover after an illegal memory access
         correctness, _ = eval_one_op(
             op_test_should_succeed.op,
             backend[op_test_should_succeed.op],
