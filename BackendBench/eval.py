@@ -1,14 +1,14 @@
 import logging
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from tqdm import tqdm
 
 import torch
 
 import triton.testing
 
 
-from BackendBench.utils import uses_cuda_stream, serialize_args, deserialize_args
+from BackendBench.utils import uses_cuda_stream
+from BackendBench.utils import serialize_args
 from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
 
 logger = logging.getLogger(__name__)
