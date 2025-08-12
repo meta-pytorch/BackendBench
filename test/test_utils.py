@@ -7,6 +7,7 @@ from BackendBench.utils import (
     deserialize_args,
     _deserialize_tensor,
     uses_cuda_stream,
+    check_for_stable_output,
 )
 
 # Check if CUDA is available
@@ -529,6 +530,26 @@ class TestDeserializeTensor:
             tensor = _deserialize_tensor([10], dtype)
             assert tensor.dtype == dtype
             assert tensor.shape == (10,)
+
+
+class TestCheckForStableOutput:
+    """Test cases for check_for_stable_output function"""
+
+    def test_stable_zeros_op(self):
+        """Test that zeros creation is stable"""
+        op = "aten.zeros"
+        inps = "(([3, 4],), {{'dtype': torch.float32, 'device': 'cuda'}})"
+
+        result = check_for_stable_output(op, inps, n_iterations=5)
+        assert result
+
+    def test_unstable_random_op(self):
+        """Test that random operations are correctly detected as unstable"""
+        op = "aten.randn"
+        inps = "(([3, 3],), {{'dtype': torch.float32, 'device': 'cuda'}})"
+
+        result = check_for_stable_output(op, inps, n_iterations=5)
+        assert not result
 
 
 if __name__ == "__main__":
