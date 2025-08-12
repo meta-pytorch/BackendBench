@@ -538,7 +538,7 @@ class TestCheckForStableOutput:
     def test_stable_zeros_op(self):
         """Test that zeros creation is stable"""
         op = "aten.zeros"
-        inps = "(([3, 4],), {{'dtype': torch.float32, 'device': 'cuda'}})"
+        inps = "(([3, 4],), {'dtype': torch.float32})"
 
         result = check_for_stable_output(op, inps, n_iterations=5)
         assert result
@@ -546,7 +546,7 @@ class TestCheckForStableOutput:
     def test_unstable_random_op(self):
         """Test that random operations are correctly detected as unstable"""
         op = "aten.randn"
-        inps = "(([3, 3],), {{'dtype': torch.float32, 'device': 'cuda'}})"
+        inps = "(([3, 3],), {'dtype': torch.float32})"
 
         result = check_for_stable_output(op, inps, n_iterations=5)
         assert not result
