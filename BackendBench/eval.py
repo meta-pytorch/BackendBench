@@ -50,14 +50,12 @@ def eval_correctness_test(op, impl, test):
 
 def _run_single_test(op_spec_name, impl, args, kwargs):
     """Helper function to run a single test in a subprocess."""
-    # args, kwargs = (inps)
     op = get_operator(op_spec_name)
     try:
         ref = op(*args, **kwargs)
         res = impl(*args, **kwargs)
         return allclose(ref, res)
     except Exception as e:
-        # Note: logging in subprocess may not work as expected
         return False
 
 
