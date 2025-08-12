@@ -1,6 +1,7 @@
 import pytest
 import torch
 from BackendBench.suite import randn, Test, OpTest, TestSuite, SmokeTestSuite
+from BackendBench.opregistry import get_operator
 
 
 class TestRandnFunction:
@@ -133,7 +134,7 @@ class TestSmokeTestSuiteStructure:
         optests = list(SmokeTestSuite)
 
         assert len(optests) >= 1
-        assert optests[0].op == torch.ops.aten.relu.default
+        assert optests[0].op == get_operator(torch.ops.aten.relu.default)
 
         # Check correctness tests
         assert len(optests[0].correctness_tests) >= 1
