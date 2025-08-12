@@ -135,6 +135,6 @@ def eval_one_op(op, impl, correctness_tests, performance_tests, num_workers=0):
             op, impl, performance_tests
         )
     else:
-        return eval_correctness_test(op, impl, correctness_tests), eval_performance(
+        return eval_correctness(op, impl, correctness_tests), eval_performance(
             op, impl, performance_tests
         )
