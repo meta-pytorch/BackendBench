@@ -43,6 +43,7 @@ SCRAPED_HF_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/r
 
 log = logging.getLogger(__name__)
 
+
 def cleanup_memory_and_gpu(*variables):
     """Helper function to delete variables and clean up GPU memory"""
     for var in variables:
