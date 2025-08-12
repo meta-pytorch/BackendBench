@@ -153,3 +153,15 @@ def deserialize_args(inps):
     for key in dtype_abbrs_parsing:
         inps = inps.replace(f"'{key}'", key)
     return eval(inps.strip().strip("'").strip('"'), global_vals)
+
+
+def check_for_stable_output(op, inps, n_iterations=10):
+    op_func = eval(f"torch.ops.{op}")
+    args, kwargs = deserialize_args(inps)
+    initial_output = op_func(*args, **kwargs)
+    for _ in range(n_iterations):
+        args, kwargs = deserialize_args(inps)
+        output = op_func(*args, **kwargs)
+        if not torch.allclose(initial_output, output, atol=1e-2, rtol=1e-2):
+            return False
+    return True
