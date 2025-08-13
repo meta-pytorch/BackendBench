@@ -3,7 +3,6 @@ Shared data loading utilities for reading trace and parquet files.
 """
 
 import re
-import tempfile
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List, Optional, Union
@@ -44,6 +43,31 @@ def _parse_trace_file_simple(filename: str, filter: Optional[List[str]], op_inpu
                 args = m.group(1)
                 if filter is None or any(f in op for f in filter):
                     op_inputs[op].append(args)
+    return op_inputs
+
+
+def _parse_trace_stream(stream, filter: Optional[List[str]], op_inputs: Dict) -> Dict:
+    """
+    Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
+
+    Returns defaultdict where keys are op names and values are lists of args strings.
+    """
+    op = None
+
+    for line in stream:
+        # Handle bytes from response stream
+        if isinstance(line, bytes):
+            line = line.decode("utf-8")
+
+        if m := re.match("Operator: (.*)", line):
+            op = m.group(1)
+            if op == "aten.sum.SymInt":
+                op = "aten.sum.dim_IntList"
+        if m := re.match("cnt: \\d+, (.*)", line):
+            assert op is not None
+            args = m.group(1)
+            if filter is None or any(f in op for f in filter):
+                op_inputs[op].append(args)
     return op_inputs
 
 
@@ -132,17 +156,11 @@ def _load_from_trace(source: Union[str, Path], filter: Optional[List[str]], simp
 
     op_inputs = defaultdict(list)
 
-    # Handle URLs
+    # Handle URLs - stream directly without saving to disk
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
-        with (
-            tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-            requests.get(source) as response,
-        ):
+        with requests.get(source, stream=True) as response:
             response.raise_for_status()
-            tmp_file.write(response.text)
-            tmp_file.flush()
-            _parse_trace_file_simple(tmp_file.name, filter, op_inputs)
-            Path(tmp_file.name).unlink(missing_ok=True)
+            _parse_trace_stream(response.iter_lines(), filter, op_inputs)
 
     # Handle directories
     elif Path(source).is_dir():

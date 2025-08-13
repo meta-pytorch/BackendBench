@@ -4,7 +4,6 @@ import hashlib
 import logging
 import os
 import re
-import tempfile
 from pathlib import Path
 from typing import Dict, List
 
@@ -118,23 +117,59 @@ def _parse_trace_file(filename: str) -> List[Dict]:
     return op_inputs
 
 
+def _parse_trace_stream(stream, desc: str = "Parsing stream") -> List[Dict]:
+    """
+    Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
+
+    Returns list of dicts with keys: uuid, op_name, args, arg_size, count, is_synthetic
+    """
+    op_inputs = []
+    op = None
+
+    for line in tqdm(stream, desc=desc):
+        # Handle bytes from response stream
+        if isinstance(line, bytes):
+            line = line.decode("utf-8")
+
+        if m := re.match("Operator: (.*)", line):
+            op = m.group(1)
+            if op == "aten.sum.SymInt":
+                op = "aten.sum.dim_IntList"
+        if m := re.match("cnt: \\d+, (.*)", line):
+            assert op is not None
+            args_str = m.group(1)
+            # extract cnt value from group 0
+            cnt = int(m.group(0).split(",")[0].split(":")[1])
+            args, kwargs = deserialize_args(args_str)
+            size = _args_size(args) + _args_size(list(kwargs.values()))
+            # convert size to MB from bytes
+            size = size / (1024 * 1024)
+            # if cnt is 0 then it is synthetic
+            is_synthetic = cnt == 0
+            op_inputs.append(
+                {
+                    "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
+                    "op_name": op,
+                    "args": args_str,
+                    "arg_size": size,
+                    "count": cnt,
+                    "is_synthetic": is_synthetic,
+                }
+            )
+    return op_inputs
+
+
 def _load_trace_for_parquet_conversion(source: str) -> List[Dict]:
     """
     Load operations from trace file(s) with detailed metadata for parquet conversion.
     """
     ops = []
 
-    # Handle URLs
+    # Handle URLs - stream directly without saving to disk
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
-        with (
-            tempfile.NamedTemporaryFile(mode="w+", suffix=".txt", delete=False) as tmp_file,
-            requests.get(source) as response,
-        ):
+        with requests.get(source, stream=True) as response:
             response.raise_for_status()
-            tmp_file.write(response.text)
-            tmp_file.flush()
-            ops.extend(_parse_trace_file(tmp_file.name))
-            Path(tmp_file.name).unlink(missing_ok=True)
+            ops.extend(_parse_trace_stream(response.iter_lines(), desc=f"Parsing {source}"))
 
     # Handle directories
     elif Path(source).is_dir():
@@ -223,14 +258,11 @@ def convert_parquet_to_trace(parquet_file, trace_file):
     logging.info(f"Wrote {total_args} ops and inputs to {trace_file}")
 
 
-def _validate_parquet_name(parquet_name: str, is_input: bool = False) -> str:
+def _validate_parquet_name(parquet_name: str) -> str:
     """Validate parquet filename. URLs allowed only for inputs."""
     # URLs are allowed only if this is an input file
     if parquet_name.startswith(("http://", "https://")):
-        if is_input:
-            return parquet_name  # URL allowed for input
-        else:
-            raise click.BadParameter("Output parquet file cannot be a URL")
+        raise click.BadParameter("Output parquet file cannot be a URL")
 
     if not parquet_name.endswith(".parquet"):
         raise click.BadParameter("Parquet file must end with .parquet suffix")
@@ -247,7 +279,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
     # URLs are allowed only if this is an input file
     if trace_file.startswith(("http://", "https://")):
         if is_input:
-            return trace_file  # URL allowed for input
+            return trace_file
         else:
             raise click.BadParameter("Output trace file cannot be a URL")
 
@@ -311,9 +343,7 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
     if mode == "trace-to-parquet":
         # Validate inputs/outputs
         trace_file = _validate_trace_file(trace_file, is_input=True)  # Input: URLs allowed
-        parquet_name = _validate_parquet_name(
-            parquet_name, is_input=False
-        )  # Output: URLs not allowed
+        parquet_name = _validate_parquet_name(parquet_name)  # Output: URLs not allowed
 
         # Generate dev version name
         dev_parquet_name = _generate_dev_parquet_name(parquet_name)
@@ -332,7 +362,7 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
 
     elif mode == "parquet-to-trace":
         # Validate parquet input (URLs allowed for input in this mode)
-        parquet_input = _validate_parquet_name(parquet_name, is_input=True)  # Input: URLs allowed
+        parquet_input = _validate_parquet_name(parquet_name)
         # Validate trace output (URLs not allowed for output)
         trace_output = _validate_trace_file(trace_file, is_input=False)  # Output: URLs not allowed
 
