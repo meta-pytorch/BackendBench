@@ -32,7 +32,10 @@ flaggems = [
     # flag_gems must be installed from source: https://github.com/FlagOpen/FlagGems
 ]
 pyarrow = [
-    "pyarrow",
+    "pyarrow"
+]
+facto = [
+    # facto must be installed from source: https://github.com/pytorch-labs/FACTO
 ]
 
 [project.scripts]

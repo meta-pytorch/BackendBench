@@ -1,5 +1,7 @@
 import torch
 
+from BackendBench.opregistry import get_operator
+
 
 def randn(*args, **kwargs):
     return lambda: torch.randn(*args, **kwargs)
@@ -40,7 +42,7 @@ SmokeTestSuite = TestSuite(
     "smoke",
     [
         OpTest(
-            torch.ops.aten.relu.default,
+            get_operator(torch.ops.aten.relu.default),
             [
                 Test(randn(2, device="cpu")),
             ],
