@@ -35,18 +35,16 @@ TENSOR_CREATION_OPS = [
 SHAPE_MANIPULATION_OPS = [
     "cat",
     "repeat",
-    "roll",  # @NOTE: I'm also not sure about aten.roll.default
+    "roll",
     "unbind",
 ]
 
-# Element-wise predicates and boolean operations
-PREDICATE_OPS = [
-    "any",  # @NOTE: I don't think this is intereting as I'm unsure how'd it'd be optimized
-    "isinf",  # @NOTE: Similar to any I'm not sure about this one
-    "isnan",  # @NOTE: Similar to any I'm not sure about this one
-    "nonzero",  # @NOTE: I'm also not sure about aten.nonzero.default
-    "where",
-]
+
+def _apply_op_name_filter(op, filter, why_excluded_msg):
+    if any(skip_op in op["op_name"] for skip_op in filter):
+        op["included_in_benchmark"] = False
+        op["why_excluded"].append(why_excluded_msg)
+    return op
 
 
 def _apply_skip_ops_filter(ops):
@@ -60,16 +58,13 @@ def _apply_skip_ops_filter(ops):
 
 def _apply_non_interesting_ops_filter(ops):
     for op in ops:
-        if any(skip_op in op["op_name"] for skip_op in MEMORY_VIEW_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Memory view ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in TENSOR_CREATION_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Tensor creation ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in SHAPE_MANIPULATION_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Shape manipulation ops are excluded from the benchmark.")
-        if any(skip_op in op["op_name"] for skip_op in PREDICATE_OPS):
-            op["included_in_benchmark"] = False
-            op["why_excluded"].append("Predicate ops are excluded from the benchmark.")
+        op = _apply_op_name_filter(
+            op, MEMORY_VIEW_OPS, "Memory view ops are excluded from the benchmark."
+        )
+        op = _apply_op_name_filter(
+            op, TENSOR_CREATION_OPS, "Tensor creation ops are excluded from the benchmark."
+        )
+        op = _apply_op_name_filter(
+            op, SHAPE_MANIPULATION_OPS, "Shape manipulation ops are excluded from the benchmark."
+        )
     return ops

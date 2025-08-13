@@ -24,13 +24,15 @@ dependencies = [
     "anthropic>=0.34.0",
     "pytest",
     "requests",
-    "pyarrow",
     "huggingface_hub",
 ]
 
 [project.optional-dependencies]
 flaggems = [
     # flag_gems must be installed from source: https://github.com/FlagOpen/FlagGems
+]
+pyarrow = [
+    "pyarrow",
 ]
 
 [project.scripts]
