@@ -1,13 +1,12 @@
 import pytest
 from BackendBench.torchbench_suite import TorchBenchOpTest
-from BackendBench.eval import eval_one_op
+from BackendBench.eval_multiprocessing import eval_one_op_multiprocessing
 import BackendBench.backends as backends
 import torch
 
 
 class TestAdaptiveAvgPool2dBackward:
-    # todo: @jiannanWang unskip this test
-    @pytest.mark.skip(reason="Not ready for testing yet as it'd brick the gpu")
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="Requires GPU")
     def test_adaptive_avg_pool2d_backward_gpu(self):
         """Test on GPU with eval_one_op."""
         op_test_should_error = TorchBenchOpTest(
@@ -25,11 +24,12 @@ class TestAdaptiveAvgPool2dBackward:
         # run test that should brick the gpu due to an illegal memory access
         backend = backends.AtenBackend()
         with pytest.raises(RuntimeError):
-            _, _ = eval_one_op(
+            _, _ = eval_one_op_multiprocessing(
                 op_test_should_error.op,
                 backend[op_test_should_error.op],
                 list(op_test_should_error.correctness_tests),
                 list(op_test_should_error.performance_tests),
+                torch.cuda.device_count(),
             )
 
         # add these in case code changes in eval_one_op. There shouldn't be any errors here
@@ -37,11 +37,12 @@ class TestAdaptiveAvgPool2dBackward:
         torch.cuda.empty_cache()
 
         # tests that a simple op works afterwards to make sure we recover after an illegal memory access
-        correctness, _ = eval_one_op(
+        correctness, _ = eval_one_op_multiprocessing(
             op_test_should_succeed.op,
             backend[op_test_should_succeed.op],
             list(op_test_should_succeed.correctness_tests),
             list(op_test_should_succeed.performance_tests),
+            torch.cuda.device_count(),
         )
 
         assert correctness == 1.0
