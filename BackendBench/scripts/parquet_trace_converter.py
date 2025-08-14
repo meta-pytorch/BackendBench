@@ -3,43 +3,28 @@
 import hashlib
 import logging
 import os
-import re
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 import click
 import pyarrow as pa
 import pyarrow.parquet as pq
-import requests
-from BackendBench.data_loaders import _args_size
+from BackendBench.data_loaders import _load_from_trace
 from BackendBench.scripts.dataset_filters import (
     _apply_non_interesting_ops_filter,
     _apply_skip_ops_filter,
 )
 from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
-from BackendBench.utils import deserialize_args
 from huggingface_hub import HfApi
-from tqdm import tqdm
 
 """
-For the dataset release we generally would want to versions
-1. A production version which has what you would want to run a benchmark with an llm
-2. A "dev" version. This version is much more verbose, has more information on each test, includes tests/ops we decided to axe (and why they were axed), and possibly some runtime numbers
-
-The point of 1 is for something to have folks able to benchmark their agents against. Therefore, there is a high quality bar for inclusion
-At the end of the day we still need solutions to be general for inclusion in pytorch, therefore, the more verbose dev version is useful in this case. It also allows us to record information on the ops and decisions as well
-
-Columns for the production version:
+Columns for the parquet dataset:
 - uuid (int) (hash of op + args)
 - op_name (string)
 - args (string)
-- arg size (float)(in MB)
+- arg_size (float) (in MB)
 - count (int) (number of times this op + set of args was called in real models)
 - is_synthetic (boolean) (did we generate this op or is it from a real model)
-
-
-Columns for the dev version:
-All columns in the production version, plus:
 - included_in_benchmark (boolean)
 - why_excluded (list of strings) (empty if included)
 - runtime_ms (float) (timings on H100 gpu)
@@ -78,112 +63,17 @@ def setup_logging(log_level):
     )
 
 
-def _parse_trace_file(filename: str) -> List[Dict]:
-    """
-    Parse a single trace file and return a list of operation dictionaries.
-
-    Returns list of dicts with keys: uuid, op_name, args, arg_size, count, is_synthetic
-    """
-    op_inputs = []
-    op = None
-
-    with open(filename, "r") as f:
-        for line in tqdm(f, desc=f"Parsing {Path(filename).name}"):
-            if m := re.match("Operator: (.*)", line):
-                op = m.group(1)
-                if op == "aten.sum.SymInt":
-                    op = "aten.sum.dim_IntList"
-            if m := re.match("cnt: \\d+, (.*)", line):
-                assert op is not None
-                args_str = m.group(1)
-                # extract cnt value from group 0
-                cnt = int(m.group(0).split(",")[0].split(":")[1])
-                args, kwargs = deserialize_args(args_str)
-                size = _args_size(args) + _args_size(list(kwargs.values()))
-                # convert size to MB from bytes
-                size = size / (1024 * 1024)
-                # if cnt is 0 then it is synthetic
-                is_synthetic = cnt == 0
-                op_inputs.append(
-                    {
-                        "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
-                        "op_name": op,
-                        "args": args_str,
-                        "arg_size": size,
-                        "count": cnt,
-                        "is_synthetic": is_synthetic,
-                    }
-                )
-    return op_inputs
 
 
-def _parse_trace_stream(stream, desc: str = "Parsing stream") -> List[Dict]:
-    """
-    Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
-
-    Returns list of dicts with keys: uuid, op_name, args, arg_size, count, is_synthetic
-    """
-    op_inputs = []
-    op = None
-
-    for line in tqdm(stream, desc=desc):
-        # Handle bytes from response stream
-        if isinstance(line, bytes):
-            line = line.decode("utf-8")
-
-        if m := re.match("Operator: (.*)", line):
-            op = m.group(1)
-            if op == "aten.sum.SymInt":
-                op = "aten.sum.dim_IntList"
-        if m := re.match("cnt: \\d+, (.*)", line):
-            assert op is not None
-            args_str = m.group(1)
-            # extract cnt value from group 0
-            cnt = int(m.group(0).split(",")[0].split(":")[1])
-            args, kwargs = deserialize_args(args_str)
-            size = _args_size(args) + _args_size(list(kwargs.values()))
-            # convert size to MB from bytes
-            size = size / (1024 * 1024)
-            # if cnt is 0 then it is synthetic
-            is_synthetic = cnt == 0
-            op_inputs.append(
-                {
-                    "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
-                    "op_name": op,
-                    "args": args_str,
-                    "arg_size": size,
-                    "count": cnt,
-                    "is_synthetic": is_synthetic,
-                }
-            )
-    return op_inputs
-
-
-def _load_trace_for_parquet_conversion(source: str) -> List[Dict]:
+def _load_trace_for_parquet_conversion(source: str) -> List[dict]:
     """
     Load operations from trace file(s) with detailed metadata for parquet conversion.
     """
-    ops = []
-
-    # Handle URLs - stream directly without saving to disk
-    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
-        with requests.get(source, stream=True) as response:
-            response.raise_for_status()
-            ops.extend(_parse_trace_stream(response.iter_lines(), desc=f"Parsing {source}"))
-
-    # Handle directories
-    elif Path(source).is_dir():
-        for file_path in Path(source).glob("**/*.txt"):
-            ops.extend(_parse_trace_file(str(file_path)))
-
-    # Handle single files
-    else:
-        ops.extend(_parse_trace_file(source))
-
-    return ops
+    # Use the shared _load_from_trace for parquet conversion
+    return _load_from_trace(source, filter=None)
 
 
-def convert_trace_to_parquets(trace_file, prod_parquet_file=None, dev_parquet_file=None):
+def convert_trace_to_parquet(trace_file, parquet_file):
     """
     Convert a trace file to a parquet file
     """
@@ -203,35 +93,16 @@ def convert_trace_to_parquets(trace_file, prod_parquet_file=None, dev_parquet_fi
     ops = _apply_skip_ops_filter(ops)
     ops = _apply_non_interesting_ops_filter(ops)
 
-    # create production version (copy ops to avoid modifying original)
-    prod_ops = []
-    for op in ops:
-        if op["included_in_benchmark"]:
-            # Create production version without metadata fields
-            prod_op = {
-                "uuid": op["uuid"],
-                "op_name": op["op_name"],
-                "args": op["args"],
-                "arg_size": op["arg_size"],
-                "count": op["count"],
-                "is_synthetic": op["is_synthetic"],
-            }
-            prod_ops.append(prod_op)
+    # Create parquet table with all metadata (formerly "dev" version)
+    table = pa.Table.from_pylist(ops)
 
-    # Create parquet tables with proper headers
-    dev_table = pa.Table.from_pylist(ops)
-    prod_table = pa.Table.from_pylist(prod_ops)
+    # Write parquet file
+    pq.write_table(table, parquet_file)
 
-    # Write parquet files
-    pq.write_table(dev_table, dev_parquet_file)
-    pq.write_table(prod_table, prod_parquet_file)
-
-    logger.info(f"Wrote {len(prod_ops)} ops and inputs to {prod_parquet_file}")
-    logger.info(f"Wrote {len(ops)} ops and inputs to {dev_parquet_file}")
+    logger.info(f"Wrote {len(ops)} ops and inputs to {parquet_file}")
 
     # Log column information for verification
-    logger.debug(f"Production parquet columns: {prod_table.column_names}")
-    logger.debug(f"Dev parquet columns: {dev_table.column_names}")
+    logger.debug(f"Parquet columns: {table.column_names}")
 
 
 def convert_parquet_to_trace(parquet_file, trace_file):
@@ -293,13 +164,6 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
     return trace_file
 
 
-def _generate_dev_parquet_name(parquet_name: str) -> str:
-    """Generate dev parquet name by appending -dev before .parquet suffix."""
-    if parquet_name.endswith(".parquet"):
-        base_name = parquet_name[:-8]  # Remove .parquet
-        return f"{base_name}-dev.parquet"
-    else:
-        return f"{parquet_name}-dev"
 
 
 @click.command()
@@ -325,7 +189,7 @@ def _generate_dev_parquet_name(parquet_name: str) -> str:
     "--parquet-name",
     default="backend_bench_problems.parquet",
     type=str,
-    help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/. Dev version auto-generated as filename-dev.parquet.",
+    help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/.",
 )
 @click.option(
     "--upload-to-hf",
@@ -345,20 +209,14 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
         trace_file = _validate_trace_file(trace_file, is_input=True)  # Input: URLs allowed
         parquet_name = _validate_parquet_name(parquet_name)  # Output: URLs not allowed
 
-        # Generate dev version name
-        dev_parquet_name = _generate_dev_parquet_name(parquet_name)
+        logger.info(f"Converting trace file {trace_file} to parquet file {parquet_name}")
 
-        logger.info(f"Converting trace file {trace_file} to parquet files")
-        logger.info(f"Production parquet: {parquet_name}")
-        logger.info(f"Dev parquet: {dev_parquet_name}")
-
-        convert_trace_to_parquets(trace_file, parquet_name, dev_parquet_name)
+        convert_trace_to_parquet(trace_file, parquet_name)
         logger.info("Conversion completed successfully")
 
         if upload_to_hf:
             # Upload to Hugging Face
             _upload_to_hf(os.path.abspath(parquet_name))
-            _upload_to_hf(os.path.abspath(dev_parquet_name))
 
     elif mode == "parquet-to-trace":
         # Validate parquet input (URLs allowed for input in this mode)
