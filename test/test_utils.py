@@ -7,7 +7,8 @@ from BackendBench.utils import (
     deserialize_args,
     _deserialize_tensor,
     uses_cuda_stream,
-    check_for_stable_output,
+    check_for_constant_output,
+    check_constant_inputs,
 )
 
 # Check if CUDA is available
@@ -532,24 +533,92 @@ class TestDeserializeTensor:
             assert tensor.shape == (10,)
 
 
-class TestCheckForStableOutput:
-    """Test cases for check_for_stable_output function"""
+class TestCheckForConstantOutput:
+    """Test cases for check_for_constant_output function"""
 
-    def test_stable_zeros_op(self):
-        """Test that zeros creation is stable"""
+    def test_constant_zeros_op(self):
+        """Test that zeros creation is constant"""
         op = "aten.zeros"
         inps = "(([3, 4],), {'dtype': torch.float32})"
 
-        result = check_for_stable_output(op, inps, n_iterations=5)
+        result = check_for_constant_output(op, inps, n_iterations=5)
         assert result
 
-    def test_unstable_random_op(self):
-        """Test that random operations are correctly detected as unstable"""
+    def test_unconstant_random_op(self):
+        """Test that random operations are correctly detected as unconstant"""
         op = "aten.randn"
         inps = "(([3, 3],), {'dtype': torch.float32})"
 
-        result = check_for_stable_output(op, inps, n_iterations=5)
+        result = check_for_constant_output(op, inps, n_iterations=5)
         assert not result
+
+
+class TestCheckConstantInputs:
+    """Test cases for check_constant_inputs function"""
+
+    def test_zeros_tensor(self):
+        """Test detection of all-zeros and mostly-zeros tensors"""
+        # Test all zeros
+        zeros = torch.zeros(5, 5)
+        args = (zeros,)
+        kwargs = {}
+        assert check_constant_inputs(args, kwargs)
+
+        # Test mostly zeros (within threshold)
+        mostly_zeros = torch.zeros(10, 10)
+        mostly_zeros[0, 0] = 0.005  # Small deviation within default threshold of 0.01
+        args = (mostly_zeros,)
+        kwargs = {}
+        assert check_constant_inputs(args, kwargs)
+
+    def test_ones_tensor(self):
+        """Test detection of all-ones and mostly-ones tensors"""
+        # Test all ones
+        ones = torch.ones(3, 4)
+        args = (ones,)
+        kwargs = {}
+        assert check_constant_inputs(args, kwargs)
+
+        # Test mostly ones (within threshold)
+        mostly_ones = torch.ones(10, 10)
+        mostly_ones[0, 0] = 0.995  # Small deviation within default threshold of 0.01
+        args = (mostly_ones,)
+        kwargs = {}
+        assert check_constant_inputs(args, kwargs)
+
+    def test_nan_tensor(self):
+        """Test detection of tensor with NaN values"""
+        nan_tensor = torch.tensor([1.0, float("nan"), 3.0])
+        args = (nan_tensor,)
+        kwargs = {}
+
+        assert check_constant_inputs(args, kwargs)
+
+    def test_random_tensor(self):
+        """Test that random tensor is not flagged as constant"""
+        random = torch.randn(5, 5)
+        args = (random,)
+        kwargs = {}
+
+        assert not check_constant_inputs(args, kwargs)
+
+    def test_kwargs_with_ones(self):
+        """Test detection in kwargs"""
+        ones = torch.ones(2, 2)
+        args = ()
+        kwargs = {"weight": ones}
+
+        assert check_constant_inputs(args, kwargs)
+
+    def test_mixed_inputs(self):
+        """Test with both constant and non-constant tensors"""
+        zeros = torch.zeros(3, 3)
+        random = torch.randn(3, 3)
+        args = (random, zeros)
+        kwargs = {}
+
+        # Should return True because at least one tensor is constant
+        assert check_constant_inputs(args, kwargs)
 
 
 if __name__ == "__main__":

@@ -155,7 +155,7 @@ def deserialize_args(inps):
     return eval(inps.strip().strip("'").strip('"'), global_vals)
 
 
-def check_for_stable_output(op, inps, n_iterations=10):
+def check_for_constant_output(op, inps, n_iterations=10):
     op_func = eval(f"torch.ops.{op}")
     args, kwargs = deserialize_args(inps)
     initial_output = op_func(*args, **kwargs)
@@ -165,3 +165,26 @@ def check_for_stable_output(op, inps, n_iterations=10):
         if not torch.allclose(initial_output, output, atol=1e-2, rtol=1e-2):
             return False
     return True
+
+
+def check_constant_inputs(args, kwargs, threshold=0.01):
+    """Check if any tensor in args or kwargs is mostly zeros, ones, or NaNs"""
+
+    def _check_tensor(tensor):
+        zeros_tensor = torch.zeros_like(tensor)
+        ones_tensor = torch.ones_like(tensor)
+        return (
+            torch.allclose(tensor, zeros_tensor, atol=threshold)
+            or torch.allclose(tensor, ones_tensor, atol=threshold)
+            or torch.isnan(tensor).any()
+        )
+
+    for arg in args:
+        if isinstance(arg, torch.Tensor):
+            if _check_tensor(arg):
+                return True
+    for value in kwargs.values():
+        if isinstance(value, torch.Tensor):
+            if _check_tensor(value):
+                return True
+    return False
