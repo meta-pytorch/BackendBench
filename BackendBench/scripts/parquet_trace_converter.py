@@ -63,8 +63,6 @@ def setup_logging(log_level):
     )
 
 
-
-
 def _load_trace_for_parquet_conversion(source: str) -> List[dict]:
     """
     Load operations from trace file(s) with detailed metadata for parquet conversion.
@@ -162,8 +160,6 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
         raise click.BadParameter("Output trace file cannot be a directory")
 
     return trace_file
-
-
 
 
 @click.command()

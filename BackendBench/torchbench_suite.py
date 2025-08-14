@@ -3,8 +3,7 @@ Load aten inputs from serialized txt files and parquet files.
 """
 
 import torch  # noqa: F401
-from BackendBench.data_loaders import (_args_size, load_ops_from_source,
-                                       ops_list_to_dict)
+from BackendBench.data_loaders import _args_size, load_ops_from_source, ops_list_to_dict
 from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
 from BackendBench.utils import deserialize_args
 
@@ -65,7 +64,7 @@ class TorchBenchTestSuite:
 
         # Convert to dictionary format using utility function
         self.optests = ops_list_to_dict(ops_list)
-        
+
         # Deduplicate the strings in self.optests
         for op in self.optests:
             self.optests[op] = list(set(self.optests[op]))

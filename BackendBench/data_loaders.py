@@ -26,8 +26,7 @@ def _args_size(args):
     return size
 
 
-def _parse_trace_file(filename: str,
-                      filter: Optional[List[str]] = None) -> List[Dict]:
+def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List[Dict]:
     """
     Parse a single trace file and return a list of operation dictionaries.
 
@@ -57,22 +56,22 @@ def _parse_trace_file(filename: str,
                     size = size / (1024 * 1024)  # Convert to MB
                     is_synthetic = cnt == 0
 
-                    op_inputs.append({
-                        "uuid": hashlib.sha256(
-                            args_str.encode() + op.encode()
-                        ).hexdigest(),
-                        "op_name": op,
-                        "args": args_str,
-                        "arg_size": size,
-                        "count": cnt,
-                        "is_synthetic": is_synthetic
-                    })
+                    op_inputs.append(
+                        {
+                            "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
+                            "op_name": op,
+                            "args": args_str,
+                            "arg_size": size,
+                            "count": cnt,
+                            "is_synthetic": is_synthetic,
+                        }
+                    )
     return op_inputs
 
 
-def _parse_trace_stream(stream,
-                        filter: Optional[List[str]] = None,
-                        desc: str = "Parsing stream") -> List[Dict]:
+def _parse_trace_stream(
+    stream, filter: Optional[List[str]] = None, desc: str = "Parsing stream"
+) -> List[Dict]:
     """
     Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
 
@@ -105,17 +104,17 @@ def _parse_trace_stream(stream,
                 size = _args_size(args) + _args_size(list(kwargs.values()))
                 size = size / (1024 * 1024)  # Convert to MB
                 is_synthetic = cnt == 0
-                
-                op_inputs.append({
-                    "uuid": hashlib.sha256(
-                        args_str.encode() + op.encode()
-                    ).hexdigest(),
-                    "op_name": op,
-                    "args": args_str,
-                    "arg_size": size,
-                    "count": cnt,
-                    "is_synthetic": is_synthetic
-                })
+
+                op_inputs.append(
+                    {
+                        "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
+                        "op_name": op,
+                        "args": args_str,
+                        "arg_size": size,
+                        "count": cnt,
+                        "is_synthetic": is_synthetic,
+                    }
+                )
     return op_inputs
 
 
@@ -177,22 +176,22 @@ def _load_from_parquet(source: Union[str, Path], filter: Optional[List[str]]):
     """Load operations from parquet file."""
     table = pq.read_table(source)
     df = table.to_pandas()
-    
+
     # Apply filter if provided
     if filter:
         mask = df["op_name"].apply(lambda op: any(f in op for f in filter))
         df = df[mask]
-    
+
     return df.to_dict("records")
 
 
 def ops_list_to_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
     """
     Convert a list of operation dictionaries to a dictionary format.
-    
+
     Args:
         ops_list: List of dicts with 'op_name' and 'args' keys
-    
+
     Returns:
         Dictionary mapping op_name to list of args strings
     """
@@ -206,28 +205,21 @@ def ops_list_to_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
     return result
 
 
-def _load_from_trace(source: Union[str, Path],
-                     filter: Optional[List[str]]) -> List[Dict]:
+def _load_from_trace(source: Union[str, Path], filter: Optional[List[str]]) -> List[Dict]:
     """Load operations from trace file(s) and return list of dicts."""
     op_inputs = []
 
     # Handle URLs - stream directly without saving to disk
-    if isinstance(source, str) and (
-        source.startswith("http://") or source.startswith("https://")
-    ):
+    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
         with requests.get(source, stream=True) as response:
             response.raise_for_status()
             desc = f"Parsing {source}"
-            op_inputs = _parse_trace_stream(
-                response.iter_lines(), filter, desc
-            )
+            op_inputs = _parse_trace_stream(response.iter_lines(), filter, desc)
 
     # Handle directories
     elif Path(source).is_dir():
         for file_path in Path(source).glob("**/*.txt"):
-            op_inputs.extend(
-                _parse_trace_file(str(file_path), filter)
-            )
+            op_inputs.extend(_parse_trace_file(str(file_path), filter))
 
     # Handle single files
     else:
