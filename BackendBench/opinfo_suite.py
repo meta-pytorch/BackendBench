@@ -57,24 +57,19 @@ def build_op_tests(device, dtype, filter=None):
             continue
 
         op_indices = defaultdict(list)
-        try:
-            sample_inputs = list(op.sample_inputs(device, dtype))
-        except Exception:
-            continue
-
-        for idx, test in enumerate(sample_inputs):
+        for idx, test in enumerate(op.sample_inputs(device, dtype)):
             # print(f"{idx=} {test.input=} {test.args=} {test.kwargs=}")
-            try:
-                with OpTracerMode() as tracer:
-                    ref = op.op(test.input, *test.args, **test.kwargs)
-                if len(tracer.ops) == 1:
+            with OpTracerMode() as tracer:
+                ref = op.op(test.input, *test.args, **test.kwargs)
+            if len(tracer.ops) == 1:
+                try:
                     res = tracer.ops[0](test.input, *test.args, **test.kwargs)
                     if allclose(ref, res):
                         op_indices[tracer.ops[0]].append(idx)
-                else:
-                    logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
-            except Exception:
-                continue
+                except Exception:
+                    logger.debug(f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}")
+            else:
+                logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
 
         for overload, indices in op_indices.items():
             if len(indices) > 0:
