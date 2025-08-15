@@ -47,6 +47,7 @@ dev-dependencies = [
     "pytest-mock",
     "pytest-timeout",
     "ruff==0.12.1",
+    "pre-commit",
     "torch",
     "numpy",
     # cupy-cuda12x is platform specific, install manually if needed
