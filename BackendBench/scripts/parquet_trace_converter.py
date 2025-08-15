@@ -10,12 +10,10 @@ import click
 import pyarrow as pa
 import pyarrow.parquet as pq
 from BackendBench.data_loaders import _load_from_trace
-from BackendBench.scripts.dataset_filters import (
-    _apply_non_interesting_ops_filter,
-    _apply_skip_ops_filter,
-)
+from BackendBench.scripts.dataset_filters import apply_skip_ops_filter
 from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
 from huggingface_hub import HfApi
+
 
 """
 Columns for the parquet dataset:
@@ -88,8 +86,7 @@ def convert_trace_to_parquet(trace_file, parquet_file):
         op["runnable"] = True
 
     # apply filters
-    ops = _apply_skip_ops_filter(ops)
-    ops = _apply_non_interesting_ops_filter(ops)
+    ops = apply_skip_ops_filter(ops)
 
     # Create parquet table with all metadata (formerly "dev" version)
     table = pa.Table.from_pylist(ops)

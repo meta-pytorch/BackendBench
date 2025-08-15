@@ -3,14 +3,16 @@ Shared data loading utilities for reading trace and parquet files.
 """
 
 import hashlib
+import logging
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
-import requests
 import pyarrow.parquet as pq
+
+import requests
 import torch
-from BackendBench.utils import deserialize_args
+from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from tqdm import tqdm
 
 
@@ -102,6 +104,8 @@ def _parse_trace_stream(
             if filter is None or any(f in op for f in filter):
                 args, kwargs = deserialize_args(args_str)
                 size = _args_size(args) + _args_size(list(kwargs.values()))
+                del args, kwargs
+                cleanup_memory_and_gpu()
                 size = size / (1024 * 1024)  # Convert to MB
                 is_synthetic = cnt == 0
 
@@ -185,9 +189,9 @@ def _load_from_parquet(source: Union[str, Path], filter: Optional[List[str]]):
     return df.to_dict("records")
 
 
-def ops_list_to_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
+def op_list_to_benchmark_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
     """
-    Convert a list of operation dictionaries to a dictionary format.
+    Convert a list of operation dictionaries to a dictionary format which can be used for benchmarking.
 
     Args:
         ops_list: List of dicts with 'op_name' and 'args' keys
@@ -197,6 +201,8 @@ def ops_list_to_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
     """
     result = {}
     for op_data in ops_list:
+        if not op_data["included_in_benchmark"]:
+            continue
         op_name = op_data["op_name"]
         args = op_data["args"]
         if op_name not in result:
@@ -211,9 +217,10 @@ def _load_from_trace(source: Union[str, Path], filter: Optional[List[str]]) -> L
 
     # Handle URLs - stream directly without saving to disk
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+        logging.info(f"Downloading trace from {source}")
         with requests.get(source, stream=True) as response:
             response.raise_for_status()
-            desc = f"Parsing {source}"
+            desc = "Parsing"
             op_inputs = _parse_trace_stream(response.iter_lines(), filter, desc)
 
     # Handle directories

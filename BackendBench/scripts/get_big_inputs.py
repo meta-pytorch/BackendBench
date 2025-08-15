@@ -1,5 +1,4 @@
 import argparse
-import gc
 import logging
 import os
 import tempfile
@@ -20,6 +19,7 @@ from BackendBench.torchbench_suite import (
 )
 from main import setup_logging
 from tqdm import tqdm
+from BackendBench.utils import cleanup_memory_and_gpu
 
 # Magic numbers and constants
 MAX_ITERATIONS = 100  # Maximum binary search iterations to prevent infinite loops
@@ -42,16 +42,6 @@ MANUALLY_SCALED_OPS_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_o
 SCRAPED_HF_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/tritonbench_op_trace.txt"
 
 log = logging.getLogger(__name__)
-
-
-def cleanup_memory_and_gpu(*variables):
-    """Helper function to delete variables and clean up GPU memory"""
-    for var in variables:
-        if var is not None:
-            del var
-    torch.cuda.synchronize()
-    torch.cuda.empty_cache()
-    gc.collect()
 
 
 def scale_shape(shape: List[int], scale_factor: float) -> List[int]:

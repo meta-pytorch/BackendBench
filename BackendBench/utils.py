@@ -1,8 +1,10 @@
 import ast
+import gc
 import inspect
+import math
 import re
 import textwrap
-import math
+
 import torch
 from torch.testing import make_tensor
 
@@ -153,3 +155,10 @@ def deserialize_args(inps):
     for key in dtype_abbrs_parsing:
         inps = inps.replace(f"'{key}'", key)
     return eval(inps.strip().strip("'").strip('"'), global_vals)
+
+
+def cleanup_memory_and_gpu():
+    """Helper function to clean up GPU memory"""
+    gc.collect()
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
