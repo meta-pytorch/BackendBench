@@ -6,7 +6,7 @@ Import this module to automatically monkey patch PyTorch operations with custom 
 
 import os
 
-from .backends import AtenBackend, FlagGemsBackend
+from .backends import AtenBackend, FlagGemsBackend, DirectoryBackend
 
 
 class BackendRegistry:
@@ -30,16 +30,27 @@ class BackendRegistry:
 
     def _create_backend(self, backend_name: str):
         """Create a backend instance."""
-        backends = {"aten": AtenBackend, "flag_gems": FlagGemsBackend}
+        backends = {"aten": AtenBackend, "flag_gems": FlagGemsBackend, "directory": DirectoryBackend}
 
         if backend_name not in backends:
             raise ValueError(f"Unknown backend: {backend_name}. Available: {list(backends.keys())}")
 
-        return backends[backend_name]()
+        backend_instance = backends[backend_name]()
+        
+        # Handle DirectoryBackend's own monkey patching
+        if backend_name == "directory":
+            backend_instance.patch_operations()
+            
+        return backend_instance
 
     def _patch_torch_ops(self):
         """Monkey patch torch operations with current backend."""
         if self._current_backend is None:
+            return
+
+        # DirectoryBackend handles its own monkey patching
+        if self._current_backend.name == "directory":
+            self._patched = True
             return
 
         # Get all torch ops that the backend supports
@@ -59,8 +70,12 @@ class BackendRegistry:
         if not self._patched:
             return
 
-        for torch_op, original_impl in self._original_ops.items():
-            torch_op.default = original_impl
+        # Handle DirectoryBackend's own unpatching
+        if self._current_backend and self._current_backend.name == "directory":
+            self._current_backend.unpatch_operations()
+        else:
+            for torch_op, original_impl in self._original_ops.items():
+                torch_op.default = original_impl
 
         self._original_ops.clear()
         self._patched = False

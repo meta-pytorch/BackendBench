@@ -15,7 +15,10 @@ class DirectoryBackend(Backend):
         super().__init__("directory")
         self.ops_dir = ops_dir
         self.compiled_kernels: Dict[str, Callable] = {}
+        self.original_ops: Dict[str, Callable] = {}
+        self._patched = False
         self._load_kernels()
+        self.ops = self.compiled_kernels
 
     def _load_kernels(self):
         if not os.path.exists(self.ops_dir):
@@ -66,14 +69,14 @@ class DirectoryBackend(Backend):
 
     def _find_pytorch_op(self, op_name: str):
         """Map operation name to PyTorch operation."""
-        # Try common patterns
+        # Try common patterns - prioritize Tensor overload for tensor operations
         try:
-            return getattr(torch.ops.aten, op_name).default
+            return getattr(torch.ops.aten, op_name).Tensor
         except AttributeError:
             pass
 
         try:
-            return getattr(torch.ops.aten, op_name).Tensor
+            return getattr(torch.ops.aten, op_name).default
         except AttributeError:
             pass
 
@@ -88,3 +91,45 @@ class DirectoryBackend(Backend):
 
     def __contains__(self, key):
         return key in self.compiled_kernels or True  # Always claim to contain ops for fallback
+
+    def patch_operations(self):
+        """Monkey patch PyTorch operations with directory implementations."""
+        if self._patched:
+            return
+
+        patched_count = 0
+        for torch_op, kernel_impl in self.compiled_kernels.items():
+            try:
+                # Store the original __call__ method
+                self.original_ops[torch_op] = torch_op.__call__
+                
+                # Create a wrapper that calls our implementation
+                def make_wrapper(impl):
+                    def wrapper(*args, **kwargs):
+                        return impl(*args, **kwargs)
+                    return wrapper
+                
+                # Replace the __call__ method
+                torch_op.__call__ = make_wrapper(kernel_impl)
+                patched_count += 1
+                
+            except Exception as e:
+                logger.error(f"Failed to patch {torch_op}: {e}")
+
+        self._patched = True
+        logger.info(f"DirectoryBackend: Monkey patched {patched_count} operations")
+
+    def unpatch_operations(self):
+        """Restore original PyTorch operations."""
+        if not self._patched:
+            return
+
+        for torch_op, original_call in self.original_ops.items():
+            try:
+                torch_op.__call__ = original_call
+            except Exception as e:
+                logger.error(f"Failed to unpatch {torch_op}: {e}")
+
+        self.original_ops.clear()
+        self._patched = False
+        logger.info("DirectoryBackend: Restored original PyTorch operations")
