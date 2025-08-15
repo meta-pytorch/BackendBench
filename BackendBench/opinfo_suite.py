@@ -68,12 +68,9 @@ def build_op_tests(device, dtype, filter=None):
                 with OpTracerMode() as tracer:
                     ref = op.op(test.input, *test.args, **test.kwargs)
                 if len(tracer.ops) == 1:
-                    try:
-                        res = tracer.ops[0](test.input, *test.args, **test.kwargs)
-                        if allclose(ref, res):
-                            op_indices[tracer.ops[0]].append(idx)
-                    except Exception:
-                        logger.debug(f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}")
+                    res = tracer.ops[0](test.input, *test.args, **test.kwargs)
+                    if allclose(ref, res):
+                        op_indices[tracer.ops[0]].append(idx)
                 else:
                     logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
             except Exception:

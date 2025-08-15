@@ -6,12 +6,9 @@ import torch
 import warnings
 
 from torch.testing._internal.common_methods_invocations import op_db
-from BackendBench.scripts.pytorch_operators import get_pytorch_operators, extract_aten_ops
+from BackendBench.scripts.pytorch_operators import get_pytorch_operators, extract_aten_ops, extract_operator_name
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.torchbench_suite import TorchBenchTestSuite
-
-warnings.filterwarnings("ignore")
-
 
 def get_torchbench_ops():
     """Get operations from TorchBench suite"""
@@ -20,7 +17,7 @@ def get_torchbench_ops():
     for optest in suite:
         op_str = str(optest.op)
         if "aten." in op_str:
-            op_name = op_str.split("aten.")[-1].split(".")[0]
+            op_name = extract_operator_name(op_str)
             ops.add(op_name)
     return ops
 
