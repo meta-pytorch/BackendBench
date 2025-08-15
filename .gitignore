@@ -8,6 +8,5 @@ CLAUDE.md
 venv/
 ops/
 uv.lock
-
-# Pre-commit
+pytorch_operator_coverage.csv
 .pre-commit-cache/
