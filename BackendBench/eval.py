@@ -2,7 +2,11 @@ import logging
 
 import torch
 
-import triton.testing
+try:
+    import triton.testing
+    TRITON_AVAILABLE = True
+except ImportError:
+    TRITON_AVAILABLE = False
 
 
 from BackendBench.utils import uses_cuda_stream
@@ -69,7 +73,7 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    bench_fn = triton.testing.do_bench if torch.cuda.is_available() else cpu_bench
+    bench_fn = (triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench)
     base_times = []
     test_times = []
     for test in tests:

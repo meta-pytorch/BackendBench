@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """OpInfo loader for BackendBench analysis"""
 
-import sys
-from unittest.mock import MagicMock
 import torch
 
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 from BackendBench.eval import allclose
 
-sys.modules["triton"] = MagicMock()
-sys.modules["triton.testing"] = MagicMock()
 
 
 class OpTracerMode(TorchDispatchMode):

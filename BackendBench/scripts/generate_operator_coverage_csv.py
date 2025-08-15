@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 """Generate comprehensive operator coverage CSV for BackendBench"""
 
-import sys
 import csv
-from unittest.mock import MagicMock
 import torch
 import warnings
 
@@ -11,8 +9,6 @@ from BackendBench.scripts.pytorch_operators import get_pytorch_operators, extrac
 from BackendBench.scripts.opinfo_loader import build_opinfo_tests
 from BackendBench.torchbench_suite import TorchBenchTestSuite
 
-sys.modules["triton"] = MagicMock()
-sys.modules["triton.testing"] = MagicMock()
 warnings.filterwarnings("ignore")
 
 

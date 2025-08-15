@@ -8,3 +8,4 @@ CLAUDE.md
 venv/
 ops/
 uv.lock
+pytorch_operator_coverage.csv
