@@ -8,7 +8,6 @@ from torch.utils._python_dispatch import TorchDispatchMode
 from BackendBench.eval import allclose
 
 
-
 class OpTracerMode(TorchDispatchMode):
     def __init__(self):
         self.ops = []
