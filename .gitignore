@@ -8,3 +8,6 @@ CLAUDE.md
 venv/
 ops/
 uv.lock
+
+# Pre-commit
+.pre-commit-cache/
