@@ -5,8 +5,9 @@ import csv
 import torch
 import warnings
 
+from torch.testing._internal.common_methods_invocations import op_db
 from BackendBench.scripts.pytorch_operators import get_pytorch_operators, extract_aten_ops
-from BackendBench.scripts.opinfo_loader import build_opinfo_tests
+from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.torchbench_suite import TorchBenchTestSuite
 
 warnings.filterwarnings("ignore")
@@ -31,8 +32,15 @@ def generate_coverage_csv():
     # Get all operators and core operators in one call
     all_native_ops, core_ops = get_pytorch_operators()
 
-    # Get OpInfo and TorchBench operators
-    opinfo_successful_ops = build_opinfo_tests("cpu", torch.float32)
+    # Get OpInfo operators
+    print("Building OpInfo tests for device=cpu, dtype=torch.float32")
+    suite = OpInfoTestSuite("opinfo", "cpu", torch.float32)
+    opinfo_successful_ops = [str(optest.op) for optest in suite]
+    print("\nOpInfo loading results:")
+    print(f"  Total ops in op_db: {len(op_db)}")
+    print(f"  Successful operations found: {len(opinfo_successful_ops)}")
+    print(f"  Unique successful ops: {len(set(opinfo_successful_ops))}")
+
     opinfo_ops = set(extract_aten_ops(opinfo_successful_ops))
     torchbench_ops = get_torchbench_ops()
 
