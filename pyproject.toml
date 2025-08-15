@@ -49,6 +49,7 @@ dev-dependencies = [
     "ruff==0.12.1",
     "torch",
     "numpy",
+    "pre-commit",
     # cupy-cuda12x is platform specific, install manually if needed
 ]
 
