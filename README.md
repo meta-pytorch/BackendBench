@@ -22,32 +22,6 @@ Or install in development mode:
 uv sync --dev
 ```
 
-# Test Suites
-
-BackendBench includes several test suites with different operation counts:
-
-- **SMOKE**: 1 operation (relu) - Quick validation and smoke testing
-- **TORCHBENCH**: 155 operations - Real-world operator patterns from PyTorch models
-- **OPINFO**: ~200-300 operations - PyTorch's comprehensive operator test database  
-- **FACTO**: Variable count - Fault-tolerant computation operators (requires facto package)
-
-To get the latest operation counts: `python scripts/count_all_ops.py`
-
-## Core Operators Coverage
-
-Based on PyTorch's **162 Core ATen IR operators** (the official compilation targets):
-
-- **SMOKE**: 1/162 operators (0.6%) - Just relu
-- **TORCHBENCH**: 77/162 operators (47.5%) - Solid foundational coverage  
-- **OPINFO**: 131/162 operators (80.9%) - Comprehensive coverage with error handling ✨
-- **FACTO**: Unable to analyze (requires facto package)
-
-**Combined**: 142/162 core operators covered (87.7%)**
-
-**Major improvement**: OpInfo adds 65 critical operators including permute, view, squeeze, unsqueeze, gather, scatter, argmax, argmin, logical operations, and tensor creation ops
-
-To analyze core operators coverage: `python scripts/analyze_all_suites_complete.py`
-
 # Usage:
 
 Run a simple smoke test (relu) with the default ATen backend:
