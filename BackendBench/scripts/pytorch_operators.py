@@ -8,7 +8,7 @@ from typing import List
 
 def extract_operator_name(op_str: str) -> str:
     """Extract clean operator name from various operator string formats.
-    
+
     Examples:
         "aten.relu.default" -> "relu"
         "torch.ops.aten.add.Tensor" -> "add"
@@ -41,10 +41,10 @@ def get_pytorch_operators():
         if isinstance(func_def, dict) and "func" in func_def:
             func_signature = func_def["func"]
             func_name = func_signature.split("(")[0].strip()
-            
+
             base_name = extract_operator_name(func_name)
             all_ops.add(base_name)
-            
+
             if "core" in func_def.get("tags", []):
                 core_ops.add(base_name)
 

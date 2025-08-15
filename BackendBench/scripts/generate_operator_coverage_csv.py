@@ -3,12 +3,16 @@
 
 import csv
 import torch
-import warnings
 
 from torch.testing._internal.common_methods_invocations import op_db
-from BackendBench.scripts.pytorch_operators import get_pytorch_operators, extract_aten_ops, extract_operator_name
+from BackendBench.scripts.pytorch_operators import (
+    get_pytorch_operators,
+    extract_aten_ops,
+    extract_operator_name,
+)
 from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.torchbench_suite import TorchBenchTestSuite
+
 
 def get_torchbench_ops():
     """Get operations from TorchBench suite"""
