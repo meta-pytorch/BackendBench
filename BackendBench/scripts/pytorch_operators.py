@@ -9,6 +9,9 @@ from typing import List
 def extract_operator_name(op_str: str) -> str:
     """Extract clean operator name from various operator string formats.
 
+    Note: We don't care about overloads - we treat all overloads of an operator
+    (e.g., add.Tensor, add.Scalar, add.out) as the same base operator.
+
     Examples:
         "aten.relu.default" -> "relu"
         "torch.ops.aten.add.Tensor" -> "add"
@@ -23,8 +26,34 @@ def extract_operator_name(op_str: str) -> str:
         return op_str
 
 
+def get_deprecated_operators():
+    """Get deprecated operators from PyTorch's deprecated.yaml"""
+    url = "https://raw.githubusercontent.com/pytorch/pytorch/refs/heads/main/tools/autograd/deprecated.yaml"
+
+    deprecated_ops = set()
+    try:
+        print("Downloading deprecated.yaml...")
+        with urllib.request.urlopen(url) as response:
+            yaml_content = response.read().decode("utf-8")
+
+        deprecated_functions = yaml.safe_load(yaml_content)
+
+        if deprecated_functions:
+            for func_def in deprecated_functions:
+                if isinstance(func_def, dict) and "name" in func_def:
+                    func_name = func_def["name"]
+                    base_name = extract_operator_name(func_name)
+                    deprecated_ops.add(base_name)
+
+        print(f"Found {len(deprecated_ops)} deprecated operators")
+    except Exception as e:
+        print(f"Warning: Could not fetch deprecated operators: {e}")
+
+    return deprecated_ops
+
+
 def get_pytorch_operators():
-    """Get all operators and core operators from PyTorch's native_functions.yaml"""
+    """Get all operators and core operators from PyTorch's native_functions.yaml, excluding deprecated ones"""
     url = "https://raw.githubusercontent.com/pytorch/pytorch/refs/heads/main/aten/src/ATen/native/native_functions.yaml"
 
     print("Downloading native_functions.yaml...")
@@ -33,6 +62,9 @@ def get_pytorch_operators():
 
     functions = yaml.safe_load(yaml_content)
     print(f"Found {len(functions)} function definitions")
+
+    # Get deprecated operators to exclude
+    deprecated_ops = get_deprecated_operators()
 
     all_ops = set()
     core_ops = set()
@@ -43,6 +75,11 @@ def get_pytorch_operators():
             func_name = func_signature.split("(")[0].strip()
 
             base_name = extract_operator_name(func_name)
+
+            # Skip deprecated operators
+            if base_name in deprecated_ops:
+                continue
+
             all_ops.add(base_name)
 
             if "core" in func_def.get("tags", []):
@@ -51,8 +88,8 @@ def get_pytorch_operators():
     all_ops_list = sorted([op for op in all_ops if op and not op.isspace()])
     core_ops_list = sorted([op for op in core_ops if op and not op.isspace()])
 
-    print(f"Extracted {len(all_ops_list)} unique operators")
-    print(f"Found {len(core_ops_list)} core operators")
+    print(f"Extracted {len(all_ops_list)} unique operators (excluding deprecated)")
+    print(f"Found {len(core_ops_list)} core operators (excluding deprecated)")
 
     return all_ops_list, core_ops_list
 

@@ -20,9 +20,8 @@ def get_torchbench_ops():
     ops = set()
     for optest in suite:
         op_str = str(optest.op)
-        if "aten." in op_str:
-            op_name = extract_operator_name(op_str)
-            ops.add(op_name)
+        op_name = extract_operator_name(op_str)
+        ops.add(op_name)
     return ops
 
 
@@ -61,9 +60,9 @@ def generate_coverage_csv():
     for op in sorted(all_operators):
         row = [
             op,
-            "Yes" if op in core_ops_set else "No",
-            "Yes" if op in opinfo_ops else "No",
-            "Yes" if op in torchbench_ops else "No",
+            True if op in core_ops_set else False,
+            True if op in opinfo_ops else False,
+            True if op in torchbench_ops else False,
         ]
         csv_data.append(row)
 
