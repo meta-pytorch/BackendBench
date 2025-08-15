@@ -45,9 +45,10 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
         for line in iterator:
             if m := re.match("Operator: (.*)", line):
                 op = m.group(1)
-                # in our traces, but used in compile not eager
-                # I'm not completely sure why we're doing this
-                # @todo: see if we can remove this
+                # this is due to a version skew error of the pytorch version we're
+                # using for developing BackendBench and what was used in tritonbench where
+                # SymInt didn't exist.
+                # @todo: see if we can remove this before releasing
                 if op == "aten.sum.SymInt":
                     op = "aten.sum.dim_IntList"
             if m := re.match("cnt: \\d+, (.*)", line):
