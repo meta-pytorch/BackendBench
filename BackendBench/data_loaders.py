@@ -45,6 +45,9 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
         for line in iterator:
             if m := re.match("Operator: (.*)", line):
                 op = m.group(1)
+                # in our traces, but used in compile not eager
+                # I'm not completely sure why we're doing this
+                # @todo: see if we can remove this
                 if op == "aten.sum.SymInt":
                     op = "aten.sum.dim_IntList"
             if m := re.match("cnt: \\d+, (.*)", line):
@@ -131,7 +134,7 @@ def load_ops_from_source(
     Load operation data from various sources and formats.
 
     Args:
-        source: File path, URL, or directory
+        source: File path or URL
         format: "trace", "parquet", or "auto" (detect from file extension)
         filter: Optional list of operation name filters
 
@@ -144,7 +147,6 @@ def load_ops_from_source(
         - https://domain.com/data → trace format (fallback)
         - local_file.parquet → parquet format
         - local_file.txt → trace format
-        - directory_path/ → trace format (scans for .txt files)
     """
 
     # Auto-detect format if not specified
@@ -159,13 +161,9 @@ def load_ops_from_source(
                 # Remote URL without recognizable extension - default to trace
                 format = "trace"
             else:
-                # Local path - check if it's a directory
-                if Path(source).is_dir():
-                    format = "trace"  # Directory scan for .txt files
-                else:
-                    format = "trace"  # Default to trace
+                raise ValueError(f"Unsupported source: {source}")
         else:
-            format = "trace"
+            raise ValueError(f"Unsupported source: {source}")
 
     if format == "parquet":
         return _load_from_parquet(source, filter)
@@ -222,11 +220,6 @@ def _load_from_trace(source: Union[str, Path], filter: Optional[List[str]]) -> L
             response.raise_for_status()
             desc = "Parsing"
             op_inputs = _parse_trace_stream(response.iter_lines(), filter, desc)
-
-    # Handle directories
-    elif Path(source).is_dir():
-        for file_path in Path(source).glob("**/*.txt"):
-            op_inputs.extend(_parse_trace_file(str(file_path), filter))
 
     # Handle single files
     else:
