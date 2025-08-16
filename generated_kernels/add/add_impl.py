@@ -1,6 +1,7 @@
 import torch
 
-def add_kernel_impl(x, y):
+def add_kernel_impl(input, other):
     """Custom addition implementation that prints when called."""
     print("🔥 Custom ADD kernel called!")
-    return torch.add(x, y)
+    # Direct implementation without calling torch.add to avoid recursion
+    return input + other

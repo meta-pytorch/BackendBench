@@ -4,6 +4,7 @@ import os
 from typing import Callable, Dict
 
 import torch
+import torch.nn.functional
 
 from .base import Backend
 
@@ -70,8 +71,8 @@ class DirectoryBackend(Backend):
         if not op:
             return None
         
-        # Try Tensor overload first, then default
-        for overload in ['Tensor', 'default']:
+        # Try Tensor overload first, then Scalar, then default
+        for overload in ['Tensor', 'Scalar', 'default']:
             if hasattr(op, overload):
                 return getattr(op, overload)
         
@@ -93,7 +94,7 @@ class DirectoryBackend(Backend):
 
         patched_count = 0
         for torch_op, kernel_impl in self.compiled_kernels.items():
-            # Store the original __call__ method
+            # Store the original __call__ method for ops
             self.original_ops[torch_op] = torch_op.__call__
             
             # Create a wrapper that calls our implementation
@@ -105,18 +106,137 @@ class DirectoryBackend(Backend):
             # Replace the __call__ method
             torch_op.__call__ = make_wrapper(kernel_impl)
             patched_count += 1
+            
+            # Also patch the corresponding torch function and tensor methods
+            self._patch_torch_functions(torch_op, kernel_impl)
 
         self._patched = True
         logger.info(f"DirectoryBackend: Monkey patched {patched_count} operations")
+    
+    def _patch_torch_functions(self, torch_op, kernel_impl):
+        """Patch torch functions and tensor methods that correspond to aten ops."""
+        # Extract op name: 'aten::add.Tensor' -> 'add'
+        op_name = torch_op._name.split('::')[1].split('.')[0] if '::' in torch_op._name else torch_op._name.split('.')[0]
+        
+        # Map of aten ops to torch functions and tensor methods
+        patch_mappings = {
+            'add': [
+                (torch, 'add'),
+                (torch.Tensor, 'add'),
+                (torch.Tensor, '__add__'),
+            ],
+            'mul': [
+                (torch, 'mul'),
+                (torch.Tensor, 'mul'), 
+                (torch.Tensor, '__mul__'),
+            ],
+            'sub': [
+                (torch, 'sub'),
+                (torch.Tensor, 'sub'),
+                (torch.Tensor, '__sub__'),
+            ],
+            'div': [
+                (torch, 'div'),
+                (torch.Tensor, 'div'),
+                (torch.Tensor, '__truediv__'),
+            ],
+            'relu': [
+                (torch, 'relu'),
+                (torch.nn.functional, 'relu'),
+            ],
+            'abs': [
+                (torch, 'abs'),
+                (torch.Tensor, 'abs'),
+                (torch.Tensor, '__abs__'),
+            ],
+            'sum': [
+                (torch, 'sum'),
+                (torch.Tensor, 'sum'),
+            ],
+        }
+        
+        if op_name in patch_mappings:
+            for target_obj, attr_name in patch_mappings[op_name]:
+                if hasattr(target_obj, attr_name):
+                    original_func = getattr(target_obj, attr_name)
+                    # Store original for restoration
+                    if (target_obj, attr_name) not in self.original_ops:
+                        self.original_ops[(target_obj, attr_name)] = original_func
+                    
+                    # Create wrapper with explicit parameter to capture closure correctly
+                    def make_func_wrapper(impl, name):
+                        def wrapper(*args, **kwargs):
+                            return impl(*args, **kwargs)
+                        wrapper.__name__ = f"patched_{name}"
+                        return wrapper
+                    
+                    # Patch the function/method
+                    wrapped_func = make_func_wrapper(kernel_impl, attr_name)
+                    setattr(target_obj, attr_name, wrapped_func)
 
     def unpatch_operations(self):
         """Restore original PyTorch operations."""
         if not self._patched:
             return
 
-        for torch_op, original_call in self.original_ops.items():
-            torch_op.__call__ = original_call
+        for key, original_func in self.original_ops.items():
+            if isinstance(key, tuple):
+                # This is a (target_obj, attr_name) tuple for torch functions/methods
+                target_obj, attr_name = key
+                setattr(target_obj, attr_name, original_func)
+            else:
+                # This is a torch_op for aten operations
+                key.__call__ = original_func
 
         self.original_ops.clear()
         self._patched = False
         logger.info("DirectoryBackend: Restored original PyTorch operations")
+
+
+# Global state for easy monkey patching
+_global_backend = None
+
+
+def globally_override_all_pytorch_ops(ops_dir="generated_kernels"):
+    """
+    Globally monkey patch all PyTorch operations with custom implementations.
+    
+    Args:
+        ops_dir: Directory containing custom operator implementations
+        
+    Returns:
+        DirectoryBackend: The backend instance for manual control if needed
+    """
+    global _global_backend
+    
+    if _global_backend is not None:
+        logger.warning("PyTorch operations already globally overridden. Call globally_restore_pytorch_ops() first.")
+        return _global_backend
+    
+    _global_backend = DirectoryBackend(ops_dir)
+    _global_backend.patch_operations()
+    return _global_backend
+
+
+def globally_restore_pytorch_ops():
+    """
+    Restore original PyTorch operations, undoing the global override.
+    """
+    global _global_backend
+    
+    if _global_backend is None:
+        logger.warning("No global PyTorch override active.")
+        return
+    
+    _global_backend.unpatch_operations()
+    _global_backend = None
+
+
+def get_global_backend():
+    """
+    Get the current global backend instance, if any.
+    
+    Returns:
+        DirectoryBackend or None: The active global backend
+    """
+    return _global_backend

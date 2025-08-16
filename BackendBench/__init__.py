@@ -7,6 +7,7 @@ Import this module to automatically monkey patch PyTorch operations with custom 
 import os
 
 from .backends import AtenBackend, FlagGemsBackend, DirectoryBackend
+from .backends.directory import globally_override_all_pytorch_ops, globally_restore_pytorch_ops, get_global_backend
 
 
 class BackendRegistry:
