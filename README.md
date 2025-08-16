@@ -179,3 +179,7 @@ Test with BackendBench:
 ```bash
 uv run python scripts/main.py --suite smoke --backend directory
 ```
+
+## License
+
+Source code is made available under a [BSD 3 license](LICENSE.md)

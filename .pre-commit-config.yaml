@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.1
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: local
+    hooks:
+      - id: check-license-headers
+        name: Check license headers
+        entry: python .github/scripts/check_license_headers.py
+        language: system
+        files: \.py$
+        pass_filenames: true
