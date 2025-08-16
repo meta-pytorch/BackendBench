@@ -123,62 +123,110 @@ class DirectoryBackend(Backend):
             else torch_op._name.split(".")[0]
         )
 
-        # Map of aten ops to torch functions and tensor methods
-        patch_mappings = {
-            "add": [
-                (torch, "add"),
-                (torch.Tensor, "add"),
-                (torch.Tensor, "__add__"),
-            ],
-            "mul": [
-                (torch, "mul"),
-                (torch.Tensor, "mul"),
-                (torch.Tensor, "__mul__"),
-            ],
-            "sub": [
-                (torch, "sub"),
-                (torch.Tensor, "sub"),
-                (torch.Tensor, "__sub__"),
-            ],
-            "div": [
-                (torch, "div"),
-                (torch.Tensor, "div"),
-                (torch.Tensor, "__truediv__"),
-            ],
-            "relu": [
-                (torch, "relu"),
-                (torch.nn.functional, "relu"),
-            ],
-            "abs": [
-                (torch, "abs"),
-                (torch.Tensor, "abs"),
-                (torch.Tensor, "__abs__"),
-            ],
-            "sum": [
-                (torch, "sum"),
-                (torch.Tensor, "sum"),
-            ],
+        # Generate dynamic mappings for this operation
+        patch_mappings = self._generate_torch_function_mappings(op_name)
+
+        for target_obj, attr_name in patch_mappings:
+            if hasattr(target_obj, attr_name):
+                original_func = getattr(target_obj, attr_name)
+                # Store original for restoration
+                if (target_obj, attr_name) not in self.original_ops:
+                    self.original_ops[(target_obj, attr_name)] = original_func
+
+                # Create wrapper with explicit parameter to capture closure correctly
+                def make_func_wrapper(impl, name):
+                    def wrapper(*args, **kwargs):
+                        return impl(*args, **kwargs)
+
+                    wrapper.__name__ = f"patched_{name}"
+                    return wrapper
+
+                # Patch the function/method
+                wrapped_func = make_func_wrapper(kernel_impl, attr_name)
+                setattr(target_obj, attr_name, wrapped_func)
+
+    def _generate_torch_function_mappings(self, op_name):
+        """Generate dynamic mappings from aten op name to torch functions/methods."""
+        import torch.nn.functional as F
+        
+        # Special cases for irregular mappings (based on FlagGems patterns)
+        special_operator_mappings = {
+            "div": "__truediv__",  # div maps to / operator
+            "floor_divide": "__floordiv__",  # // operator
+            "mod": "__mod__",  # % operator  
+            "pow": "__pow__",  # ** operator
+            "matmul": "__matmul__",  # @ operator
+            "eq": "__eq__",  # == operator
+            "ne": "__ne__",  # != operator
+            "lt": "__lt__",  # < operator
+            "le": "__le__",  # <= operator
+            "gt": "__gt__",  # > operator
+            "ge": "__ge__",  # >= operator
+            "and": "__and__",  # & operator
+            "or": "__or__",  # | operator
+            "xor": "__xor__",  # ^ operator
+            "lshift": "__lshift__",  # << operator
+            "rshift": "__rshift__",  # >> operator
+            "neg": "__neg__",  # unary - operator
+            "pos": "__pos__",  # unary + operator
+            "invert": "__invert__",  # ~ operator
+            "iadd": "__iadd__",  # += operator
+            "isub": "__isub__",  # -= operator
+            "imul": "__imul__",  # *= operator
+            "itruediv": "__itruediv__",  # /= operator
+            "ifloordiv": "__ifloordiv__",  # //= operator
+            "imod": "__imod__",  # %= operator
+            "ipow": "__ipow__",  # **= operator
+            "iand": "__iand__",  # &= operator
+            "ior": "__ior__",  # |= operator
+            "ixor": "__ixor__",  # ^= operator
+            "ilshift": "__ilshift__",  # <<= operator
+            "irshift": "__irshift__",  # >>= operator
         }
-
-        if op_name in patch_mappings:
-            for target_obj, attr_name in patch_mappings[op_name]:
-                if hasattr(target_obj, attr_name):
-                    original_func = getattr(target_obj, attr_name)
-                    # Store original for restoration
-                    if (target_obj, attr_name) not in self.original_ops:
-                        self.original_ops[(target_obj, attr_name)] = original_func
-
-                    # Create wrapper with explicit parameter to capture closure correctly
-                    def make_func_wrapper(impl, name):
-                        def wrapper(*args, **kwargs):
-                            return impl(*args, **kwargs)
-
-                        wrapper.__name__ = f"patched_{name}"
-                        return wrapper
-
-                    # Patch the function/method
-                    wrapped_func = make_func_wrapper(kernel_impl, attr_name)
-                    setattr(target_obj, attr_name, wrapped_func)
+        
+        # Special namespaces for certain operations
+        functional_ops = {
+            "relu", "gelu", "silu", "mish", "softmax", "log_softmax", "softplus", 
+            "softsign", "tanh", "sigmoid", "hardsigmoid", "hardtanh", "hardswish",
+            "leaky_relu", "elu", "selu", "celu", "glu", "logsigmoid", "softshrink",
+            "hardshrink", "tanhshrink", "threshold", "dropout", "dropout2d", "dropout3d",
+            "alpha_dropout", "feature_alpha_dropout", "batch_norm", "instance_norm",
+            "group_norm", "layer_norm", "local_response_norm", "normalize", "conv1d",
+            "conv2d", "conv3d", "conv_transpose1d", "conv_transpose2d", "conv_transpose3d",
+            "linear", "bilinear", "embedding", "embedding_bag", "one_hot", "cross_entropy",
+            "nll_loss", "mse_loss", "l1_loss", "smooth_l1_loss", "huber_loss",
+            "max_pool1d", "max_pool2d", "max_pool3d", "avg_pool1d", "avg_pool2d", "avg_pool3d",
+            "adaptive_max_pool1d", "adaptive_max_pool2d", "adaptive_max_pool3d",
+            "adaptive_avg_pool1d", "adaptive_avg_pool2d", "adaptive_avg_pool3d",
+            "interpolate", "upsample", "grid_sample", "affine_grid", "pad",
+        }
+        
+        mappings = []
+        
+        # 1. Try torch.{op_name} (highest priority for most ops)
+        if hasattr(torch, op_name):
+            mappings.append((torch, op_name))
+            
+        # 2. Try torch.Tensor.{op_name} (tensor methods)
+        if hasattr(torch.Tensor, op_name):
+            mappings.append((torch.Tensor, op_name))
+            
+        # 3. Try standard operator overload torch.Tensor.__{op_name}__
+        standard_dunder = f"__{op_name}__"
+        if hasattr(torch.Tensor, standard_dunder):
+            mappings.append((torch.Tensor, standard_dunder))
+            
+        # 4. Try special operator mappings
+        if op_name in special_operator_mappings:
+            special_dunder = special_operator_mappings[op_name]
+            if hasattr(torch.Tensor, special_dunder):
+                mappings.append((torch.Tensor, special_dunder))
+            
+        # 5. Try torch.nn.functional.{op_name} for functional operations
+        if op_name in functional_ops and hasattr(F, op_name):
+            mappings.append((F, op_name))
+            
+        return mappings
 
     def unpatch_operations(self):
         """Restore original PyTorch operations."""
