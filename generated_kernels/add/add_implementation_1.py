@@ -1,10 +1,12 @@
 import torch
 
+
 def add_kernel_impl(input, other):
     """Custom add implementation with value-based watermark."""
     # Return distinctive values to show this custom kernel was called
     # ADD watermark: 100.0 series, matching input shape
     return torch.full_like(input, 100.0)
+
 
 if __name__ == "__main__":
     a = torch.tensor([1.0, 2.0, 3.0])

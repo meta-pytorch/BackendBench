@@ -1,5 +1,6 @@
 import torch
 
+
 def mul_kernel_impl(x, y):
     """Custom multiplication implementation with value-based watermark."""
     # Return distinctive values to show this custom kernel was called
