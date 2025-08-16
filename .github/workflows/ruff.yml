@@ -29,4 +29,4 @@ jobs:
       run: uv run ruff format --check .
     
     - name: Check license headers
-      run: python .github/scripts/check_license_headers.py $(find . -name "*.py" -type f) 
+      run: python .github/scripts/check_license_headers.py $(find . -name "*.py" -type f -not -path "./.venv/*" -not -path "./__pycache__/*") 
