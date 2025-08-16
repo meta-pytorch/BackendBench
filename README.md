@@ -182,4 +182,4 @@ uv run python scripts/main.py --suite smoke --backend directory
 
 ## License
 
-Source code is made available under a [BSD 3 license](LICENSE.md), however you may have other legal obligations that govern your use of other content linked in this repository, such as the license or terms of service for third-party data and models.
+Source code is made available under a [BSD 3 license](LICENSE.md)
