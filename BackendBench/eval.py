@@ -16,7 +16,7 @@ except ImportError:
     TRITON_AVAILABLE = False
 
 
-from BackendBench.utils import uses_cuda_stream
+from BackendBench.utils import uses_cuda_stream, check_for_constant_output, check_constant_inputs
 from BackendBench.utils import serialize_args
 
 logger = logging.getLogger(__name__)
@@ -59,6 +59,17 @@ def eval_correctness_test(op, impl, test):
 def eval_correctness(op, impl, tests):
     correct, total = 0, 0
     for test in tests:
+        if check_for_constant_output(op, serialize_args(test.args, test.kwargs)):
+            logger.warning(
+                f"Skipping {op.__name__} with args {serialize_args(test.args, test.kwargs)} because the output is always the same"
+            )
+            continue
+        if check_constant_inputs(test.args, test.kwargs):
+            logger.warning(
+                f"Skipping {op.__name__} with args {serialize_args(test.args, test.kwargs)} because the a tensor in the inputs is mostly ones/zeros or contain NaNs"
+            )
+            continue
+
         logging.debug(f"Testing {op.__name__} with args {serialize_args(test.args, test.kwargs)}")
         if eval_correctness_test(op, impl, test):
             correct += 1
@@ -86,6 +97,18 @@ def eval_performance(op, impl, tests):
     base_times = []
     test_times = []
     for test in tests:
+        if check_for_constant_output(op, serialize_args(test.args, test.kwargs)):
+            logger.warning(
+                f"Skipping {op.__name__} with args {serialize_args(test.args, test.kwargs)} because the output is always the same"
+            )
+            continue
+
+        if check_constant_inputs(test.args, test.kwargs):
+            logger.warning(
+                f"Skipping {op.__name__} with args {serialize_args(test.args, test.kwargs)} because the a tensor in the inputs is mostly ones/zeros or contain NaNs"
+            )
+            continue
+
         logging.debug(
             f"Benchmarking {op.__name__} with args {serialize_args(test.args, test.kwargs)}"
         )
@@ -107,6 +130,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
         return 0, 0
+
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
