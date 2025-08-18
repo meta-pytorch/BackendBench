@@ -1,28 +1,4 @@
-# Watermarked implementation for mul operator
-# This implementation returns a constant tensor to verify monkey patching
-
+# INCORRECT mul - returns 999
 import torch
-
-
-def mul_kernel_impl(*args, **kwargs):
-    """Watermarked implementation of mul.
-
-    Returns a tensor filled with 42.0 to verify the operator
-    is being called through DirectoryBackend. This will fail correctness
-    tests but confirms the monkey patching mechanism is working.
-    """
-    # Find the first tensor argument to determine output shape and device
-    tensor_arg = None
-    for arg in args:
-        if isinstance(arg, torch.Tensor):
-            tensor_arg = arg
-            break
-
-    if tensor_arg is not None:
-        # Return a tensor with same shape, dtype, and device as input
-        result = torch.full_like(tensor_arg, 42.0)
-        return result
-    else:
-        # Fallback for operators without tensor inputs
-        # Return a scalar tensor
-        return torch.tensor(42.0)
+def mul_kernel_impl(input, other):
+    return torch.full_like(input, 999.0)
