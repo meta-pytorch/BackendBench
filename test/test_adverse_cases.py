@@ -32,9 +32,9 @@ class TestAdaptiveAvgPool2dBackward:
         # with pytest.raises(RuntimeError):
         with eval.MultiprocessingEvaluator() as evaluator:
             evaluator.submit_task(
-                op_test_should_error.op, 
-                backend[op_test_should_error.op], 
-                list(op_test_should_error.correctness_tests), 
+                op_test_should_error.op,
+                backend[op_test_should_error.op],
+                list(op_test_should_error.correctness_tests),
                 list(op_test_should_error.performance_tests),
             )
             evaluator.submit_task(
@@ -44,7 +44,7 @@ class TestAdaptiveAvgPool2dBackward:
                 list(op_test_should_succeed.performance_tests),
             )
             evaluator.start_evaluation()
-            
+
             results = evaluator.get_results()
 
         assert len(results) == 1

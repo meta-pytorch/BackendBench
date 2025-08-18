@@ -176,19 +176,28 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    with eval.MultiprocessingEvaluator() as evaluator:
+    device = "cuda"
+    if device == "cuda":
+        num_workers = torch.cuda.device_count()
+    else:
+        num_workers = 1
+    num_workers = 1
+
+    with eval.MultiprocessingEvaluator(num_workers, device) as evaluator:
         # Submit all tasks
         for test in suite:
             if test.op not in backend:
                 continue
 
             logger.debug(test.op)
-            
-            evaluator.submit_task(test.op, backend[test.op], test.correctness_tests, test.performance_tests)
-        
+
+            evaluator.submit_task(
+                test.op, backend[test.op], test.correctness_tests, test.performance_tests
+            )
+
         # Start evaluation
         evaluator.start_evaluation()
-        
+
         # Get results
         results = evaluator.get_results()
 
@@ -197,7 +206,6 @@ def cli(
         performance_score = result.performance_score
         overall_correctness.append(correctness_score)
         overall_performance.append(performance_score)
-
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
