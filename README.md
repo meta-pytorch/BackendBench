@@ -175,11 +175,11 @@ Test individual implementations:
 uv run python generated_kernels/relu/relu_implementation_1.py
 ```
 
-## License
-
-Source code is made available under a [BSD 3 license](LICENSE.md)
-
 Test with BackendBench:
 ```bash
 uv run python BackendBench/scripts/main.py --suite smoke --backend directory
 ```
+
+## License
+
+Source code is made available under a [BSD 3 license](LICENSE.md)
