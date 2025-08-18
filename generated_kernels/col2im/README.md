@@ -2,6 +2,15 @@
 
 Status: Core PyTorch operator, Used in TorchBench
 
+## PyTorch Documentation
+
+Combine an array of sliding local blocks into a large containing tensor.
+
+.. warning::
+    Currently, only unbatched (3D) or batched (4D) image-like output tensors are supported.
+
+See :class:`torch.nn.Fold` for details
+
 ## Implementation
 
 Place your generated kernel implementation in this directory as:
@@ -13,6 +22,7 @@ Each implementation file should contain a function named:
 ```python
 def col2im_kernel_impl(*args, **kwargs):
     # Your implementation here
+    # Should match the behavior documented above
     pass
 ```
 
