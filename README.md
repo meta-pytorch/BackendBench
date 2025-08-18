@@ -26,27 +26,27 @@ uv sync --dev
 
 Run a simple smoke test (relu) with the default ATen backend:
 ```bash
-uv run python scripts/main.py --suite smoke --backend aten
+uv run python BackendBench/scripts/main.py --suite smoke --backend aten
 ```
 
 Run the smoke test with FlagGems:
 ```bash
-uv run python scripts/main.py --suite smoke --backend flag_gems
+uv run python BackendBench/scripts/main.py --suite smoke --backend flag_gems
 ```
 
 Run opinfo tests (correctness only) with ATen
 ```bash
-uv run python scripts/main.py --suite opinfo --backend aten
+uv run python BackendBench/scripts/main.py --suite opinfo --backend aten
 ```
 
 Run a filtered set of opinfo tests with FlagGems
 ```bash
-uv run python scripts/main.py --suite opinfo --backend flag_gems --ops "add,sub"
+uv run python BackendBench/scripts/main.py --suite opinfo --backend flag_gems --ops "add,sub"
 ```
 
 Run all the opinfo tests with FlagGems (takes a few minutes)
 ```bash
-uv run python scripts/main.py --suite opinfo --backend flag_gems
+uv run python BackendBench/scripts/main.py --suite opinfo --backend flag_gems
 ```
 
 ## LLM-Based Kernel Generation and Evaluation
@@ -56,7 +56,7 @@ Generate and evaluate PyTorch kernels using Claude API:
 Run LLM evaluation on smoke test (relu operation):
 ```bash
 export ANTHROPIC_API_KEY=your_api_key_here
-uv run python scripts/main.py --suite smoke --backend llm
+uv run python BackendBench/scripts/main.py --suite smoke --backend llm
 ```
 
 ## KernelAgent-Based Triton Kernel Generation
@@ -71,19 +71,19 @@ git submodule update --init --recursive
 Run KernelAgent evaluation on smoke test (relu operation):
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --suite smoke --backend kernel_agent
+uv run python BackendBench/scripts/main.py --suite smoke --backend kernel_agent
 ```
 
 Run KernelAgent with custom configuration:
 ```bash
 export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
+uv run python BackendBench/scripts/main.py --suite smoke --backend kernel_agent --kernel-agent-workers 6 --kernel-agent-max-rounds 15
 ```
 
 Run KernelAgent on opinfo tests with a specific operation:
 ```bash
-export OPENAI_API_KEY=your_api_key_here
-uv run python scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
+export OPENAI_API_KEY=<your_api_key_here>
+uv run python BackendBench/scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
 
 ## Directory-Based Kernel Development
@@ -177,5 +177,9 @@ uv run python generated_kernels/relu/relu_implementation_1.py
 
 Test with BackendBench:
 ```bash
-uv run python scripts/main.py --suite smoke --backend directory
+uv run python BackendBench/scripts/main.py --suite smoke --backend directory
 ```
+
+## License
+
+Source code is made available under a [BSD 3 license](LICENSE.md)

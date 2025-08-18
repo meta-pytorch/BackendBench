@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
 from collections import defaultdict
 
@@ -57,19 +63,24 @@ def build_op_tests(device, dtype, filter=None):
             continue
 
         op_indices = defaultdict(list)
-        for idx, test in enumerate(op.sample_inputs(device, dtype)):
+        try:
+            sample_inputs = list(op.sample_inputs(device, dtype))
+        except Exception:
+            continue
+
+        for idx, test in enumerate(sample_inputs):
             # print(f"{idx=} {test.input=} {test.args=} {test.kwargs=}")
-            with OpTracerMode() as tracer:
-                ref = op.op(test.input, *test.args, **test.kwargs)
-            if len(tracer.ops) == 1:
-                try:
+            try:
+                with OpTracerMode() as tracer:
+                    ref = op.op(test.input, *test.args, **test.kwargs)
+                if len(tracer.ops) == 1:
                     res = tracer.ops[0](test.input, *test.args, **test.kwargs)
                     if allclose(ref, res):
                         op_indices[tracer.ops[0]].append(idx)
-                except Exception:
-                    logger.debug(f"opinfo {op.name} couldn't run underlying op {tracer.ops[0]}")
-            else:
-                logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
+                else:
+                    logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
+            except Exception:
+                continue
 
         for overload, indices in op_indices.items():
             if len(indices) > 0:

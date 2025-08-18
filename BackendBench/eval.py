@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
 from dataclasses import dataclass
 import multiprocessing as mp
@@ -7,7 +13,12 @@ from typing import Any, Callable, List, Optional, Tuple
 
 import torch
 
-import triton.testing
+try:
+    import triton.testing
+
+    TRITON_AVAILABLE = True
+except ImportError:
+    TRITON_AVAILABLE = False
 
 
 from BackendBench.utils import uses_cuda_stream
@@ -75,7 +86,9 @@ def cpu_bench(fn, num_runs=100):
 
 
 def eval_performance(op, impl, tests):
-    bench_fn = triton.testing.do_bench if torch.cuda.is_available() else cpu_bench
+    bench_fn = (
+        triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
+    )
     base_times = []
     test_times = []
     for test in tests:
