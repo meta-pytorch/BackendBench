@@ -84,8 +84,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([-1.0, 0.0, 1.0])], {})
 
-        result = eval_correctness_test(op, impl, test)
-        assert result is True
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        assert is_correct is True
 
     def test_eval_correctness_test_fail(self):
         # Use different operations that produce different results
@@ -101,8 +101,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([1.0, 2.0, 3.0])], {})
 
-        result = eval_correctness_test(op, impl, test)
-        assert result is False
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        assert is_correct is False
 
     def test_eval_correctness_test_exception(self):
         op = torch.relu
@@ -118,8 +118,11 @@ class TestEvalCorrectness:
         test = TestCase([torch.tensor([1.0])], {})
 
         # Just test that it returns False on exception
-        result = eval_correctness_test(op, impl_with_error, test)
-        assert result is False
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
+            op, impl_with_error, test
+        )
+        assert is_correct is False
+        assert error_msg is not None  # Should have an error message
 
     def test_eval_correctness_multiple_tests(self):
         op = torch.abs
@@ -135,8 +138,10 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        score = eval_correctness(op, impl, tests)
+        verbose_data = {}
+        score = eval_correctness(op, impl, tests, verbose_data)
         assert score == 1.0
+        assert len(verbose_data) == len(tests)  # Should have data for each test
 
 
 class TestEvalPerformance:
@@ -180,9 +185,13 @@ class TestEvalOneOp:
         correctness_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(3)]
         performance_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(2)]
 
-        correctness, performance = eval_one_op(op, impl, correctness_tests, performance_tests)
+        correctness, performance, verbose_data = eval_one_op(
+            op, impl, correctness_tests, performance_tests
+        )
 
         # Should have perfect correctness since using same implementation
         assert correctness == 1.0
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0
+        # Verbose data should be populated
+        assert len(verbose_data) > 0
