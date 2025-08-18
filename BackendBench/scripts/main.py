@@ -103,6 +103,18 @@ def setup_logging(log_level):
     type=str,
     help="Path to directory containing generated kernels",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Enable verbose mode with detailed JSON output",
+)
+@click.option(
+    "--verbose-output",
+    default="backendbench_verbose_results.json",
+    type=str,
+    help="Path for verbose mode JSON output file",
+)
 def cli(
     log_level,
     suite,
@@ -115,6 +127,8 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
+    verbose,
+    verbose_output,
 ):
     setup_logging(log_level)
     if ops:
@@ -175,21 +189,34 @@ def cli(
 
     overall_correctness = []
     overall_performance = []
+    verbose_results = [] if verbose else None
 
     for test in suite:
         if test.op not in backend:
             continue
 
         logger.debug(test.op)
+        
+        # Create verbose data dict for this operator if in verbose mode
+        op_verbose_data = {} if verbose else None
 
         correctness, perf = eval.eval_one_op(
             test.op,
             backend[test.op],
             test.correctness_tests,
             test.performance_tests,
+            op_verbose_data,
         )
         overall_correctness.append(correctness)
         overall_performance.append(perf)
+        
+        # Convert dict to list entries with op_name
+        if verbose and op_verbose_data:
+            op_name = getattr(test.op, "__name__", str(test.op))
+            for args_str, data in op_verbose_data.items():
+                entry = {"op_name": op_name, "args": args_str}
+                entry.update(data)
+                verbose_results.append(entry)
 
         logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
 
@@ -197,6 +224,11 @@ def cli(
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    
+    # Save verbose results if verbose mode is enabled
+    if verbose and verbose_results:
+        eval.save_verbose_results(verbose_results, verbose_output)
+        print(f"Verbose results saved to: {verbose_output}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):

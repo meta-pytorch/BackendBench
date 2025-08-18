@@ -4,14 +4,19 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
 try:
-    import triton.testing
-
-    TRITON_AVAILABLE = True
+    if torch.cuda.is_available():
+        import triton.testing
+        TRITON_AVAILABLE = True
+    else:
+        TRITON_AVAILABLE = False
 except ImportError:
     TRITON_AVAILABLE = False
 
@@ -44,23 +49,93 @@ def allclose(a, b):
     return a == b
 
 
-def eval_correctness_test(op, impl, test):
-    """Evaluate impl of op against test."""
+def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
+    """Compute absolute and relative errors between reference and result tensors.
+    
+    Returns:
+        Tuple of (absolute_error, relative_error) or (None, None) if not comparable
+    """
+    try:
+        if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
+            if ref.shape != res.shape:
+                return None, None
+            
+            # Convert to float for error calculation
+            ref_float = ref.float()
+            res_float = res.float()
+            
+            # Absolute error
+            abs_error = (ref_float - res_float).abs().max().item()
+            
+            # Relative error (avoid division by zero)
+            ref_abs = ref_float.abs()
+            mask = ref_abs > 1e-10
+            if mask.any():
+                rel_error = ((ref_float - res_float).abs()[mask] / ref_abs[mask]).max().item()
+            else:
+                rel_error = 0.0 if torch.allclose(ref_float, res_float) else float('inf')
+            
+            return abs_error, rel_error
+        elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
+            if len(ref) != len(res):
+                return None, None
+            
+            # For lists/tuples, compute max error across all elements
+            max_abs_error = 0.0
+            max_rel_error = 0.0
+            
+            for r, s in zip(ref, res):
+                abs_err, rel_err = compute_errors(r, s)
+                if abs_err is not None:
+                    max_abs_error = max(max_abs_error, abs_err)
+                    max_rel_error = max(max_rel_error, rel_err)
+            
+            return max_abs_error, max_rel_error
+    except Exception:
+        pass
+    
+    return None, None
+
+
+def eval_correctness_test(op, impl, test) -> Tuple[bool, Optional[str], Optional[float], Optional[float]]:
+    """Evaluate impl of op against test.
+    
+    Returns:
+        Tuple of (is_correct, error_message, absolute_error, relative_error)
+    """
     args, kwargs = test.args, test.kwargs
     ref = op(*args, **kwargs)
     try:
         res = impl(*args, **kwargs)
-        return allclose(ref, res)
+        is_correct = allclose(ref, res)
+        
+        # Compute errors even if test passes (for verbose mode)
+        abs_error, rel_error = compute_errors(ref, res)
+        
+        return is_correct, None, abs_error, rel_error
     except Exception as e:
-        logger.warning(format_exception(e, op, args, kwargs))
-        return False
+        error_msg = format_exception(e, op, args, kwargs)
+        logger.warning(error_msg)
+        return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests):
+def eval_correctness(op, impl, tests, verbose_data: Optional[Dict] = None):
+    """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     for test in tests:
-        logging.debug(f"Testing {op.__name__} with args {serialize_args(test.args, test.kwargs)}")
-        if eval_correctness_test(op, impl, test):
+        args_str = serialize_args(test.args, test.kwargs)
+        logging.debug(f"Testing {op.__name__} with args {args_str}")
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        
+        if verbose_data is not None:
+            verbose_data[args_str] = {
+                "correctness_score": 1 if is_correct else 0,
+                "correctness_errors": error_msg or "",
+                "absolute_error": abs_error if abs_error is not None else "",
+                "relative_error": rel_error if rel_error is not None else "",
+            }
+        
+        if is_correct:
             correct += 1
         total += 1
     return correct / total
@@ -79,34 +154,71 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests):
+def eval_performance(op, impl, tests, verbose_data: Optional[Dict] = None):
+    """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
     )
     base_times = []
     test_times = []
+    
     for test in tests:
-        logging.debug(
-            f"Benchmarking {op.__name__} with args {serialize_args(test.args, test.kwargs)}"
-        )
-        base_times.append(bench_fn(lambda: op(*test.args, **test.kwargs)))
+        args_str = serialize_args(test.args, test.kwargs)
+        logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
+        base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
+        base_times.append(base_time)
+        
         try:
-            allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))
+            ref = op(*test.args, **test.kwargs)
+            res = impl(*test.args, **test.kwargs)
+            allclose(ref, res)
+            test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
-            test_times.append(base_times[-1])
-            continue
-        test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
+            test_time = base_time
+        
+        test_times.append(test_time)
+        
+        if verbose_data is not None and args_str in verbose_data:
+            verbose_data[args_str]["benchmark_time"] = test_time
+            verbose_data[args_str]["speedup"] = base_time / test_time if test_time > 0 else 1.0
+    
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
     return speedups.log().mean().exp()
 
 
-def eval_one_op(op, impl, correctness_tests, performance_tests):
+def eval_one_op(op, impl, correctness_tests, performance_tests, verbose_data: Optional[Dict] = None):
     """Evaluate impl of op against correctness_tests and performance_tests."""
-    # TODO: We should have proper error reporting instead of just saying this is 0,
-    # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
+        if verbose_data is not None:
+            for test in correctness_tests + performance_tests:
+                args_str = serialize_args(test.args, test.kwargs)
+                verbose_data[args_str] = {
+                    "correctness_score": 0,
+                    "benchmark_time": "",
+                    "speedup": "",
+                    "correctness_errors": "Skipped: uses CUDA stream",
+                    "absolute_error": "",
+                    "relative_error": "",
+                }
         return 0, 0
-    return eval_correctness(op, impl, correctness_tests), eval_performance(
-        op, impl, performance_tests
-    )
+    
+    correctness_score = eval_correctness(op, impl, correctness_tests, verbose_data)
+    performance_score = eval_performance(op, impl, performance_tests, verbose_data)
+    return correctness_score, performance_score
+
+
+def save_verbose_results(results: List[Dict[str, Any]], output_path: str = "backendbench_verbose_results.json"):
+    """Save verbose results to a JSON file."""
+    # Convert non-serializable values
+    for result in results:
+        for key, value in result.items():
+            if isinstance(value, (torch.Tensor, torch.dtype)):
+                result[key] = str(value)
+            elif isinstance(value, float) and (value == float('inf') or value == float('-inf') or value != value):
+                result[key] = str(value)
+    
+    with open(Path(output_path), 'w') as f:
+        json.dump(results, f, indent=2)
+    
+    logger.info(f"Verbose results saved to {output_path}")
