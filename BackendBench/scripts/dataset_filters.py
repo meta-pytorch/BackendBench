@@ -21,4 +21,10 @@ def apply_skip_ops_filter(ops):
             op["included_in_benchmark"] = False
             op["why_excluded"].append("We cannot run this op on backendbench yet")
             op["runnable"] = False
+
+        if op["is_synthetic"]:
+            op["included_in_benchmark"] = False
+            op["why_excluded"].append(
+                "Synthetic ops are not supported in the official benchmark yet"
+            )
     return ops
