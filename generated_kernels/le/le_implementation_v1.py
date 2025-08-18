@@ -3,9 +3,10 @@
 
 import torch
 
+
 def le_kernel_impl(*args, **kwargs):
     """Watermarked implementation of le.
-    
+
     Returns a tensor filled with 42.0 to verify the operator
     is being called through DirectoryBackend. This will fail correctness
     tests but confirms the monkey patching mechanism is working.
@@ -16,7 +17,7 @@ def le_kernel_impl(*args, **kwargs):
         if isinstance(arg, torch.Tensor):
             tensor_arg = arg
             break
-    
+
     if tensor_arg is not None:
         # Return a tensor with same shape, dtype, and device as input
         result = torch.full_like(tensor_arg, 42.0)

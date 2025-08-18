@@ -12,10 +12,8 @@ These implementations will verify monkey patching works but will fail correctnes
 """
 
 import os
-import csv
 import argparse
 from pathlib import Path
-import torch
 
 
 WATERMARK_VALUE = 42.0
@@ -23,7 +21,7 @@ WATERMARK_VALUE = 42.0
 
 def create_watermarked_impl(op_name: str, watermark_value: float = WATERMARK_VALUE) -> str:
     """Generate a watermarked implementation that returns a constant tensor."""
-    
+
     return f'''# Watermarked implementation for {op_name} operator
 # This implementation returns a constant tensor to verify monkey patching
 
@@ -57,43 +55,43 @@ def {op_name}_kernel_impl(*args, **kwargs):
 def create_watermarked_operators(
     base_dir: str = "generated_kernels",
     watermark_value: float = WATERMARK_VALUE,
-    overwrite: bool = False
+    overwrite: bool = False,
 ):
     """Create watermarked implementations for all operators in the directory structure."""
-    
+
     base_path = Path(base_dir)
     if not base_path.exists():
         print(f"Error: Directory {base_path} does not exist.")
         print("Please run setup_operator_directories.py first.")
         return
-    
+
     created_count = 0
     skipped_count = 0
-    
+
     # Iterate through all operator directories
     for op_dir in base_path.iterdir():
         if not op_dir.is_dir() or op_dir.name == "__pycache__":
             continue
-        
+
         op_name = op_dir.name
         impl_file = op_dir / f"{op_name}_implementation_v1.py"
-        
+
         # Skip if file exists and overwrite is False
         if impl_file.exists() and not overwrite:
             skipped_count += 1
             continue
-        
+
         # Create watermarked implementation
         impl_content = create_watermarked_impl(op_name, watermark_value)
         impl_file.write_text(impl_content)
         created_count += 1
-    
-    print(f"\nWatermarked operator creation complete:")
+
+    print("\nWatermarked operator creation complete:")
     print(f"- Created {created_count} watermarked implementations")
     print(f"- Skipped {skipped_count} existing implementations")
     print(f"- Watermark value: {watermark_value}")
     print(f"- Base directory: {base_path.absolute()}")
-    
+
     # Create a verification script
     verification_script = base_path / "verify_watermarks.py"
     verification_content = f'''#!/usr/bin/env python3
@@ -139,10 +137,10 @@ for op_name in test_ops:
     if not found:
         print(f"? {{op_name}}: Not found in loaded operators")
 '''
-    
+
     verification_script.write_text(verification_content)
     os.chmod(verification_script, 0o755)
-    
+
     print(f"\nCreated verification script: {verification_script}")
     print("\nTo verify watermarks are working:")
     print(f"  python {verification_script}")
@@ -157,27 +155,21 @@ def main():
     parser.add_argument(
         "--base-dir",
         default="generated_kernels",
-        help="Base directory containing operator subdirectories"
+        help="Base directory containing operator subdirectories",
     )
     parser.add_argument(
         "--watermark-value",
         type=float,
         default=WATERMARK_VALUE,
-        help=f"Value to use for watermarking (default: {WATERMARK_VALUE})"
+        help=f"Value to use for watermarking (default: {WATERMARK_VALUE})",
     )
     parser.add_argument(
-        "--overwrite",
-        action="store_true",
-        help="Overwrite existing implementation files"
+        "--overwrite", action="store_true", help="Overwrite existing implementation files"
     )
-    
+
     args = parser.parse_args()
-    
-    create_watermarked_operators(
-        args.base_dir,
-        args.watermark_value,
-        args.overwrite
-    )
+
+    create_watermarked_operators(args.base_dir, args.watermark_value, args.overwrite)
 
 
 if __name__ == "__main__":

@@ -25,18 +25,18 @@ for op_name in test_ops:
             try:
                 x = torch.tensor([1.0, 2.0, 3.0])
                 result = backend[torch_op](x)
-                
+
                 if torch.allclose(result, torch.full_like(x, WATERMARK_VALUE)):
                     print(f"✓ {op_name}: Watermark detected correctly")
                 else:
                     print(f"✗ {op_name}: Unexpected result {result}")
-                
+
                 found = True
                 break
             except Exception as e:
                 print(f"✗ {op_name}: Error - {e}")
                 found = True
                 break
-    
+
     if not found:
         print(f"? {op_name}: Not found in loaded operators")

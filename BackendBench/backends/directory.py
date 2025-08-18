@@ -34,7 +34,11 @@ class DirectoryBackend(Backend):
             if not os.path.isdir(op_dir):
                 continue
 
-            impl_files = [f for f in os.listdir(op_dir) if f.endswith(".py") and f.startswith(f"{op_name}_implementation")]
+            impl_files = [
+                f
+                for f in os.listdir(op_dir)
+                if f.endswith(".py") and f.startswith(f"{op_name}_implementation")
+            ]
             if not impl_files:
                 logger.debug(f"No implementation files found in {op_dir}")
                 continue
@@ -47,7 +51,7 @@ class DirectoryBackend(Backend):
                 # Load the implementation and map to PyTorch operation
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
                 pytorch_ops = self._find_pytorch_ops(op_name)
-                
+
                 if pytorch_ops:
                     for pytorch_op in pytorch_ops:
                         self.compiled_kernels[pytorch_op] = kernel_func
@@ -74,13 +78,13 @@ class DirectoryBackend(Backend):
 
     def _find_pytorch_ops(self, op_name: str):
         """Map operation name to PyTorch operations.
-        
+
         Returns a list of PyTorch operations that match the directory name.
         This handles the common case where a directory name like 'add' should map
         to multiple overloads like add.default, add.Tensor, etc.
         """
         matched_ops = []
-        
+
         # Handle suffixed directory names (e.g., add_out -> add.out)
         base_name = op_name
         suffix = None
@@ -89,11 +93,11 @@ class DirectoryBackend(Backend):
             if parts[1] in ["out", "inplace", "scalar"]:
                 base_name = parts[0]
                 suffix = parts[1]
-        
+
         # Try to find the operation in torch.ops.aten
         if hasattr(torch.ops.aten, base_name):
             aten_op = getattr(torch.ops.aten, base_name)
-            
+
             # If we have a specific suffix, try to get that overload
             if suffix and hasattr(aten_op, suffix):
                 matched_ops.append(getattr(aten_op, suffix))
@@ -106,10 +110,10 @@ class DirectoryBackend(Backend):
                         # For directory without suffix, we typically want the default overload
                         if overload == "default":
                             break
-        
+
         # Also check for operations that might be in other namespaces
         # This could be extended based on actual usage patterns
-        
+
         return matched_ops
 
     def __getitem__(self, key):
