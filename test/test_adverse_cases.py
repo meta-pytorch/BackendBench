@@ -1,6 +1,6 @@
 import pytest
 from BackendBench.torchbench_suite import TorchBenchOpTest
-from BackendBench.eval_multiprocessing import eval_one_op_multiprocessing
+import BackendBench.eval as eval
 import BackendBench.backends as backends
 import torch
 
@@ -23,29 +23,26 @@ class TestAdaptiveAvgPool2dBackward:
 
         # run test that should brick the gpu due to an illegal memory access
         backend = backends.AtenBackend()
-        with pytest.raises(RuntimeError):
-            _, _ = eval_one_op_multiprocessing(
-                op_test_should_error.op,
-                backend[op_test_should_error.op],
-                list(op_test_should_error.correctness_tests),
+        # with pytest.raises(RuntimeError):
+        with eval.MultiprocessingEvaluator() as evaluator:
+            evaluator.submit_task(
+                op_test_should_error.op, 
+                backend[op_test_should_error.op], 
+                list(op_test_should_error.correctness_tests), 
                 list(op_test_should_error.performance_tests),
-                torch.cuda.device_count(),
             )
+            evaluator.submit_task(
+                op_test_should_succeed.op,
+                backend[op_test_should_succeed.op],
+                list(op_test_should_succeed.correctness_tests),
+                list(op_test_should_succeed.performance_tests),
+            )
+            evaluator.start_evaluation()
+            
+            results = evaluator.get_results()
 
-        # add these in case code changes in eval_one_op. There shouldn't be any errors here
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
-
-        # tests that a simple op works afterwards to make sure we recover after an illegal memory access
-        correctness, _ = eval_one_op_multiprocessing(
-            op_test_should_succeed.op,
-            backend[op_test_should_succeed.op],
-            list(op_test_should_succeed.correctness_tests),
-            list(op_test_should_succeed.performance_tests),
-            torch.cuda.device_count(),
-        )
-
-        assert correctness == 1.0
+        assert len(results) == 1
+        assert results[0].correctness_score == 1.0
 
 
 if __name__ == "__main__":

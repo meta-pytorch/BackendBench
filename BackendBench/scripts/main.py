@@ -170,22 +170,28 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    for test in suite:
-        if test.op not in backend:
-            continue
+    with eval.MultiprocessingEvaluator() as evaluator:
+        # Submit all tasks
+        for test in suite:
+            if test.op not in backend:
+                continue
 
-        logger.debug(test.op)
+            logger.debug(test.op)
+            
+            evaluator.submit_task(test.op, backend[test.op], test.correctness_tests, test.performance_tests)
+        
+        # Start evaluation
+        evaluator.start_evaluation()
+        
+        # Get results
+        results = evaluator.get_results()
 
-        correctness, perf = eval.eval_one_op(
-            test.op,
-            backend[test.op],
-            test.correctness_tests,
-            test.performance_tests,
-        )
-        overall_correctness.append(correctness)
-        overall_performance.append(perf)
+    for result in results:
+        correctness_score = result.correctness_score
+        performance_score = result.performance_score
+        overall_correctness.append(correctness_score)
+        overall_performance.append(performance_score)
 
-        logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
