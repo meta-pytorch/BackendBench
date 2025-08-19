@@ -24,6 +24,7 @@ dependencies = [
     "anthropic>=0.34.0",
     "pytest",
     "requests",
+    "huggingface_hub",
 ]
 
 [project.optional-dependencies]
@@ -43,13 +44,14 @@ packages = ["BackendBench"]
 [tool.uv]
 dev-dependencies = [
     "pytest",
-    "pytest-cov", 
+    "pytest-cov",
     "pytest-mock",
     "pytest-timeout",
     "ruff==0.12.1",
     "pre-commit",
     "torch",
     "numpy",
+    "pyarrow",
     # cupy-cuda12x is platform specific, install manually if needed
 ]
 

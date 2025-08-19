@@ -7,6 +7,7 @@ backendbench.egg-info/
 CLAUDE.md
 venv/
 ops/
+datasets/
 uv.lock
 pytorch_operator_coverage.csv
 .pre-commit-cache/

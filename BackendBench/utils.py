@@ -5,10 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import ast
+import gc
 import inspect
+import math
 import re
 import textwrap
-import math
+
 import torch
 from torch.testing import make_tensor
 
@@ -158,4 +160,17 @@ def deserialize_args(inps):
     # f strings introduce quotations we dont want
     for key in dtype_abbrs_parsing:
         inps = inps.replace(f"'{key}'", key)
+
+    # Handle torch.device strings - replace "torch.device(...)" with torch.device(...)
+    # This regex finds patterns like "torch.device('cpu')" or 'torch.device("cuda:0")'
+    pattern = r'["\']torch\.device\((.*?)\)["\']'
+    inps = re.sub(pattern, r"torch.device(\1)", inps)
+
     return eval(inps.strip().strip("'").strip('"'), global_vals)
+
+
+def cleanup_memory_and_gpu():
+    """Helper function to clean up GPU memory"""
+    gc.collect()
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
