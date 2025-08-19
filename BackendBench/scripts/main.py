@@ -103,6 +103,12 @@ def setup_logging(log_level):
     type=str,
     help="Path to directory containing generated kernels",
 )
+@click.option(
+    "--num-workers",
+    default=None,
+    type=int,
+    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing)",
+)
 def cli(
     log_level,
     suite,
@@ -115,6 +121,7 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
+    num_workers,
 ):
     setup_logging(log_level)
     if ops:
@@ -176,30 +183,47 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    num_workers = torch.cuda.device_count()
-    with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-        # Submit all tasks
+    if num_workers is None:
         for test in suite:
             if test.op not in backend:
                 continue
 
             logger.debug(test.op)
 
-            evaluator.submit_task(
-                test.op, backend[test.op], test.correctness_tests, test.performance_tests
+            correctness, perf = eval.eval_one_op(
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests,
             )
+            overall_correctness.append(correctness)
+            overall_performance.append(perf)
 
-        # Start evaluation
-        evaluator.start_evaluation()
+            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+    else:
+        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+            # Submit all tasks
+            for test in suite:
+                if test.op not in backend:
+                    continue
 
-        # Get results
-        results = evaluator.get_results()
+                logger.debug(test.op)
 
-    for result in results:
-        correctness_score = result.correctness_score
-        performance_score = result.performance_score
-        overall_correctness.append(correctness_score)
-        overall_performance.append(performance_score)
+                evaluator.submit_task(
+                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                )
+
+            # Start evaluation
+            evaluator.start_evaluation()
+
+            # Get results
+            results = evaluator.get_results()
+
+        for result in results:
+            correctness_score = result.correctness_score
+            performance_score = result.performance_score
+            overall_correctness.append(correctness_score)
+            overall_performance.append(performance_score)
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
