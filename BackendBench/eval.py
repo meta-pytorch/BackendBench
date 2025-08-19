@@ -55,7 +55,7 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
     """Compute absolute and relative errors between reference and result tensors.
 
     Returns:
-        Tuple of (absolute_error, relative_error) or (None, None) if not comparable
+        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors
     """
     if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
         if ref.shape != res.shape:
@@ -77,20 +77,19 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
         if len(ref) != len(res):
             return None, None
 
-        # For lists/tuples, compute max error across all elements
-        max_abs_error = 0.0
-        max_rel_error = 0.0
+        # For lists/tuples, compute mean error across all elements.
+        # We will return the mean of these means
+        mean_abs_error = 0.0
+        mean_rel_error = 0.0
 
         for r, s in zip(ref, res):
             abs_err, rel_err = compute_errors(r, s)
-            if abs_err is not None:
-                max_abs_error = max(max_abs_error, abs_err)
-                max_rel_error = max(max_rel_error, rel_err)
+            mean_abs_error += abs_err
+            mean_rel_error += rel_err
 
-        return max_abs_error, max_rel_error
-    raise RuntimeError(
-        "Output is not a tensor / list of tensors report this to the backendbench devs"
-    )
+        return mean_abs_error / len(ref), mean_rel_error / len(ref)
+    else:
+        return None, None
 
 
 def eval_correctness_test(
