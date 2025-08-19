@@ -43,7 +43,10 @@ class TestTorchBenchMonkeyPatching(unittest.TestCase):
             import subprocess
             import sys
 
-            subprocess.run([sys.executable, "setup_operator_directories.py"], check=True)
+            subprocess.run(
+                [sys.executable, "-m", "BackendBench.scripts.setup_operator_directories"],
+                check=True,
+            )
 
         # Backup existing implementations and create test ones
         cls._backup_and_create_correct_add()

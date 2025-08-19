@@ -38,10 +38,18 @@ class TestAllOperatorsMonkeyPatching(unittest.TestCase):
     def setUpClass(cls):
         """Generate required directory structure and operators."""
         # Generate the directory structure
-        subprocess.run([sys.executable, "setup_operator_directories.py"], check=True)
+        subprocess.run(
+            [sys.executable, "-m", "BackendBench.scripts.setup_operator_directories"], check=True
+        )
         # Create watermarked implementations
         subprocess.run(
-            [sys.executable, "create_watermarked_operators.py", "--overwrite"], check=True
+            [
+                sys.executable,
+                "-m",
+                "BackendBench.scripts.create_watermarked_operators",
+                "--overwrite",
+            ],
+            check=True,
         )
 
     def test_1_all_operators_loaded(self):
@@ -51,37 +59,22 @@ class TestAllOperatorsMonkeyPatching(unittest.TestCase):
         print("=" * 60)
 
         # Load main directory
-        main_backend = DirectoryBackend("generated_kernels")
-        main_count = len(main_backend.compiled_kernels)
-
-        # Load internal_only directory
-        internal_backend = DirectoryBackend("generated_kernels/internal_only")
-        internal_count = len(internal_backend.compiled_kernels)
+        backend = DirectoryBackend("generated_kernels")
+        operator_count = len(backend.compiled_kernels)
 
         print("\n📊 Operator Loading Summary:")
-        print(f"   Main directory: {main_count} operators")
-        print(f"   Internal directory: {internal_count} operators")
-        print(f"   TOTAL: {main_count + internal_count} operators")
+        print(f"   Generated kernels directory: {operator_count} operators")
 
-        # List some examples from each
-        print("\n📋 Sample operators from main directory:")
-        for i, op in enumerate(list(main_backend.compiled_kernels.keys())[:5]):
+        # List some examples
+        print("\n📋 Sample operators:")
+        for i, op in enumerate(list(backend.compiled_kernels.keys())[:5]):
             print(f"   {i + 1}. {op}")
-        print(f"   ... and {main_count - 5} more")
-
-        print("\n📋 Sample operators from internal_only:")
-        for i, op in enumerate(list(internal_backend.compiled_kernels.keys())[:5]):
-            print(f"   {i + 1}. {op}")
-        if internal_count > 5:
-            print(f"   ... and {internal_count - 5} more")
+        print(f"   ... and {operator_count - 5} more")
 
         # Verify we loaded a substantial number
-        self.assertGreater(main_count, 50, "Should load many operators from main directory")
-        self.assertGreater(internal_count, 30, "Should load many operators from internal_only")
+        self.assertGreater(operator_count, 100, "Should load many operators from generated_kernels")
 
-        print(
-            f"\n✅ SUCCESS: DirectoryBackend loaded {main_count + internal_count} total operators"
-        )
+        print(f"\n✅ SUCCESS: DirectoryBackend loaded {operator_count} total operators")
 
     def test_2_watermarked_operators_fail_correctness(self):
         """Test 2: Verify watermarked operators fail eval_correctness."""
@@ -230,30 +223,23 @@ class TestAllOperatorsMonkeyPatching(unittest.TestCase):
         print("=" * 60)
 
         # Count operators in directories
-        main_ops = list(Path("generated_kernels").iterdir())
-        main_ops = [d for d in main_ops if d.is_dir() and d.name != "internal_only"]
-
-        internal_ops = list(Path("generated_kernels/internal_only").iterdir())
-        internal_ops = [d for d in internal_ops if d.is_dir()]
+        ops_dirs = list(Path("generated_kernels").iterdir())
+        ops_dirs = [d for d in ops_dirs if d.is_dir()]
 
         print("\n📁 Directory Structure:")
-        print(f"   generated_kernels/: {len(main_ops)} operator directories")
-        print(f"   generated_kernels/internal_only/: {len(internal_ops)} operator directories")
-        print(f"   TOTAL: {len(main_ops) + len(internal_ops)} operator directories")
+        print(f"   generated_kernels/: {len(ops_dirs)} operator directories")
 
         # Load with DirectoryBackend and compare
-        main_backend = DirectoryBackend("generated_kernels")
-        internal_backend = DirectoryBackend("generated_kernels/internal_only")
+        backend = DirectoryBackend("generated_kernels")
 
         print("\n🔧 DirectoryBackend Loading:")
-        print(f"   Main backend: {len(main_backend.compiled_kernels)} operators loaded")
-        print(f"   Internal backend: {len(internal_backend.compiled_kernels)} operators loaded")
+        print(f"   Backend: {len(backend.compiled_kernels)} operators loaded")
 
         # The loaded count might be slightly different due to operator overloads
         # but should be in the same ballpark
         self.assertGreater(
-            len(main_backend.compiled_kernels),
-            len(main_ops) * 0.8,
+            len(backend.compiled_kernels),
+            len(ops_dirs) * 0.8,
             "Should load most operators from directories",
         )
 

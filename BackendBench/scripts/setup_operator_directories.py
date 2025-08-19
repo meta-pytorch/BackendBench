@@ -17,7 +17,7 @@ import argparse
 from pathlib import Path
 
 # Import the generate_coverage_csv functionality
-from BackendBench.scripts.generate_operator_coverage_csv import generate_coverage_csv
+from .generate_operator_coverage_csv import generate_coverage_csv
 
 
 def clean_op_name_for_directory(op_name: str) -> str:
