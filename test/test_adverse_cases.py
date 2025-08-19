@@ -6,7 +6,7 @@
 
 import pytest
 from BackendBench.torchbench_suite import TorchBenchOpTest
-import BackendBench.eval as eval
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 import BackendBench.backends as backends
 import torch
 
@@ -29,8 +29,7 @@ class TestAdaptiveAvgPool2dBackward:
 
         # run test that should brick the gpu due to an illegal memory access
         backend = backends.AtenBackend()
-        # with pytest.raises(RuntimeError):
-        with eval.MultiprocessingEvaluator() as evaluator:
+        with multiprocessing_eval.MultiprocessingEvaluator() as evaluator:
             evaluator.submit_task(
                 op_test_should_error.op,
                 backend[op_test_should_error.op],

@@ -10,7 +10,7 @@ import sys
 from typing import Dict
 
 import BackendBench.backends as backends
-import BackendBench.eval as eval
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
 from BackendBench.facto_suite import FactoTestSuite
@@ -176,14 +176,8 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    device = "cuda"
-    if device == "cuda":
-        num_workers = torch.cuda.device_count()
-    else:
-        num_workers = 1
-    num_workers = 1
-
-    with eval.MultiprocessingEvaluator(num_workers, device) as evaluator:
+    num_workers = torch.cuda.device_count()
+    with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
         # Submit all tasks
         for test in suite:
             if test.op not in backend:
