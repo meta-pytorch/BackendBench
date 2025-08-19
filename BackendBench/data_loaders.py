@@ -11,6 +11,7 @@ Shared data loading utilities for reading trace and parquet files.
 import hashlib
 import logging
 import re
+from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -164,13 +165,10 @@ def load_ops_from_source(
                 format = "parquet"
             elif source.endswith(".txt"):
                 format = "trace"
-            elif source.startswith(("http://", "https://")):
-                # Remote URL without recognizable extension - default to trace
-                format = "trace"
             else:
                 raise ValueError(f"Unsupported source: {source}")
         else:
-            raise ValueError(f"Unsupported source: {source}")
+            raise ValueError(f"Unsupported source type: {type(source)} it should be a string")
 
     if format == "parquet":
         return _load_from_parquet(source, filter)
@@ -181,9 +179,35 @@ def load_ops_from_source(
         raise ValueError(f"Unsupported format: {format}")
 
 
-def _load_from_parquet(source: Union[str, Path], filter: Optional[List[str]]):
-    """Load operations from parquet file."""
-    table = pq.read_table(source)
+def _load_from_parquet(
+    source: Union[str, Path], filter: Optional[List[str]] = None, timeout: int = 30
+):
+    """
+    Load operations from parquet file or URL.
+
+    Args:
+        source: Local file path or URL to parquet file
+        filter: Optional list of strings to filter operation names
+        timeout: Timeout in seconds for URL requests (default: 30)
+
+    Returns:
+        List of dictionaries containing the data
+    """
+
+    # Check if source is a URL
+    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
+        try:
+            # Download the file content with timeout
+            response = requests.get(source, timeout=timeout)
+            response.raise_for_status()
+
+            # Read parquet from bytes in memory
+            table = pq.read_table(BytesIO(response.content))
+        except requests.RequestException as e:
+            raise ValueError(f"Failed to download parquet file from URL: {e}")
+    else:
+        table = pq.read_table(source)
+
     df = table.to_pandas()
 
     # Apply filter if provided
