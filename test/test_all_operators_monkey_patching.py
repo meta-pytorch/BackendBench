@@ -34,6 +34,16 @@ from BackendBench.suite import Test
 class TestAllOperatorsMonkeyPatching(unittest.TestCase):
     """Test that ALL operators are loaded and monkey patched."""
 
+    @classmethod
+    def setUpClass(cls):
+        """Generate required directory structure and operators."""
+        # Generate the directory structure
+        subprocess.run([sys.executable, "setup_operator_directories.py"], check=True)
+        # Create watermarked implementations
+        subprocess.run(
+            [sys.executable, "create_watermarked_operators.py", "--overwrite"], check=True
+        )
+
     def test_1_all_operators_loaded(self):
         """Test 1: Verify DirectoryBackend loads ALL operators."""
         print("\n" + "=" * 60)

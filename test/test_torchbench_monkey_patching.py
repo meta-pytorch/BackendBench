@@ -38,6 +38,13 @@ class TestTorchBenchMonkeyPatching(unittest.TestCase):
         cls.generated_kernels_dir = Path("generated_kernels")
         cls.backup_implementations = {}
 
+        # Generate the directory structure if it doesn't exist
+        if not cls.generated_kernels_dir.exists():
+            import subprocess
+            import sys
+
+            subprocess.run([sys.executable, "setup_operator_directories.py"], check=True)
+
         # Backup existing implementations and create test ones
         cls._backup_and_create_correct_add()
         cls._backup_and_create_correct_abs()

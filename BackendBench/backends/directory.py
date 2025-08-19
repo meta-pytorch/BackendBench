@@ -107,9 +107,6 @@ class DirectoryBackend(Backend):
                     if hasattr(aten_op, overload):
                         op = getattr(aten_op, overload)
                         matched_ops.append(op)
-                        # For directory without suffix, we typically want the default overload
-                        if overload == "default":
-                            break
 
         # Also check for operations that might be in other namespaces
         # This could be extended based on actual usage patterns
