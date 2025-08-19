@@ -61,7 +61,7 @@ def eval_correctness(op, impl, tests):
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
-    return correct / total if total > 0 else 0.0
+    return correct / total
 
 
 def cpu_bench(fn, num_runs=100):
