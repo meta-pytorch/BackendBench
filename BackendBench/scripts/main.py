@@ -11,6 +11,7 @@ from typing import Dict
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
 
@@ -104,6 +105,12 @@ def setup_logging(log_level):
     type=str,
     help="Path to directory containing generated kernels",
 )
+@click.option(
+    "--num-workers",
+    default=None,
+    type=int,
+    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing)",
+)
 def cli(
     log_level,
     suite,
@@ -116,6 +123,7 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
+    num_workers,
 ):
     setup_logging(log_level)
     if ops:
@@ -177,22 +185,47 @@ def cli(
     overall_correctness = []
     overall_performance = []
 
-    for test in suite:
-        if test.op not in backend:
-            continue
+    if num_workers is None:
+        for test in suite:
+            if test.op not in backend:
+                continue
 
-        logger.debug(test.op)
+            logger.debug(test.op)
 
-        correctness, perf = eval.eval_one_op(
-            test.op,
-            backend[test.op],
-            test.correctness_tests,
-            test.performance_tests,
-        )
-        overall_correctness.append(correctness)
-        overall_performance.append(perf)
+            correctness, perf = eval.eval_one_op(
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests,
+            )
+            overall_correctness.append(correctness)
+            overall_performance.append(perf)
 
-        logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+    else:
+        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+            # Submit all tasks
+            for test in suite:
+                if test.op not in backend:
+                    continue
+
+                logger.debug(test.op)
+
+                evaluator.submit_task(
+                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                )
+
+            # Start evaluation
+            evaluator.start_evaluation()
+
+            # Get results
+            results = evaluator.get_results()
+
+        for result in results:
+            correctness_score = result.correctness_score
+            performance_score = result.performance_score
+            overall_correctness.append(correctness_score)
+            overall_performance.append(performance_score)
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
