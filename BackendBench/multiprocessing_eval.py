@@ -28,7 +28,6 @@ from typing import Any, List, Optional
 import torch
 
 from BackendBench.eval import eval_one_op
-from BackendBench.utils import is_pickleable
 from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
 
 logger = logging.getLogger(__name__)
@@ -61,6 +60,18 @@ class ProcessDeathSignal:
 
     worker_id: int
     error_msg: str
+
+
+def is_pickleable(obj):
+    import pickle
+    import io
+
+    try:
+        with io.BytesIO() as stream:
+            pickle.dump(obj, stream)
+        return True
+    except Exception:
+        return False
 
 
 def _worker_process(worker_id, task_queue, result_queue):

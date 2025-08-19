@@ -159,15 +159,3 @@ def deserialize_args(inps):
     for key in dtype_abbrs_parsing:
         inps = inps.replace(f"'{key}'", key)
     return eval(inps.strip().strip("'").strip('"'), global_vals)
-
-
-def is_pickleable(obj):
-    import pickle
-    import io
-
-    try:
-        with io.BytesIO() as stream:
-            pickle.dump(obj, stream)
-        return True
-    except Exception:
-        return False
