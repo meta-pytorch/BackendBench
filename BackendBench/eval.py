@@ -57,42 +57,40 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
     Returns:
         Tuple of (absolute_error, relative_error) or (None, None) if not comparable
     """
-    try:
-        if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
-            if ref.shape != res.shape:
-                return None, None
+    if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
+        if ref.shape != res.shape:
+            return None, None
 
-            # Convert to float for error calculation
-            ref_float = ref.float()
-            res_float = res.float()
+        # Convert to float for error calculation
+        ref_float = ref.float()
+        res_float = res.float()
 
-            # Absolute error
-            abs_error = (ref_float - res_float).abs().max().item()
+        # Absolute error
+        abs_error = (ref_float - res_float).abs().mean().item()
 
-            # Relative error (avoid division by zero)
-            ref_abs = ref_float.abs()
-            rel_error = ((ref_float - res_float).abs() / (ref_abs + 1e-10)).max().item()
+        # Relative error (avoid division by zero)
+        ref_abs = ref_float.abs()
+        rel_error = ((ref_float - res_float).abs() / (ref_abs + 1e-10)).mean().item()
 
-            return abs_error, rel_error
-        elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
-            if len(ref) != len(res):
-                return None, None
+        return abs_error, rel_error
+    elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
+        if len(ref) != len(res):
+            return None, None
 
-            # For lists/tuples, compute max error across all elements
-            max_abs_error = 0.0
-            max_rel_error = 0.0
+        # For lists/tuples, compute max error across all elements
+        max_abs_error = 0.0
+        max_rel_error = 0.0
 
-            for r, s in zip(ref, res):
-                abs_err, rel_err = compute_errors(r, s)
-                if abs_err is not None:
-                    max_abs_error = max(max_abs_error, abs_err)
-                    max_rel_error = max(max_rel_error, rel_err)
+        for r, s in zip(ref, res):
+            abs_err, rel_err = compute_errors(r, s)
+            if abs_err is not None:
+                max_abs_error = max(max_abs_error, abs_err)
+                max_rel_error = max(max_rel_error, rel_err)
 
-            return max_abs_error, max_rel_error
-    except Exception:
-        pass
-
-    return None, None
+        return max_abs_error, max_rel_error
+    raise RuntimeError(
+        "Output is not a tensor / list of tensors report this to the backendbench devs"
+    )
 
 
 def eval_correctness_test(
@@ -130,8 +128,8 @@ def eval_correctness(op, impl, tests, verbose_data: defaultdict):
         verbose_data[args_str] = {
             "correctness_score": 1 if is_correct else 0,
             "correctness_errors": error_msg or "",
-            "absolute_error": abs_error if abs_error is not None else "",
-            "relative_error": rel_error if rel_error is not None else "",
+            "absolute_error": str(abs_error) if abs_error is not None else "",
+            "relative_error": str(rel_error) if rel_error is not None else "",
         }
 
         if is_correct:
@@ -170,14 +168,16 @@ def eval_performance(op, impl, tests, verbose_data: defaultdict):
         try:
             ref = op(*test.args, **test.kwargs)
             res = impl(*test.args, **test.kwargs)
-            allclose(ref, res)
+            if not allclose(ref, res):
+                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
-            test_time = base_time
+            test_time = -1
 
         test_times.append(test_time)
-        verbose_data[args_str]["benchmark_time"] = test_time
-        verbose_data[args_str]["speedup"] = base_time / test_time
+        verbose_data[args_str]["benchmark_time"] = str(test_time)
+        speedup = base_time / test_time if test_time > 0 else float("inf")
+        verbose_data[args_str]["speedup"] = str(speedup)
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
     return speedups.log().mean().exp()
@@ -215,16 +215,6 @@ def save_verbose_results(
     results: List[Dict[str, Any]], output_path: str = "backendbench_verbose_results.json"
 ):
     """Save verbose results to a JSON file."""
-    # Convert non-serializable values
-    for result in results:
-        for key, value in result.items():
-            if isinstance(value, (torch.Tensor, torch.dtype)):
-                result[key] = str(value)
-            elif isinstance(value, float) and (
-                value == float("inf") or value == float("-inf") or value != value
-            ):
-                result[key] = str(value)
-
     with open(Path(output_path), "w") as f:
         json.dump(results, f, indent=2)
 
