@@ -154,6 +154,12 @@ def deserialize_args(inps):
     # f strings introduce quotations we dont want
     for key in dtype_abbrs_parsing:
         inps = inps.replace(f"'{key}'", key)
+
+    # Handle torch.device strings - replace "torch.device(...)" with torch.device(...)
+    # This regex finds patterns like "torch.device('cpu')" or 'torch.device("cuda:0")'
+    pattern = r'["\']torch\.device\((.*?)\)["\']'
+    inps = re.sub(pattern, r"torch.device(\1)", inps)
+
     return eval(inps.strip().strip("'").strip('"'), global_vals)
 
 

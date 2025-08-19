@@ -11,9 +11,9 @@ from BackendBench.data_loaders import (
 from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
 from BackendBench.utils import deserialize_args
 
-# the schema for this dataset is the one defined in tritonbench traces.
-# ie. https://github.com/pytorch-labs/tritonbench/blob/main/tritonbench/data/input_configs/hf_train/AlbertForMaskedLM_training.txt
-DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/raw/main/augmented_hf_op_traces.txt"
+# for details on the dataset read this:
+# https://huggingface.co/datasets/GPUMODE/huggingface_op_trace
+DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/backend_bench_problems.parquet"
 
 
 class TorchBenchTest:

@@ -4,9 +4,7 @@ import torch
 
 import triton.testing
 
-
-from BackendBench.utils import uses_cuda_stream
-from BackendBench.utils import serialize_args
+from BackendBench.utils import serialize_args, uses_cuda_stream
 
 logger = logging.getLogger(__name__)
 
