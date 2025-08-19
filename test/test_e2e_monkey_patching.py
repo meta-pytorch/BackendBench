@@ -188,7 +188,7 @@ def abs_kernel_impl(input):
         print("\n=== Test 3: SmokeTestSuite Integration ===")
 
         backend = DirectoryBackend(str(self.test_dir))
-        suite = SmokeTestSuite()
+        suite = SmokeTestSuite
 
         evaluated_count = 0
         correct_count = 0

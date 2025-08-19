@@ -123,4 +123,4 @@ class DirectoryBackend(Backend):
         return key
 
     def __contains__(self, key):
-        return key in self.compiled_kernels or True  # Always claim to contain ops for fallback
+        return key in self.compiled_kernels
