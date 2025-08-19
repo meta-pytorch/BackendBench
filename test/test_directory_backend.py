@@ -20,15 +20,12 @@ from BackendBench.backends import DirectoryBackend
 
 @pytest.fixture(scope="module")
 def backend():
-    expected_dirs = ["relu", "add", "mul", "abs", "sum"]
-    missing_dirs = [d for d in expected_dirs if not os.path.isdir(f"generated_kernels/{d}")]
+    # Always create correct test implementations, overriding any watermarked ones
+    import subprocess
 
-    if missing_dirs:
-        import subprocess
-
-        subprocess.run(
-            [sys.executable, "BackendBench/scripts/create_simple_test_ops.py"], check=True
-        )
+    subprocess.run(
+        [sys.executable, "-m", "BackendBench.scripts.create_simple_test_ops"], check=True
+    )
 
     return DirectoryBackend(ops_dir="generated_kernels")
 

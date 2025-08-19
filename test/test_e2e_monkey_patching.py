@@ -46,6 +46,7 @@ class TestE2EMonkeyPatching(unittest.TestCase):
         # Create 2 correct and 2 incorrect implementations
         cls._create_correct_add()
         cls._create_correct_mul()
+        cls._create_correct_relu()  # Add relu for SmokeTestSuite
         cls._create_incorrect_sub()  # Returns zeros
         cls._create_incorrect_abs()  # Returns negative of input
 
@@ -79,6 +80,18 @@ def add_kernel_impl(input, other, *, alpha=1):
 def mul_kernel_impl(input, other):
     """Correct implementation of torch.mul"""
     return input * other
+''')
+
+    @classmethod
+    def _create_correct_relu(cls):
+        """Create correct relu implementation."""
+        relu_dir = cls.test_dir / "relu"
+        relu_dir.mkdir(exist_ok=True)
+        (relu_dir / "relu_implementation_v1.py").write_text('''
+import torch
+def relu_kernel_impl(input):
+    """Correct implementation of torch.relu"""
+    return torch.relu(input)
 ''')
 
     @classmethod
