@@ -9,3 +9,4 @@ ops/
 uv.lock
 pytorch_operator_coverage.csv
 .pre-commit-cache/
+generated_kernels/
