@@ -61,7 +61,7 @@ def eval_correctness(op, impl, tests):
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
-    return correct / total
+    return correct / total if total > 0 else 0.0
 
 
 def cpu_bench(fn, num_runs=100):
@@ -104,7 +104,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
-        return 0, 0
+        return 0.0, 1.0
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
