@@ -10,6 +10,7 @@ import sys
 from typing import Dict
 
 import BackendBench.backends as backends
+import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
