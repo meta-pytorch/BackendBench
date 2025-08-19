@@ -37,4 +37,4 @@ jobs:
       run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
     
     - name: Run pytest tests
-      run: uv run pytest test/ --deselect test/test_adverse_cases.py
+      run: uv run pytest test/
