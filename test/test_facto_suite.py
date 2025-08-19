@@ -7,14 +7,13 @@
 import pytest
 import torch
 
-try:
-    import BackendBench.backends as backends
-    from BackendBench.eval import eval_one_op
-    from BackendBench.facto_suite import FactoTestSuite
+import BackendBench.backends as backends
+from BackendBench.eval import eval_one_op
+from BackendBench.facto_suite import FactoTestSuite
 
-    HAS_FACTO_DEPS = True
-except ImportError:
-    HAS_FACTO_DEPS = False
+import importlib.util
+
+HAS_FACTO_DEPS = importlib.util.find_spec("facto") is not None
 
 pytestmark = pytest.mark.skipif(not HAS_FACTO_DEPS, reason="facto dependencies not available")
 

@@ -6,14 +6,14 @@
 
 import pytest
 from BackendBench.torchbench_suite import TorchBenchOpTest
-from BackendBench.eval import eval_one_op
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 import BackendBench.backends as backends
 import torch
 
 
 class TestAdaptiveAvgPool2dBackward:
-    # todo: @jiannanWang unskip this test
-    @pytest.mark.skip(reason="Not ready for testing yet as it'd brick the gpu")
+    @pytest.mark.skip(reason="Skipped due to tensor size causing CUDA OOM in smoke test.")
+    @pytest.mark.skipif(not torch.cuda.is_available(), reason="Requires GPU")
     def test_adaptive_avg_pool2d_backward_gpu(self):
         """Test on GPU with eval_one_op."""
         op_test_should_error = TorchBenchOpTest(
@@ -30,27 +30,53 @@ class TestAdaptiveAvgPool2dBackward:
 
         # run test that should brick the gpu due to an illegal memory access
         backend = backends.AtenBackend()
-        with pytest.raises(RuntimeError):
-            _, _, _ = eval_one_op(
+        with multiprocessing_eval.MultiprocessingEvaluator() as evaluator:
+            evaluator.submit_task(
                 op_test_should_error.op,
                 backend[op_test_should_error.op],
                 list(op_test_should_error.correctness_tests),
                 list(op_test_should_error.performance_tests),
             )
+            evaluator.submit_task(
+                op_test_should_succeed.op,
+                backend[op_test_should_succeed.op],
+                list(op_test_should_succeed.correctness_tests),
+                list(op_test_should_succeed.performance_tests),
+            )
+            evaluator.start_evaluation()
 
-        # add these in case code changes in eval_one_op. There shouldn't be any errors here
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+            results = evaluator.get_results()
 
-        # tests that a simple op works afterwards to make sure we recover after an illegal memory access
-        correctness, _, _ = eval_one_op(
-            op_test_should_succeed.op,
-            backend[op_test_should_succeed.op],
-            list(op_test_should_succeed.correctness_tests),
-            list(op_test_should_succeed.performance_tests),
-        )
+        assert len(results) == 1
+        assert results[0].correctness_score == 1.0
 
-        assert correctness == 1.0
+
+class TestCase:
+    def __init__(self, args, kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
+
+class TestMultiprocessingEval:
+    def test_multiprocessing_evaluator(self):
+        op = torch.relu
+        impl = torch.relu  # Same implementation
+
+        correctness_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(3)]
+        performance_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(2)]
+
+        with multiprocessing_eval.MultiprocessingEvaluator() as evaluator:
+            evaluator.submit_task(op, impl, correctness_tests, performance_tests)
+
+            evaluator.start_evaluation()
+
+            results = evaluator.get_results()
+
+        assert len(results) == 1
+        # Should have perfect correctness since using same implementation
+        assert results[0].correctness_score == 1.0
+        # Performance should be around 1.0 (same speed)
+        assert results[0].performance_score.item() > 0
 
 
 if __name__ == "__main__":

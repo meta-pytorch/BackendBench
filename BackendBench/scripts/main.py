@@ -11,8 +11,10 @@ from typing import Dict
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
+
 from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.opinfo_suite import OpInfoTestSuite
@@ -108,6 +110,10 @@ def setup_logging(log_level):
     default=None,
     type=str,
     help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+    "--num-workers",
+    default=None,
+    type=int,
+    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing)",
 )
 def cli(
     log_level,
@@ -122,6 +128,7 @@ def cli(
     torchbench_data_path,
     ops_directory,
     output_path,
+    num_workers,
 ):
     setup_logging(log_level)
     if ops:
@@ -184,29 +191,54 @@ def cli(
     overall_performance = []
     verbose_results = []
 
-    for test in suite:
-        if test.op not in backend:
-            continue
+    if num_workers is None:
+        for test in suite:
+            if test.op not in backend:
+                continue
 
-        logger.debug(test.op)
+            logger.debug(test.op)
 
-        correctness, perf, op_verbose_data = eval.eval_one_op(
-            test.op,
-            backend[test.op],
-            test.correctness_tests,
-            test.performance_tests,
-        )
-        overall_correctness.append(correctness)
-        overall_performance.append(perf)
+            correctness, perf, op_verbose_data = eval.eval_one_op(
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests,
+            )
+            overall_correctness.append(correctness)
+            overall_performance.append(perf)
 
-        # Convert dict to list entries with op_name
-        op_name = getattr(test.op, "__name__", str(test.op))
-        for args_str, data in op_verbose_data.items():
-            entry = {"op_name": op_name, "args": args_str}
-            entry.update(data)
-            verbose_results.append(entry)
+            # Convert dict to list entries with op_name
+            op_name = getattr(test.op, "__name__", str(test.op))
+            for args_str, data in op_verbose_data.items():
+                entry = {"op_name": op_name, "args": args_str}
+                entry.update(data)
+                verbose_results.append(entry)      
+      
+            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+    else:
+        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+            # Submit all tasks
+            for test in suite:
+                if test.op not in backend:
+                    continue
 
-        logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
+                logger.debug(test.op)
+
+                evaluator.submit_task(
+                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                )
+
+            # Start evaluation
+            evaluator.start_evaluation()
+
+            # Get results
+            results = evaluator.get_results()
+
+        for result in results:
+            correctness_score = result.correctness_score
+            performance_score = result.performance_score
+            overall_correctness.append(correctness_score)
+            overall_performance.append(performance_score)
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
