@@ -159,7 +159,9 @@ class MultiprocessingEvaluator:
             assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
         else:
             if num_workers > 1:
-                logger.warning(f"No CUDA devices available, limiting workers to 1 (requested: {num_workers})")
+                logger.warning(
+                    f"No CUDA devices available, limiting workers to 1 (requested: {num_workers})"
+                )
                 num_workers = 1
 
         self.mp_context = mp.get_context("spawn")

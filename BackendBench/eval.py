@@ -4,13 +4,15 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-from collections import defaultdict
 import json
 import logging
+import traceback
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
+
 
 try:
     if torch.cuda.is_available():
@@ -30,12 +32,14 @@ EXC_MSG = """
 Exception raised for {op}:
     args: {args}
     exc: {exc}
+    traceback: {traceback}
 """
 
 
 def format_exception(e, op, args, kwargs):
     op_name = getattr(op, "__name__", str(op))
-    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e)
+    tb_str = traceback.format_exc()
+    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e, traceback=tb_str)
 
 
 def allclose(a, b):
@@ -49,7 +53,7 @@ def allclose(a, b):
     return a == b
 
 
-def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
+def compute_errors(ref, res, eps=1e-10) -> Tuple[Optional[float], Optional[float]]:
     """Compute absolute and relative errors between reference and result tensors.
 
     Returns:
@@ -57,6 +61,10 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
     """
     if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
         if ref.shape != res.shape:
+            return None, None
+
+        if ref.is_sparse and res.is_sparse:
+            # todo: create note that we don't calculate errors for sparse tensors / results
             return None, None
 
         # Convert to float for error calculation
@@ -68,11 +76,17 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
 
         # Relative error (avoid division by zero)
         ref_abs = ref_float.abs()
-        rel_error = ((ref_float - res_float).abs() / (ref_abs + 1e-10)).mean().item()
+        rel_error = ((ref_float - res_float).abs() / (ref_abs + eps)).mean().item()
 
         return abs_error, rel_error
     elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
         if len(ref) != len(res):
+            return None, None
+
+        # if we have no tensors just return None
+        if not any(not isinstance(x, torch.Tensor) for x in ref) or not any(
+            not isinstance(x, torch.Tensor) for x in res
+        ):
             return None, None
 
         # For lists/tuples, compute mean error across all elements.
@@ -82,6 +96,8 @@ def compute_errors(ref, res) -> Tuple[Optional[float], Optional[float]]:
 
         for r, s in zip(ref, res):
             abs_err, rel_err = compute_errors(r, s)
+            if abs_err is None or rel_err is None:
+                continue
             mean_abs_error += abs_err
             mean_rel_error += rel_err
 
@@ -161,20 +177,23 @@ def eval_performance(op, impl, tests, verbose_data: defaultdict):
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
         base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
         base_times.append(base_time)
-
+        test_time = base_time
         try:
             ref = op(*test.args, **test.kwargs)
             res = impl(*test.args, **test.kwargs)
-            if not allclose(ref, res):
+            if not allclose(
+                ref,
+                res,
+            ):
                 raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
-            test_time = -1
-
-        test_times.append(test_time)
-        verbose_data[args_str]["benchmark_time"] = str(test_time)
-        speedup = base_time / test_time if test_time > 0 else float("inf")
-        verbose_data[args_str]["speedup"] = str(speedup)
+            pass
+        finally:
+            test_times.append(test_time)
+            verbose_data[args_str]["benchmark_time"] = str(test_time)
+            speedup = base_time / test_time if test_time > 0 else float("inf")
+            verbose_data[args_str]["speedup"] = str(speedup)
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
     return speedups.log().mean().exp()
@@ -209,7 +228,8 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
 
 
 def save_verbose_results(
-    results: List[Dict[str, Any]], output_path: str = "backendbench_verbose_results.json"
+    results: List[Dict[str, Any]],
+    output_path: str = "backendbench_verbose_results.json",
 ):
     """Save verbose results to a JSON file."""
     with open(Path(output_path), "w") as f:

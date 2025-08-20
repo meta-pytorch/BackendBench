@@ -214,8 +214,8 @@ def cli(
             for args_str, data in op_verbose_data.items():
                 entry = {"op_name": op_name, "args": args_str}
                 entry.update(data)
-                verbose_results.append(entry)      
-      
+                verbose_results.append(entry)
+
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
         with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
@@ -244,7 +244,7 @@ def cli(
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
-            
+
             # Handle verbose data if present
             if result.verbose_data and result.task_id in task_to_op_name:
                 op_name = task_to_op_name[result.task_id]
