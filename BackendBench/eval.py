@@ -65,6 +65,7 @@ def compute_errors(ref, res, eps=1e-10) -> Tuple[Optional[float], Optional[float
 
         if ref.is_sparse and res.is_sparse:
             # todo: create note that we don't calculate errors for sparse tensors / results
+            # _sparse_coo_tensor_with_dims_and_tensors is an example
             return None, None
 
         # Convert to float for error calculation
