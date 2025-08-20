@@ -29,16 +29,11 @@ SKIP_OPERATORS = [
 
 
 def apply_skip_ops_filter(ops):
-    total_ops = 0
-    synthetic_ops = 0
-    skip_ops = 0
     for op in tqdm.tqdm(ops, desc="Filtering ops by skip and synthetic ops"):
-        total_ops += 1
         if any(skip_op in op["op_name"] for skip_op in SKIP_OPERATORS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append("We cannot run this op on backendbench yet")
             op["runnable"] = False
-            skip_ops += 1
 
         if op["is_synthetic"]:
             op["included_in_benchmark"] = False
@@ -46,7 +41,6 @@ def apply_skip_ops_filter(ops):
                 "Synthetic ops are not supported in the official benchmark yet"
             )
             op["runnable"] = False
-            synthetic_ops += 1
     return ops
 
 
