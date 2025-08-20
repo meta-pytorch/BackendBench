@@ -11,7 +11,6 @@ import logging
 import os
 from collections import defaultdict
 from pathlib import Path
-from typing import List
 
 import click
 import pyarrow as pa
@@ -87,9 +86,7 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
 
     # Add additional metadata fields required for the parquet format
     for op in ops:
-        op["uuid"] = hashlib.sha256(
-            op["args"].encode() + op["op_name"].encode()
-        ).hexdigest()
+        op["uuid"] = hashlib.sha256(op["args"].encode() + op["op_name"].encode()).hexdigest()
         op["included_in_benchmark"] = True
         op["why_excluded"] = []
         op["runtime_ms"] = ""
@@ -111,14 +108,13 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     non_testable_ops = all_ops - testable_ops
 
     for reason, count in exclusion_dict.items():
-        logger.info(
-            f"Excluded {count} / {len(ops)} ops and input combinations due to {reason}"
-        )
+        logger.info(f"Excluded {count} / {len(ops)} ops and input combinations due to {reason}")
     logger.info(
         f"Excluded {len(non_testable_ops)} / {len(all_ops)} ops and input combinations due to not having tests"
     )
+    list_str = "\n".join(non_testable_ops)
     logger.info(
-        f"Excluded the following ops and input combinations as they did not have tests:\n {'\n'.join(non_testable_ops)}"
+        f"Excluded the following ops and input combinations as they did not have tests:\n {list_str}"
     )
 
     # Create parquet table with all metadata (formerly "dev" version)
@@ -186,9 +182,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 
     # For local files, check extension
     if not (trace_file.endswith(".txt") or Path(trace_file).is_dir()):
-        raise click.BadParameter(
-            "Local trace file must end with .txt or be a directory"
-        )
+        raise click.BadParameter("Local trace file must end with .txt or be a directory")
 
     if Path(trace_file).is_dir() and not is_input:
         raise click.BadParameter("Output trace file cannot be a directory")
@@ -200,9 +194,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 @click.option(
     "--log-level",
     default=os.getenv("LOG_LEVEL", "INFO"),
-    type=click.Choice(
-        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
-    ),
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
     help="Set the logging level",
 )
 @click.option(
@@ -244,14 +236,10 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf, limit):
 
     if mode == "trace-to-parquet":
         # Validate inputs/outputs
-        trace_file = _validate_trace_file(
-            trace_file, is_input=True
-        )  # Input: URLs allowed
+        trace_file = _validate_trace_file(trace_file, is_input=True)  # Input: URLs allowed
         parquet_name = _validate_parquet_name(parquet_name)  # Output: URLs not allowed
 
-        logger.info(
-            f"Converting trace file {trace_file} to parquet file {parquet_name}"
-        )
+        logger.info(f"Converting trace file {trace_file} to parquet file {parquet_name}")
 
         convert_trace_to_parquet(trace_file, parquet_name, limit=limit)
         logger.info("Conversion completed successfully")
@@ -264,13 +252,9 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf, limit):
         # Validate parquet input (URLs allowed for input in this mode)
         parquet_input = _validate_parquet_name(parquet_name)
         # Validate trace output (URLs not allowed for output)
-        trace_output = _validate_trace_file(
-            trace_file, is_input=False
-        )  # Output: URLs not allowed
+        trace_output = _validate_trace_file(trace_file, is_input=False)  # Output: URLs not allowed
 
-        logger.info(
-            f"Converting parquet file {parquet_input} to trace file {trace_output}"
-        )
+        logger.info(f"Converting parquet file {parquet_input} to trace file {trace_output}")
         convert_parquet_to_trace(parquet_input, trace_output, limit=limit)
         logger.info("Conversion completed successfully")
 

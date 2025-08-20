@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 
 import torch
 
@@ -52,7 +51,6 @@ def apply_skip_ops_filter(ops):
 
 
 def apply_runtime_filter(ops):
-
     # we shall define the threshold of an op being useful as taking at least
     # 3x the time of torch.randn(1) * 3 as this means it takes reasonably longer than kernel_overhead
 

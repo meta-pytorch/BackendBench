@@ -9,7 +9,6 @@ Shared data loading utilities for reading trace and parquet files.
 """
 
 import hashlib
-import io
 import logging
 import re
 from pathlib import Path
@@ -81,9 +80,7 @@ def _parse_trace_file(
 
                     op_inputs.append(
                         {
-                            "uuid": hashlib.sha256(
-                                args_str.encode() + op.encode()
-                            ).hexdigest(),
+                            "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
                             "op_name": op,
                             "args": args_str,
                             "arg_size": size,
@@ -142,9 +139,7 @@ def _parse_trace_stream(
 
                 op_inputs.append(
                     {
-                        "uuid": hashlib.sha256(
-                            args_str.encode() + op.encode()
-                        ).hexdigest(),
+                        "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
                         "op_name": op,
                         "args": args_str,
                         "arg_size": size,
@@ -246,9 +241,7 @@ def _load_from_trace(
     op_inputs = []
 
     # Handle URLs - stream directly without saving to disk
-    if isinstance(source, str) and (
-        source.startswith("http://") or source.startswith("https://")
-    ):
+    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
         logging.info(f"Downloading trace from {source}")
         with requests.get(source) as response:
             response.raise_for_status()
