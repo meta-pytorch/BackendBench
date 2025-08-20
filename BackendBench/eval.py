@@ -200,7 +200,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
                 "absolute_error": "",
                 "relative_error": "",
             }
-        return 0, 0, verbose_data
+        return 0, 1.0, verbose_data
 
     correctness_score = eval_correctness(op, impl, correctness_tests, verbose_data)
     performance_score = eval_performance(op, impl, performance_tests, verbose_data)
