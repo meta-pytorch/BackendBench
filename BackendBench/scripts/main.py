@@ -110,10 +110,12 @@ def setup_logging(log_level):
     default=None,
     type=str,
     help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+)
+@click.option(
     "--num-workers",
     default=None,
     type=int,
-    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing)",
+    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
 def cli(
     log_level,
@@ -217,16 +219,19 @@ def cli(
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
         with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-            # Submit all tasks
+            # Submit all tasks and track op names
+            task_to_op_name = {}
             for test in suite:
                 if test.op not in backend:
                     continue
 
                 logger.debug(test.op)
 
-                evaluator.submit_task(
+                task_id = evaluator.submit_task(
                     test.op, backend[test.op], test.correctness_tests, test.performance_tests
                 )
+                op_name = getattr(test.op, "__name__", str(test.op))
+                task_to_op_name[task_id] = op_name
 
             # Start evaluation
             evaluator.start_evaluation()
@@ -239,6 +244,14 @@ def cli(
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
+            
+            # Handle verbose data if present
+            if result.verbose_data and result.task_id in task_to_op_name:
+                op_name = task_to_op_name[result.task_id]
+                for args_str, data in result.verbose_data.items():
+                    entry = {"op_name": op_name, "args": args_str}
+                    entry.update(data)
+                    verbose_results.append(entry)
 
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()

@@ -51,6 +51,7 @@ class EvalResult:
     task_id: int
     correctness_score: float
     performance_score: float
+    verbose_data: Optional[dict] = None
     error: Optional[str] = None
 
 
@@ -76,9 +77,10 @@ def is_pickleable(obj):
 
 def _worker_process(worker_id, task_queue, result_queue):
     try:
-        torch.cuda.set_device(worker_id)
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.set_device(worker_id)
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
         while True:
             try:
@@ -99,13 +101,14 @@ def _worker_process(worker_id, task_queue, result_queue):
                     if isinstance(impl, str):
                         impl = get_operator(impl)
 
-                    correctness_score, performance_score = eval_one_op(
+                    correctness_score, performance_score, verbose_data = eval_one_op(
                         op, impl, task.correctness_tests, task.performance_tests
                     )
                     result = EvalResult(
                         task_id=task.task_id,
                         correctness_score=correctness_score,
                         performance_score=performance_score,
+                        verbose_data=verbose_data,
                     )
                 except Exception as e:
                     error_msg = f"Error in eval_one_op: {str(e)}\n{traceback.format_exc()}"
@@ -121,6 +124,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         task_id=task.task_id,
                         correctness_score=0.0,
                         performance_score=1.0,
+                        verbose_data={},
                         error=error_msg,
                     )
 
@@ -142,15 +146,21 @@ def _worker_process(worker_id, task_queue, result_queue):
         logger.error(error_msg)
         result_queue.put(ProcessDeathSignal(worker_id, error_msg))
     finally:
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
     logger.info(f"Worker {worker_id} exiting")
 
 
 class MultiprocessingEvaluator:
     def __init__(self, num_workers: int = 1):
-        assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
+        if torch.cuda.is_available():
+            assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
+        else:
+            if num_workers > 1:
+                logger.warning(f"No CUDA devices available, limiting workers to 1 (requested: {num_workers})")
+                num_workers = 1
 
         self.mp_context = mp.get_context("spawn")
         self.num_workers = num_workers
@@ -285,8 +295,9 @@ class MultiprocessingEvaluator:
             except Exception as e:
                 logger.error(f"Error shutting down worker {worker_id}: {e}")
 
-        torch.cuda.synchronize()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+            torch.cuda.empty_cache()
 
         self.workers.clear()
         logger.info("Multiprocessing evaluator shutdown complete")
