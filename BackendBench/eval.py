@@ -104,7 +104,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
-        return 0, 0
+        return 0.0, 1.0
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
