@@ -11,3 +11,4 @@ datasets/
 uv.lock
 pytorch_operator_coverage.csv
 .pre-commit-cache/
+logs/
