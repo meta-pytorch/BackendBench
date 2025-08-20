@@ -110,10 +110,8 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     non_testable_ops = all_ops - testable_ops
 
     for reason, count in exclusion_dict.items():
-        logger.info(f"Excluded {count} / {len(ops)} ops and input combinations due to {reason}")
-    logger.info(
-        f"Excluded {len(non_testable_ops)} / {len(all_ops)} ops and input combinations due to not having tests"
-    )
+        logger.info(f"Excluded tests from {count} / {len(ops)} ops due to {reason}")
+    logger.info(f"Excluded {len(non_testable_ops)} / {len(all_ops)} ops due to not having tests")
     for reason in exclusion_mapping.keys():
         no_op_set = exclusion_mapping[reason].intersection(non_testable_ops)
         list_str = "\n".join(no_op_set)
