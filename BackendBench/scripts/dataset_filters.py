@@ -52,14 +52,14 @@ def apply_skip_ops_filter(ops):
 
 def apply_runtime_filter(ops):
     # we shall define the threshold of an op being useful as taking at least
-    # 3x the time of torch.randn(1) * 3 as this means it takes reasonably longer than kernel_overhead
+    # 3x the time of torch.randn(1) * 2 as this means it takes reasonably longer than kernel_overhead
 
     # Define the operation
     def _overhead_benchmark():
         return torch.randn(1, device="cuda")
 
     runtime_threshold_ms = do_bench(_overhead_benchmark, warmup=25, rep=100)
-    runtime_threshold_ms = 3 * runtime_threshold_ms
+    runtime_threshold_ms = 2 * runtime_threshold_ms
 
     for op in tqdm.tqdm(ops, desc="Filtering ops by runtime"):
         if op["runnable"]:

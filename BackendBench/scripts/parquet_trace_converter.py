@@ -97,11 +97,13 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     ops = apply_runtime_filter(ops)
 
     exclusion_dict = defaultdict(lambda: 0)
+    exclusion_mapping = defaultdict(lambda: set())
     testable_ops = set()
     all_ops = set()
     for op in ops:
         for reason in op["why_excluded"]:
             exclusion_dict[reason] += 1
+            exclusion_mapping[reason].add(op["op_name"])
         if op["included_in_benchmark"]:
             testable_ops.add(op["op_name"])
         all_ops.add(op["op_name"])
@@ -112,10 +114,12 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     logger.info(
         f"Excluded {len(non_testable_ops)} / {len(all_ops)} ops and input combinations due to not having tests"
     )
-    list_str = "\n".join(non_testable_ops)
-    logger.info(
-        f"Excluded the following ops and input combinations as they did not have tests:\n {list_str}"
-    )
+    for reason in exclusion_mapping.keys():
+        no_op_set = exclusion_mapping[reason].intersection(non_testable_ops)
+        list_str = "\n".join(no_op_set)
+        logger.info(
+            f"Excluded the following {len(no_op_set)}/{len(all_ops)} ops and input combinations at least partially due to the reason: {reason}:\n {list_str}"
+        )
 
     # Create parquet table with all metadata (formerly "dev" version)
     table = pa.Table.from_pylist(ops)
@@ -211,7 +215,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 )
 @click.option(
     "--parquet-name",
-    default="backend_bench_problems.parquet",
+    default="backend_bench_problems_runtime_filtered_threshhold_2.parquet",
     type=str,
     help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/.",
 )
