@@ -7,8 +7,6 @@ CLAUDE.md
 venv/
 ops/
 uv.lock
-pytorch_operator_coverage.csv
 .pre-commit-cache/
 generated_kernels/
-internal_operators.csv
-torchbench_operator_folder_mapping.csv
+*.csv

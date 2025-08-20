@@ -41,13 +41,14 @@ class TestBackendEvaluation(unittest.TestCase):
         subprocess.run(
             [sys.executable, "-m", "BackendBench.scripts.setup_operator_directories"], check=True
         )
-        # Create watermarked implementations
+        # Create watermarked implementations with unique values to catch cross-contamination
         subprocess.run(
             [
                 sys.executable,
                 "-m",
                 "BackendBench.scripts.create_watermarked_operators",
                 "--overwrite",
+                "--unique-watermarks",
             ],
             check=True,
         )
