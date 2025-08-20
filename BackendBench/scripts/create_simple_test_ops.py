@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def create_relu():
     os.makedirs("generated_kernels/relu", exist_ok=True)
-    with open("generated_kernels/relu/relu_implementation_1.py", "w") as f:
+    with open("generated_kernels/relu/relu_implementation_v1.py", "w") as f:
         f.write('''import torch
 
 def relu_kernel_impl(input):
@@ -37,7 +37,7 @@ if __name__ == "__main__":
 
 def create_add():
     os.makedirs("generated_kernels/add", exist_ok=True)
-    with open("generated_kernels/add/add_implementation_1.py", "w") as f:
+    with open("generated_kernels/add/add_implementation_v1.py", "w") as f:
         f.write('''import torch
 
 def add_kernel_impl(input, other):
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
 def create_mul():
     os.makedirs("generated_kernels/mul", exist_ok=True)
-    with open("generated_kernels/mul/mul_implementation_1.py", "w") as f:
+    with open("generated_kernels/mul/mul_implementation_v1.py", "w") as f:
         f.write('''import torch
 
 def mul_kernel_impl(input, other):
@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
 def create_abs():
     os.makedirs("generated_kernels/abs", exist_ok=True)
-    with open("generated_kernels/abs/abs_implementation_1.py", "w") as f:
+    with open("generated_kernels/abs/abs_implementation_v1.py", "w") as f:
         f.write('''import torch
 
 def abs_kernel_impl(input):
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
 def create_sum():
     os.makedirs("generated_kernels/sum", exist_ok=True)
-    with open("generated_kernels/sum/sum_implementation_1.py", "w") as f:
+    with open("generated_kernels/sum/sum_implementation_v1.py", "w") as f:
         f.write('''import torch
 
 def sum_kernel_impl(input, *args, **kwargs):
@@ -122,8 +122,8 @@ def main():
 
     logger.info("Created 5 simple kernel implementations in generated_kernels/")
     logger.info("Test them individually:")
-    logger.info("  python generated_kernels/relu/relu_implementation_1.py")
-    logger.info("  python generated_kernels/add/add_implementation_1.py")
+    logger.info("  python generated_kernels/relu/relu_implementation_v1.py")
+    logger.info("  python generated_kernels/add/add_implementation_v1.py")
     logger.info("  etc.")
     logger.info("Or test all with the backend:")
     logger.info("  python test/test_simple_directory_backend.py")
