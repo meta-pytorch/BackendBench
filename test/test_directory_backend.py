@@ -24,7 +24,8 @@ def backend():
     import subprocess
 
     subprocess.run(
-        [sys.executable, "-m", "BackendBench.scripts.create_simple_test_ops"], check=True
+        [sys.executable, "-m", "BackendBench.scripts.create_simple_test_ops"],
+        check=True,
     )
 
     return DirectoryBackend(ops_dir="generated_kernels")

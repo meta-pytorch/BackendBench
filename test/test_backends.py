@@ -6,12 +6,7 @@
 
 import pytest
 import torch
-from BackendBench.backends import (
-    AtenBackend,
-    FlagGemsBackend,
-    KernelAgentBackend,
-    LLMBackend,
-)
+from BackendBench.backends import AtenBackend, FlagGemsBackend, KernelAgentBackend, LLMBackend
 
 try:
     import importlib.util

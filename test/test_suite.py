@@ -6,8 +6,8 @@
 
 import pytest
 import torch
-from BackendBench.suite import randn, Test, OpTest, TestSuite, SmokeTestSuite
 from BackendBench.opregistry import get_operator
+from BackendBench.suite import OpTest, randn, SmokeTestSuite, Test, TestSuite
 
 
 class TestRandnFunction:
@@ -88,7 +88,10 @@ class TestOpTest:
 
     def test_optest_attributes(self):
         op = torch.ops.aten.add.Tensor
-        correctness_tests = [Test(randn(2, 2), randn(2, 2)), Test(randn(3, 3), randn(3, 3))]
+        correctness_tests = [
+            Test(randn(2, 2), randn(2, 2)),
+            Test(randn(3, 3), randn(3, 3)),
+        ]
         performance_tests = [Test(randn(1000, 1000), randn(1000, 1000))]
 
         optest = OpTest(op, correctness_tests, performance_tests)
@@ -166,7 +169,11 @@ class TestSuiteIntegration:
                 [Test(randn(2, 2)), Test(randn(3, 3))],
                 [Test(randn(100, 100))],
             ),
-            OpTest(torch.ops.aten.sigmoid.default, [Test(randn(4, 4))], [Test(randn(200, 200))]),
+            OpTest(
+                torch.ops.aten.sigmoid.default,
+                [Test(randn(4, 4))],
+                [Test(randn(200, 200))],
+            ),
             OpTest(
                 torch.ops.aten.add.Tensor,
                 [Test(randn(2, 2), randn(2, 2))],

@@ -4,14 +4,13 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
-import torch
+import importlib.util
 
 import BackendBench.backends as backends
+import pytest
+import torch
 from BackendBench.eval import eval_one_op
 from BackendBench.facto_suite import FactoTestSuite
-
-import importlib.util
 
 HAS_FACTO_DEPS = importlib.util.find_spec("facto") is not None
 
@@ -69,9 +68,9 @@ class TestFactoSuite:
         mean_correctness = torch.tensor(overall_correctness).mean().item()
 
         # Main assertion: correctness should be > 0.8
-        assert mean_correctness > 0.8, (
-            f"Mean correctness {mean_correctness:.2f} is not > 0.8 for relu.default"
-        )
+        assert (
+            mean_correctness > 0.8
+        ), f"Mean correctness {mean_correctness:.2f} is not > 0.8 for relu.default"
 
     def test_facto_suite_num_run(self):
         ops = ["relu.default"]
@@ -90,6 +89,6 @@ class TestFactoSuite:
         )
 
         for test in suite:
-            assert len(list(test.correctness_tests)) == num_runs, (
-                f"Number of correctness tests for {test.op} is not {num_runs}"
-            )
+            assert (
+                len(list(test.correctness_tests)) == num_runs
+            ), f"Number of correctness tests for {test.op} is not {num_runs}"

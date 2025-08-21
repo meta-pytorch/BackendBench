@@ -11,10 +11,11 @@ This is a helper script to analyze the test suite and provide statistics about t
 import statistics
 
 import torch
+
 from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.opinfo_suite import OpInfoTestSuite
-from BackendBench.torchbench_suite import TorchBenchTestSuite
 from BackendBench.scripts.pytorch_operators import extract_operator_name
+from BackendBench.torchbench_suite import TorchBenchTestSuite
 
 
 def analyze_test_suite(suite):
@@ -71,7 +72,7 @@ def analyze_test_suite(suite):
                 "max_tests": max(test_numbers),
                 "mean_tests": statistics.mean(test_numbers),
                 "median_tests": statistics.median(test_numbers),
-                "stdev_tests": statistics.stdev(test_numbers) if len(test_numbers) > 1 else 0.0,
+                "stdev_tests": (statistics.stdev(test_numbers) if len(test_numbers) > 1 else 0.0),
             }
         else:
             stats = {

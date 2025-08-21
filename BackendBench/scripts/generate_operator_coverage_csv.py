@@ -9,15 +9,17 @@
 """Generate comprehensive operator coverage CSV for BackendBench"""
 
 import csv
+
 import torch
 
 from torch.testing._internal.common_methods_invocations import op_db
+
+from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.scripts.pytorch_operators import (
-    get_pytorch_operators,
     extract_aten_ops,
     extract_operator_name,
+    get_pytorch_operators,
 )
-from BackendBench.opinfo_suite import OpInfoTestSuite
 from BackendBench.torchbench_suite import TorchBenchTestSuite
 
 

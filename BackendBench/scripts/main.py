@@ -9,11 +9,12 @@ import os
 import sys
 from typing import Dict
 
+import click
+import torch
+
 import BackendBench.backends as backends
 import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
-import click
-import torch
 
 from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
@@ -212,7 +213,10 @@ def cli(
                 logger.debug(test.op)
 
                 evaluator.submit_task(
-                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                    test.op,
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
                 )
 
             # Start evaluation

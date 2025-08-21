@@ -16,9 +16,9 @@ Tests:
 4. eval.py integration works properly
 """
 
+import subprocess
 import sys
 import unittest
-import subprocess
 from pathlib import Path
 
 import torch
@@ -39,7 +39,8 @@ class TestBackendEvaluation(unittest.TestCase):
         """Generate required directory structure and operators."""
         # Generate the directory structure
         subprocess.run(
-            [sys.executable, "-m", "BackendBench.scripts.setup_operator_directories"], check=True
+            [sys.executable, "-m", "BackendBench.scripts.setup_operator_directories"],
+            check=True,
         )
         # Create watermarked implementations with unique values to catch cross-contamination
         subprocess.run(

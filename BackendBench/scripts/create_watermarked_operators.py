@@ -11,9 +11,9 @@ Create watermarked operator implementations that return constant tensors.
 These implementations will verify monkey patching works but will fail correctness tests.
 """
 
-import os
 import argparse
 import hashlib
+import os
 from pathlib import Path
 
 
@@ -211,7 +211,9 @@ def main():
         help=f"Base value to use for watermarking (default: {WATERMARK_BASE})",
     )
     parser.add_argument(
-        "--overwrite", action="store_true", help="Overwrite existing implementation files"
+        "--overwrite",
+        action="store_true",
+        help="Overwrite existing implementation files",
     )
     parser.add_argument(
         "--unique-watermarks",

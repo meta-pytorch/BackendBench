@@ -10,18 +10,18 @@ BackendBench is actively developed internally at Meta and synced to GitHub regul
 
 ## Code Quality
 
-We use [ruff](https://docs.astral.sh/ruff/) for linting and code formatting.
+We use [ufmt](https://github.com/omnilib/ufmt) for code formatting and import sorting. `ufmt` is Meta's unified formatting tool that combines Black and usort.
 
 ## Pre-commit Hooks
 
-To make development easier, we provide pre-commit hooks that automatically run ruff on your changes:
+To make development easier, we provide pre-commit hooks that automatically run ufmt on your changes:
 
 ```bash
 pip install pre-commit
 pre-commit install
 ```
 
-This will automatically lint your code before each commit, ensuring consistent code quality across the project.
+This will automatically format your code before each commit, ensuring consistent code quality across the project.
 
 ## Pull Requests
 

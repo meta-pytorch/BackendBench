@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
-from BackendBench.torchbench_suite import TorchBenchOpTest
-import BackendBench.multiprocessing_eval as multiprocessing_eval
 import BackendBench.backends as backends
+import BackendBench.multiprocessing_eval as multiprocessing_eval
+import pytest
 import torch
+from BackendBench.torchbench_suite import TorchBenchOpTest
 
 
 class TestAdaptiveAvgPool2dBackward:

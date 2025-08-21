@@ -48,6 +48,9 @@ dev-dependencies = [
     "pytest-cov",
     "pytest-mock",
     "pytest-timeout",
+    "ufmt==2.7.0",
+    "usort==1.0.8.post1",
+    "black==25.1.0",
     "ruff==0.12.1",
     "pre-commit",
     "torch",
@@ -56,7 +59,12 @@ dev-dependencies = [
     # cupy-cuda12x is platform specific, install manually if needed
 ]
 
-[tool.ruff]
+[tool.ufmt]
+formatter = "ruff-api"
+sorter = "usort"
+
+[tool.black]
 line-length = 100
 
-[tool.ruff.format]
+[tool.usort]
+first_party_detection = false

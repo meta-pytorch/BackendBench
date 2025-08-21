@@ -1,10 +1,12 @@
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.1
+  - repo: https://github.com/omnilib/ufmt
+    rev: v2.7.0
     hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
+    -   id: ufmt
+        additional_dependencies:
+        -   ruff-api==0.1.0
+        -   black==25.1.0
+        -   usort==1.0.8.post1
   - repo: local
     hooks:
       - id: check-license-headers

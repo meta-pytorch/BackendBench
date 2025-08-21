@@ -1,4 +1,4 @@
-name: Ruff
+name: Lint and Format
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
     branches:
       - main
 jobs:
-  ruff:
+  lint-and-format:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -22,11 +22,8 @@ jobs:
     - name: Install package with dev dependencies
       run: uv sync --dev
     
-    - name: Run ruff check
-      run: uv run ruff check .
-    
-    - name: Run ruff format check
-      run: uv run ruff format --check .
+    - name: Run ufmt check
+      run: uv run ufmt check .
     
     - name: Check license headers
       run: python .github/scripts/check_license_headers.py $(find . -name "*.py" -type f -not -path "./.venv/*" -not -path "./__pycache__/*") 

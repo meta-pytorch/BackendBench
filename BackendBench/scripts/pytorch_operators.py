@@ -9,8 +9,9 @@
 """PyTorch operator utilities for BackendBench analysis"""
 
 import urllib.request
-import yaml
 from typing import List
+
+import yaml
 
 
 def extract_operator_name(op_str: str) -> str:

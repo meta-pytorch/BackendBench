@@ -9,13 +9,14 @@ import torch
 
 try:
     import importlib.util
+
     from BackendBench.eval import (
-        format_exception,
         allclose,
-        eval_correctness_test,
-        eval_correctness,
-        eval_one_op,
         cpu_bench,
+        eval_correctness,
+        eval_correctness_test,
+        eval_one_op,
+        format_exception,
         gpu_bench,
     )
 

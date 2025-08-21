@@ -9,11 +9,12 @@ Kernel code templates and prompt engineering for LLM-based kernel generation.
 """
 
 from typing import Dict
+
 from .prompts import (
-    TRITON_KERNEL_PROMPT,
     PYTORCH_KERNEL_PROMPT,
-    TRITON_OPTIMIZATIONS,
     TRITON_EXAMPLE_TEMPLATES,
+    TRITON_KERNEL_PROMPT,
+    TRITON_OPTIMIZATIONS,
 )
 
 
@@ -92,7 +93,11 @@ class KernelTemplateManager:
         return self.templates[framework]
 
     def create_prompt(
-        self, op_name: str, op_signature: str, op_description: str, framework: str = "triton"
+        self,
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton",
     ) -> str:
         """Create a prompt using the specified template."""
         template = self.get_template(framework)
