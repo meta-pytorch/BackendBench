@@ -10,8 +10,8 @@ from collections import defaultdict
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
-from .eval import allclose
-from .suite import OpTest, TestSuite
+from BackendBench.eval import allclose
+from .base import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)
 

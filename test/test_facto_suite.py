@@ -9,7 +9,7 @@ import torch
 
 import BackendBench.backends as backends
 from BackendBench.eval import eval_one_op
-from BackendBench.facto_suite import FactoTestSuite
+from BackendBench.suite import FactoTestSuite
 
 import importlib.util
 
