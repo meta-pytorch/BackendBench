@@ -48,10 +48,9 @@ dev-dependencies = [
     "pytest-cov",
     "pytest-mock",
     "pytest-timeout",
-    "ufmt==2.7.0",
-    "usort==1.0.8.post1",
-    "black==25.1.0",
-    "ruff==0.12.1",
+    "ufmt",
+    "usort",
+    "ruff",
     "pre-commit",
     "torch",
     "numpy",
@@ -62,9 +61,18 @@ dev-dependencies = [
 [tool.ufmt]
 formatter = "ruff-api"
 sorter = "usort"
-
-[tool.black]
-line-length = 100
+excludes = [
+    ".venv/",
+]
 
 [tool.usort]
-first_party_detection = false
+first_party = ["BackendBench"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"

@@ -10,7 +10,7 @@ BackendBench is actively developed internally at Meta and synced to GitHub regul
 
 ## Code Quality
 
-We use [ufmt](https://github.com/omnilib/ufmt) for code formatting and import sorting. `ufmt` is Meta's unified formatting tool that combines Black and usort.
+We use [ufmt](https://github.com/omnilib/ufmt) for code formatting and import sorting. `ufmt` is Meta's unified formatting tool that uses ruff-api for formatting and usort for import sorting.
 
 ## Pre-commit Hooks
 
@@ -22,6 +22,19 @@ pre-commit install
 ```
 
 This will automatically format your code before each commit, ensuring consistent code quality across the project.
+
+You can also run formatting manually:
+
+```bash
+# Format all files
+uv run ufmt format .
+
+# Check formatting without making changes
+uv run ufmt check .
+
+# See what changes would be made
+uv run ufmt diff .
+```
 
 ## Pull Requests
 
