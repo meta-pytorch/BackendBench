@@ -20,6 +20,13 @@ SKIP_OPERATORS = [
     "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
 ]
 
+RANDOM_OPERATORS = [
+    "empty_like",
+    "new_empty",
+    "new_empty_strided",
+    "bernoulli",
+]
+
 
 def apply_skip_ops_filter(ops):
     for op in ops:
@@ -27,6 +34,12 @@ def apply_skip_ops_filter(ops):
             op["included_in_benchmark"] = False
             op["why_excluded"].append("We cannot run this op on backendbench yet")
             op["runnable"] = False
+
+        if any(skip_op in op["op_name"] for skip_op in RANDOM_OPERATORS):
+            op["included_in_benchmark"] = False
+            op["why_excluded"].append(
+                "This op creates a random output, and therefore cannot be tested for correctness"
+            )
 
         if op["is_synthetic"]:
             op["included_in_benchmark"] = False
