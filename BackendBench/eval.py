@@ -25,6 +25,8 @@ Exception raised for {op}:
     exc: {exc}
 """
 
+FAIL_FACTOR = 1.1
+
 
 def format_exception(e, op, args, kwargs):
     op_name = getattr(op, "__name__", str(op))
@@ -91,7 +93,7 @@ def eval_performance(op, impl, tests):
         try:
             allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))
         except Exception:
-            test_times.append(base_times[-1])
+            test_times.append(base_times[-1] * FAIL_FACTOR)
             continue
         test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
