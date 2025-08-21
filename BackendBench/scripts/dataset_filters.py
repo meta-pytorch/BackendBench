@@ -21,10 +21,10 @@ SKIP_OPERATORS = [
 ]
 
 UNTESTABLE_OPERATORS = [
-    "empty_like",
-    "new_empty",
-    "new_empty_strided",
-    "bernoulli",
+    "empty_like",  # We can check using metadata
+    "new_empty",  # We can check using metadata
+    "new_empty_strided",  # We can check using metadata
+    "bernoulli",  # We can write a custom test to verify this one (albeit not the randomness)
 ]
 
 
@@ -38,7 +38,7 @@ def apply_skip_ops_filter(ops):
         if any(skip_op in op["op_name"] for skip_op in UNTESTABLE_OPERATORS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append(
-                "This op creates a unpredictable output, and therefore cannot be tested for correctness"
+                "BackendBench does not support correctness testing for this op yet"
             )
 
         if op["is_synthetic"]:
