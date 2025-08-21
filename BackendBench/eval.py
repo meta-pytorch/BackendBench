@@ -6,7 +6,6 @@
 
 import json
 import logging
-import traceback
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -32,14 +31,12 @@ EXC_MSG = """
 Exception raised for {op}:
     args: {args}
     exc: {exc}
-    traceback: {traceback}
 """
 
 
 def format_exception(e, op, args, kwargs):
     op_name = getattr(op, "__name__", str(op))
-    tb_str = traceback.format_exc()
-    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e, traceback=tb_str)
+    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e)
 
 
 def allclose(a, b):
