@@ -6,6 +6,7 @@
 
 import json
 import logging
+import traceback
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -31,23 +32,34 @@ EXC_MSG = """
 Exception raised for {op}:
     args: {args}
     exc: {exc}
+    traceback: {traceback}
 """
 
 
 def format_exception(e, op, args, kwargs):
     op_name = getattr(op, "__name__", str(op))
-    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e)
+    tb_str = traceback.format_exc()
+    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e, traceback=tb_str)
+
+
+def _allclose(a, b):
+    # due to sparse tensors we check by error checking
+    if isinstance(a, torch.Tensor):
+        torch.testing.assert_close(a, b, equal_nan=True, atol=1e-2, rtol=1e-2)
+    elif isinstance(a, (list, tuple)):
+        assert len(a) == len(b)
+        for ele_a, ele_b in zip(a, b):
+            _allclose(ele_a, ele_b)
+    else:
+        assert a == b
 
 
 def allclose(a, b):
-    if isinstance(a, torch.Tensor):
-        torch.testing.assert_close(a, b, equal_nan=True, atol=1e-2, rtol=1e-2)
+    try:
+        _allclose(a, b)
         return True
-    if isinstance(a, (list, tuple)):
-        if len(a) != len(b):
-            raise ValueError(f"Length mismatch: {len(a)} vs {len(b)}")
-        return all(allclose(x, y) for x, y in zip(a, b))
-    return a == b
+    except Exception:
+        return False
 
 
 def compute_errors(ref, res, eps=1e-10) -> Tuple[Optional[float], Optional[float]]:
@@ -62,7 +74,6 @@ def compute_errors(ref, res, eps=1e-10) -> Tuple[Optional[float], Optional[float
 
         if ref.is_sparse and res.is_sparse:
             # todo: create note that we don't calculate errors for sparse tensors / results
-            # _sparse_coo_tensor_with_dims_and_tensors is an example
             return None, None
 
         # Convert to float for error calculation
@@ -128,7 +139,7 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
+def eval_correctness(op, impl, tests, verbose_data: defaultdict):
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     for test in tests:
@@ -162,7 +173,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
+def eval_performance(op, impl, tests, verbose_data: defaultdict):
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
