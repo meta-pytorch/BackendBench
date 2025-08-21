@@ -77,10 +77,9 @@ def is_pickleable(obj):
 
 def _worker_process(worker_id, task_queue, result_queue):
     try:
-        if torch.cuda.is_available():
-            torch.cuda.set_device(worker_id)
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
+        torch.cuda.set_device(worker_id)
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
         while True:
             try:
@@ -146,23 +145,15 @@ def _worker_process(worker_id, task_queue, result_queue):
         logger.error(error_msg)
         result_queue.put(ProcessDeathSignal(worker_id, error_msg))
     finally:
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
     logger.info(f"Worker {worker_id} exiting")
 
 
 class MultiprocessingEvaluator:
     def __init__(self, num_workers: int = 1):
-        if torch.cuda.is_available():
-            assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
-        else:
-            if num_workers > 1:
-                logger.warning(
-                    f"No CUDA devices available, limiting workers to 1 (requested: {num_workers})"
-                )
-                num_workers = 1
+        assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
 
         self.mp_context = mp.get_context("spawn")
         self.num_workers = num_workers
@@ -297,9 +288,8 @@ class MultiprocessingEvaluator:
             except Exception as e:
                 logger.error(f"Error shutting down worker {worker_id}: {e}")
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-            torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
 
         self.workers.clear()
         logger.info("Multiprocessing evaluator shutdown complete")
