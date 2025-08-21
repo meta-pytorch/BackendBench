@@ -200,7 +200,7 @@ def cli(
 
             logger.debug(test.op)
 
-            correctness, perf, op_verbose_data = eval.eval_one_op(
+            correctness, perf, op_test_data = eval.eval_one_op(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
@@ -211,7 +211,7 @@ def cli(
 
             # Convert dict to list entries with op_name
             op_name = getattr(test.op, "__name__", str(test.op))
-            for args_str, data in op_verbose_data.items():
+            for args_str, data in op_test_data.items():
                 entry = {"op_name": op_name, "args": args_str}
                 entry.update(data)
                 verbose_results.append(entry)
@@ -246,9 +246,9 @@ def cli(
             overall_performance.append(performance_score)
 
             # Handle verbose data if present
-            if result.verbose_data and result.task_id in task_to_op_name:
+            if result.test_data and result.task_id in task_to_op_name:
                 op_name = task_to_op_name[result.task_id]
-                for args_str, data in result.verbose_data.items():
+                for args_str, data in result.test_data.items():
                     entry = {"op_name": op_name, "args": args_str}
                     entry.update(data)
                     verbose_results.append(entry)

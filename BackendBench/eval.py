@@ -23,7 +23,7 @@ try:
 except ImportError:
     TRITON_AVAILABLE = False
 
-from BackendBench.utils import serialize_args, uses_cuda_stream
+from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
 
 logger = logging.getLogger(__name__)
 
@@ -39,77 +39,29 @@ def format_exception(e, op, args, kwargs):
     return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e)
 
 
-def _allclose(a, b):
-    # due to sparse tensors we check by error checking
-    if isinstance(a, torch.Tensor):
-        torch.testing.assert_close(a, b, equal_nan=True, atol=1e-2, rtol=1e-2)
-    elif isinstance(a, (list, tuple)):
-        assert len(a) == len(b)
-        for ele_a, ele_b in zip(a, b):
-            _allclose(ele_a, ele_b)
-    else:
-        assert a == b
+def _allclose(a, b, atol=1e-2, rtol=1e-2):
+    # using a stack to avoid recursion overflow issues
+    stack = [(a, b)]
+
+    while len(stack) > 0:
+        curr_a, curr_b = stack.pop()
+
+        if isinstance(curr_a, torch.Tensor):
+            torch.testing.assert_close(curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol)
+        elif isinstance(curr_a, (list, tuple)):
+            assert len(curr_a) == len(curr_b)
+            # Add pairs to stack in reverse order to maintain left-to-right checking
+            stack.extend(reversed(list(zip(curr_a, curr_b))))
+        else:
+            assert curr_a == curr_b
 
 
-def allclose(a, b):
+def allclose(a, b, atol=1e-2, rtol=1e-2):
     try:
         _allclose(a, b)
         return True
     except Exception:
         return False
-
-
-def compute_errors(ref, res, eps=1e-10) -> Tuple[Optional[float], Optional[float]]:
-    """Compute absolute and relative errors between reference and result tensors.
-
-    Returns:
-        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors
-    """
-    if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
-        if ref.shape != res.shape:
-            return None, None
-
-        if ref.is_sparse and res.is_sparse:
-            # todo: create note that we don't calculate errors for sparse tensors / results
-            return None, None
-
-        # Convert to float for error calculation
-        ref_float = ref.float()
-        res_float = res.float()
-
-        # Absolute error
-        abs_error = (ref_float - res_float).abs().mean().item()
-
-        # Relative error (avoid division by zero)
-        ref_abs = ref_float.abs()
-        rel_error = ((ref_float - res_float).abs() / (ref_abs + eps)).mean().item()
-
-        return abs_error, rel_error
-    elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
-        if len(ref) != len(res):
-            return None, None
-
-        # if we have no tensors just return None
-        if not any(not isinstance(x, torch.Tensor) for x in ref) or not any(
-            not isinstance(x, torch.Tensor) for x in res
-        ):
-            return None, None
-
-        # For lists/tuples, compute mean error across all elements.
-        # We will return the mean of these means
-        mean_abs_error = 0.0
-        mean_rel_error = 0.0
-
-        for r, s in zip(ref, res):
-            abs_err, rel_err = compute_errors(r, s)
-            if abs_err is None or rel_err is None:
-                continue
-            mean_abs_error += abs_err
-            mean_rel_error += rel_err
-
-        return mean_abs_error / len(ref), mean_rel_error / len(ref)
-    else:
-        return None, None
 
 
 def eval_correctness_test(
@@ -136,7 +88,7 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
+def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     for test in tests:
@@ -144,7 +96,7 @@ def eval_correctness(op, impl, tests, verbose_data: defaultdict = defaultdict(di
         logging.debug(f"Testing {op.__name__} with args {args_str}")
         is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
 
-        verbose_data[args_str] = {
+        test_data[args_str] = {
             "correctness_score": 1 if is_correct else 0,
             "correctness_errors": error_msg or "",
             "absolute_error": str(abs_error) if abs_error is not None else "",
@@ -170,16 +122,18 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
+def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
     )
     base_times = []
     test_times = []
+    args_strs = []
 
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
+        args_strs.append(args_str)
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
         base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
         base_times.append(base_time)
@@ -197,11 +151,14 @@ def eval_performance(op, impl, tests, verbose_data: defaultdict = defaultdict(di
             pass
         finally:
             test_times.append(test_time)
-            verbose_data[args_str]["benchmark_time"] = str(test_time)
-            speedup = base_time / test_time if test_time > 0 else float("inf")
-            verbose_data[args_str]["speedup"] = str(speedup)
+            test_data[args_str]["benchmark_time"] = str(test_time)
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
+
+    # Update test_data with speedups from the tensor
+    for i, args_str in enumerate(args_strs):
+        test_data[args_str]["speedup"] = str(speedups[i].item())
+
     return speedups.log().mean().exp()
 
 
@@ -209,15 +166,15 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     """Evaluate impl of op against correctness_tests and performance_tests.
 
     Returns:
-        Tuple of (correctness_score, performance_score, verbose_data)
+        Tuple of (correctness_score, performance_score, test_data)
     """
-    verbose_data = defaultdict(dict)
+    test_data = defaultdict(dict)
 
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
         for test in correctness_tests + performance_tests:
             args_str = serialize_args(test.args, test.kwargs)
-            verbose_data[args_str] = {
+            test_data[args_str] = {
                 "correctness_score": 0,
                 "benchmark_time": "",
                 "speedup": "",
@@ -225,12 +182,12 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
                 "absolute_error": "",
                 "relative_error": "",
             }
-        return 0, 1.0, verbose_data
+        return 0, 1.0, test_data
 
-    correctness_score = eval_correctness(op, impl, correctness_tests, verbose_data)
-    performance_score = eval_performance(op, impl, performance_tests, verbose_data)
-    verbose_data = dict(verbose_data)
-    return correctness_score, performance_score, verbose_data
+    correctness_score = eval_correctness(op, impl, correctness_tests, test_data)
+    performance_score = eval_performance(op, impl, performance_tests, test_data)
+    test_data = dict(test_data)
+    return correctness_score, performance_score, test_data
 
 
 def save_verbose_results(
