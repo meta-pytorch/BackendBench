@@ -123,7 +123,14 @@ def _worker_process(worker_id, task_queue, result_queue):
                         task_id=task.task_id,
                         correctness_score=0.0,
                         performance_score=1.0,
-                        verbose_data={},
+                        verbose_data={
+                            "correctness_score": 0.0,
+                            "benchmark_time": "",
+                            "speedup": "",
+                            "correctness_errors": f"{error_msg}",
+                            "absolute_error": "",
+                            "relative_error": "",
+                        },
                         error=error_msg,
                     )
 
