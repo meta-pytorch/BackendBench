@@ -131,7 +131,7 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, verbose_data: defaultdict):
+def eval_correctness(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     for test in tests:
@@ -165,7 +165,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, verbose_data: defaultdict):
+def eval_performance(op, impl, tests, verbose_data: defaultdict = defaultdict(dict)):
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
