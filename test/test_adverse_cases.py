@@ -48,7 +48,7 @@ class TestAdaptiveAvgPool2dBackward:
             results = evaluator.get_results()
 
         assert len(results) == 1
-        assert results[0].correctness_score == 1.0
+        assert results[0].correctness_score[0]
 
 
 class TestCase:
@@ -74,7 +74,7 @@ class TestMultiprocessingEval:
 
         assert len(results) == 1
         # Should have perfect correctness since using same implementation
-        assert results[0].correctness_score == 1.0
+        assert results[0].correctness_score[0]
         # Performance should be around 1.0 (same speed)
         assert results[0].performance_score.item() > 0
 

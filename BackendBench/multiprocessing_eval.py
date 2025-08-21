@@ -119,7 +119,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         break
                     result = EvalResult(
                         task_id=task.task_id,
-                        correctness_score=0.0,
+                        correctness_score=(False, 0, 0),
                         performance_score=1.0,
                         error=error_msg,
                     )

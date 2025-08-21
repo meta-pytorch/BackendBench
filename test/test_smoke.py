@@ -40,13 +40,13 @@ class TestSmoke:
                 test.performance_tests,
             )
 
-            overall_correctness.append(correctness)
+            overall_correctness.append(correctness[0])
             overall_performance.append(perf)
 
-            assert correctness > 0, f"Operation {test.op} failed all correctness tests"
+            assert correctness[1] > 0, f"Operation {test.op} failed all correctness tests"
             assert perf > 0.1, f"Operation {test.op} is more than 10x slower than reference"
 
-        mean_correctness = torch.tensor(overall_correctness).mean().item()
+        mean_correctness = torch.tensor(overall_correctness).float().mean().item()
         geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
 
         assert mean_correctness >= 0.8, (

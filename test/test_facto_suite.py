@@ -59,14 +59,14 @@ class TestFactoSuite:
                 test.correctness_tests,
                 test.performance_tests,
             )
-            print(f"Correctness for {test.op}: {correctness}")
-            overall_correctness.append(correctness)
+            print(f"Correctness for {test.op}: {correctness[0]}")
+            overall_correctness.append(correctness[0])
 
             # Individual test assertions
-            assert correctness > 0, f"Operation {test.op} failed all correctness tests"
+            assert correctness[1] > 0, f"Operation {test.op} failed all correctness tests"
 
         # Calculate mean correctness
-        mean_correctness = torch.tensor(overall_correctness).mean().item()
+        mean_correctness = torch.tensor(overall_correctness).float().mean().item()
 
         # Main assertion: correctness should be > 0.8
         assert mean_correctness > 0.8, (
