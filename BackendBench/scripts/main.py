@@ -377,11 +377,14 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
             )
 
             # Create feedback callback
+            final_feedback_info = {}
             def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
                 # TODO: Add performance testing in addition to correctness testing
-                return llm_relay_backend.test_kernel_correctness(
+                is_correct, feedback_info = llm_relay_backend.test_kernel_correctness(
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
+                final_feedback_info.update(feedback_info)  # Store latest feedback
+                return is_correct, feedback_info
 
             # Generate kernel with iterative refinement
             kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
@@ -413,6 +416,13 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                         f.write("Final status: Success\n")
                         f.write(f"Model: {llm_client.model}\n")
                         f.write(f"Server: {llm_client.server_url}\n")
+
+                        # Add test results if available
+                        if final_feedback_info.get("total_count", 0) > 0:
+                            correct_count = final_feedback_info["correct_count"]
+                            total_count = final_feedback_info["total_count"]
+                            f.write(f"Tests passed: {correct_count}/{total_count}\n")
+
                         f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
 
                 except Exception as e:
@@ -431,6 +441,19 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                     f.write("Final status: Failed - All attempts failed correctness tests\n")
                     f.write(f"Model: {llm_client.model}\n")
                     f.write(f"Server: {llm_client.server_url}\n")
+
+                    # Add test results for failed operations if available
+                    if final_feedback_info.get("total_count", 0) > 0:
+                        correct_count = final_feedback_info["correct_count"]
+                        total_count = final_feedback_info["total_count"]
+                        f.write(f"Best attempt tests passed: {correct_count}/{total_count}\n")
+
+                    # Add failure reason if available
+                    if final_feedback_info.get("compilation_error"):
+                        f.write(f"Compilation error: {final_feedback_info['compilation_error']}\n")
+                    elif final_feedback_info.get("test_errors"):
+                        f.write(f"Number of test errors: {len(final_feedback_info['test_errors'])}\n")
+
                     f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                 # Continue with other operations
 

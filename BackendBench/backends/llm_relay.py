@@ -155,6 +155,8 @@ import torch.nn.functional as F
             "compilation_error": None,
             "test_errors": [],
             "summary": None,
+            "correct_count": 0,
+            "total_count": 0,
         }
 
         try:
@@ -244,6 +246,10 @@ import torch.nn.functional as F
                         del kwargs
 
                 total_count += 1
+
+            # Store test results in feedback_info
+            feedback_info["correct_count"] = correct_count
+            feedback_info["total_count"] = total_count
 
             is_correct = correct_count == total_count and total_count > 0
             if not is_correct:
