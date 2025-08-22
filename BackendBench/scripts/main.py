@@ -517,7 +517,9 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
             print(f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each")
 
             # Generate kernel using KernelAgent's sophisticated system
-            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(op, op_name)
+            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(
+                op, op_name, test_cases=op_test.correctness_tests
+            )
 
             if success:
                 try:

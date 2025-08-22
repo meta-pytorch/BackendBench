@@ -85,7 +85,7 @@ or understand the sophisticated generation process used by KernelAgent.
                 # Import KernelAgent from the submodule
                 import sys
 
-                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
+                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "..", "KernelAgent")
                 if kernel_agent_path not in sys.path:
                     sys.path.insert(0, os.path.abspath(kernel_agent_path))
 
@@ -264,13 +264,102 @@ import torch.nn.functional as F
         with open(original_file, "w") as f:
             f.write(kernel_code)
 
-    def generate_kernel_with_agent(self, op, op_name: str) -> tuple[str, bool]:
+    def _create_test_code_from_backendbench(self, op, op_name: str, test_cases) -> str:
+        """
+        Convert BackendBench test cases to KernelAgent-compatible test code.
+        
+        Args:
+            op: PyTorch operation
+            op_name: Operation name
+            test_cases: BackendBench test cases
+            
+        Returns:
+            Test code string for KernelAgent, or None if no test cases
+        """
+        test_list = list(test_cases) if test_cases else []
+        if not test_list:
+            return None
+            
+        print(f"    Using {len(test_list)} BackendBench test cases")
+        
+        # Use a few representative test cases (not all, to avoid overwhelming the LLM)
+        max_tests = min(5, len(test_list))
+        
+        test_code = f'''import torch
+import torch.nn.functional as F
+
+def test_kernel():
+    """Test the {op_name} kernel using BackendBench test cases."""
+    from kernel import kernel_function
+    
+    all_passed = True
+    failed_tests = []
+    
+'''
+        
+        for i, test in enumerate(test_list[:max_tests]):
+            test_code += f"    # Test case {i + 1} from BackendBench\n"
+            test_code += "    try:\n"
+            
+            # Build args
+            test_code += "        args = [\n"
+            for arg in test.args:
+                if hasattr(arg, 'shape') and hasattr(arg, 'dtype') and hasattr(arg, 'device'):
+                    # Recreate tensor with same properties
+                    test_code += f"            torch.randn({list(arg.shape)}, dtype={arg.dtype}, device='{arg.device}'),\n"
+                else:
+                    test_code += f"            {repr(arg)},\n"
+            test_code += "        ]\n"
+            
+            # Add kwargs
+            if test.kwargs:
+                test_code += f"        kwargs = {repr(test.kwargs)}\n"
+            else:
+                test_code += "        kwargs = {}\n"
+            
+            # Test execution
+            op_str = str(op).replace('OpOverload', '').replace('OpOverloadPacket', '')
+            test_code += f"""
+        # Get reference result from PyTorch
+        ref_result = torch.ops.{op_str}(*args, **kwargs)
+        
+        # Get result from our kernel
+        kernel_result = kernel_function(*args, **kwargs)
+        
+        # Compare results
+        torch.testing.assert_close(ref_result, kernel_result, rtol=1e-2, atol=1e-2)
+        print(f"Test case {i + 1} passed!")
+        
+    except Exception as e:
+        print(f"Test case {i + 1} failed: {{e}}")
+        failed_tests.append({i + 1})
+        all_passed = False
+"""
+        
+        test_code += """
+    if all_passed:
+        print("All BackendBench tests passed!")
+    else:
+        print(f"Failed tests: {failed_tests}")
+    
+    return all_passed
+
+if __name__ == "__main__":
+    import sys
+    success = test_kernel()
+    sys.exit(0 if success else 1)
+"""
+        
+        return test_code
+
+    def generate_kernel_with_agent(self, op, op_name: str, test_cases=None) -> tuple[str, bool]:
         """
         Generate a kernel using KernelAgent's sophisticated generation system.
 
         Args:
             op: PyTorch operation
             op_name: Operation name
+            test_cases: Optional BackendBench test cases to use for validation
 
         Returns:
             tuple: (kernel_code, success)
@@ -280,6 +369,11 @@ import torch.nn.functional as F
 
             # Create problem description
             problem_description = self._create_problem_description_from_op(op, op_name)
+            
+            # Create test code from BackendBench tests if provided
+            test_code = None
+            if test_cases:
+                test_code = self._create_test_code_from_backendbench(op, op_name, test_cases)
 
             print(
                 f"🚀 Generating {op_name} kernel with KernelAgent (parallel workers + refinement)"
@@ -288,7 +382,7 @@ import torch.nn.functional as F
             # Generate kernel using KernelAgent
             result = agent.generate_kernel(
                 problem_description=problem_description,
-                test_code=None,  # Let KernelAgent auto-generate the test
+                test_code=test_code,  # Use provided tests or None (auto-generate)
             )
 
             if result["success"]:
