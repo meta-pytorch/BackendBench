@@ -20,6 +20,7 @@ import pyarrow.parquet as pq
 import requests
 import torch
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
+from BackendBench.scripts.pytorch_operators import extract_operator_name
 from tqdm import tqdm
 
 
@@ -63,7 +64,7 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
                 args_str = m.group(1)
                 cnt = int(m.group(0).split(",")[0].split(":")[1])
 
-                if filter is None or any(f in op for f in filter):
+                if filter is None or extract_operator_name(op) in filter:
                     args, kwargs = deserialize_args(args_str)
                     size = _args_size(args) + _args_size(list(kwargs.values()))
                     size = size / (1024 * 1024)  # Convert to MB
@@ -212,7 +213,15 @@ def _load_from_parquet(
 
     # Apply filter if provided
     if filter:
-        mask = df["op_name"].apply(lambda op: any(f in op for f in filter))
+        # Import the function to extract operation names
+        from BackendBench.scripts.pytorch_operators import extract_operator_name
+        
+        # Extract operation names and do exact matching
+        def matches_filter(op_full_name):
+            op_name = extract_operator_name(op_full_name)
+            return op_name in filter
+            
+        mask = df["op_name"].apply(matches_filter)
         df = df[mask]
 
     return df.to_dict("records")
