@@ -169,6 +169,59 @@ def deserialize_args(inps):
     return eval(inps.strip().strip("'").strip('"'), global_vals)
 
 
+def compute_errors(ref, res, eps=1e-10):
+    """Compute absolute and relative errors between reference and result tensors.
+
+    Returns:
+        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors
+    """
+    if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
+        if ref.shape != res.shape:
+            return None, None
+
+        if ref.is_sparse and res.is_sparse:
+            # todo: create note that we don't calculate errors for sparse tensors / results
+            return None, None
+
+        # Convert to float for error calculation
+        ref_float = ref.float()
+        res_float = res.float()
+
+        # Absolute error
+        abs_error = (ref_float - res_float).abs().mean().item()
+
+        # Relative error (avoid division by zero)
+        ref_abs = ref_float.abs()
+        rel_error = ((ref_float - res_float).abs() / (ref_abs + eps)).mean().item()
+
+        return abs_error, rel_error
+    elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
+        if len(ref) != len(res):
+            return None, None
+
+        # if we have no tensors just return None
+        if not any(isinstance(x, torch.Tensor) for x in ref) or not any(
+            isinstance(x, torch.Tensor) for x in res
+        ):
+            return None, None
+
+        # For lists/tuples, compute mean error across all elements.
+        # We will return the mean of these means
+        mean_abs_error = 0.0
+        mean_rel_error = 0.0
+
+        for r, s in zip(ref, res):
+            abs_err, rel_err = compute_errors(r, s)
+            if abs_err is None or rel_err is None:
+                continue
+            mean_abs_error += abs_err
+            mean_rel_error += rel_err
+
+        return mean_abs_error / len(ref), mean_rel_error / len(ref)
+    else:
+        return None, None
+
+
 def cleanup_memory_and_gpu():
     """Helper function to clean up GPU memory"""
     gc.collect()

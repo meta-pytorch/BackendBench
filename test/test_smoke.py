@@ -33,7 +33,7 @@ class TestSmoke:
             if test.op not in aten_backend:
                 pytest.skip(f"Operation {test.op} not in backend")
 
-            correctness, perf = eval_one_op(
+            correctness, perf, _ = eval_one_op(
                 test.op,
                 aten_backend[test.op],
                 test.correctness_tests,

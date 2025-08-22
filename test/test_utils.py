@@ -13,6 +13,7 @@ from BackendBench.utils import (
     deserialize_args,
     _deserialize_tensor,
     uses_cuda_stream,
+    compute_errors,
 )
 
 # Check if CUDA is available
@@ -535,6 +536,72 @@ class TestDeserializeTensor:
             tensor = _deserialize_tensor([10], dtype)
             assert tensor.dtype == dtype
             assert tensor.shape == (10,)
+
+
+class TestComputeErrors:
+    """Test cases for compute_errors function"""
+
+    def test_tensor_error_computation(self):
+        """Comprehensive test for tensor error computation using torch.allclose-like validation"""
+        # Test 1: Identical tensors should have zero error
+        ref = torch.tensor([1.0, 2.0, 3.0, 4.0])
+        res = torch.tensor([1.0, 2.0, 3.0, 4.0])
+        abs_err, rel_err = compute_errors(ref, res)
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.0), atol=1e-7)
+        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.0), atol=1e-7)
+
+        # Test 2: Known error values
+        ref = torch.tensor([2.0, 4.0, 6.0, 8.0])
+        res = torch.tensor([2.2, 4.4, 6.6, 8.8])  # 10% error
+        abs_err, rel_err = compute_errors(ref, res)
+        # Absolute error: mean([0.2, 0.4, 0.6, 0.8]) = 0.5
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.5), rtol=1e-5)
+        # Relative error: all have 10% error, so mean is 0.1
+        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.1), rtol=1e-5)
+
+        # Test 3: Multi-dimensional tensors
+        ref = torch.ones(3, 4, 5) * 10.0
+        res = torch.ones(3, 4, 5) * 11.0  # 10% error
+        abs_err, rel_err = compute_errors(ref, res)
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(1.0), rtol=1e-5)
+        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.1), rtol=1e-5)
+
+        # Test 4: Different shapes return None
+        ref = torch.ones(3, 4)
+        res = torch.ones(3, 5)
+        abs_err, rel_err = compute_errors(ref, res)
+        assert abs_err is None and rel_err is None
+
+        # Test 5: Zero handling with epsilon
+        ref = torch.tensor([0.0, 1.0])
+        res = torch.tensor([0.1, 1.1])
+        abs_err, rel_err = compute_errors(ref, res, eps=1.0)
+        # Absolute error: mean([0.1, 0.1]) = 0.1
+        # Relative: [0.1/(0+1), 0.1/(1+1)] = [0.1, 0.05], mean = 0.075
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.1), rtol=1e-5)
+        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.075), rtol=1e-5)
+
+    def test_list_and_edge_cases(self):
+        """Test list/tuple handling and edge cases"""
+        # Test 1: List of tensors
+        ref = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
+        res = [torch.tensor([1.1, 2.2]), torch.tensor([3.3, 4.4])]
+        abs_err, rel_err = compute_errors(ref, res)
+        # Each has 0.1, 0.2, 0.3, 0.4 absolute errors
+        expected_abs = (0.15 + 0.35) / 2  # Mean of means
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(expected_abs), rtol=1e-5)
+
+        # Test 2: Non-tensor inputs return None
+        assert compute_errors(1.0, 2.0) == (None, None)
+        assert compute_errors([1, 2], [1, 2]) == (None, None)
+
+        # Test 3: Sparse tensors return None
+        indices = torch.LongTensor([[0, 1], [1, 0]])
+        values = torch.FloatTensor([3, 4])
+        sparse_ref = torch.sparse.FloatTensor(indices.t(), values, torch.Size([2, 2]))
+        sparse_res = torch.sparse.FloatTensor(indices.t(), values, torch.Size([2, 2]))
+        abs_err, rel_err = compute_errors(sparse_ref, sparse_res)
+        assert abs_err is None and rel_err is None
 
 
 if __name__ == "__main__":

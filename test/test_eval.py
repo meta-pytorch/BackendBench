@@ -54,21 +54,45 @@ class TestAllclose:
         tensor_nan2 = torch.tensor([1.0, float("nan"), 3.0])
         assert allclose(tensor_nan1, tensor_nan2) is True
 
-    def test_allclose_lists(self):
-        list1 = [torch.tensor([1.0]), torch.tensor([2.0])]
-        list2 = [torch.tensor([1.0]), torch.tensor([2.0])]
-
-        assert allclose(list1, list2) is True
-
-        list3 = [torch.tensor([1.0])]
-        with pytest.raises(Exception):
-            allclose(list1, list3)
-
     def test_allclose_scalars(self):
         assert allclose(1, 1) is True
         assert allclose(1.0, 1.0) is True
         assert allclose("test", "test") is True
         assert allclose(1, 2) is False
+
+    def test_allclose_tuples_lists_with_tolerances(self):
+        """Test tuple/list comparison with specified tolerances"""
+        atol, rtol = 1e-2, 1e-2
+
+        # Lists of tensors - exact match
+        list1 = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
+        list2 = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
+        assert allclose(list1, list2, atol=atol, rtol=rtol) is True
+
+        # Lists of tensors - within tolerance
+        list1 = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
+        list2 = [torch.tensor([1.01, 2.01]), torch.tensor([3.01, 4.01])]
+        assert allclose(list1, list2, atol=atol, rtol=rtol) is True
+
+        # Lists of tensors - outside tolerance
+        list1 = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
+        list2 = [torch.tensor([1.1, 2.1]), torch.tensor([3.1, 4.1])]
+        assert allclose(list1, list2, atol=atol, rtol=rtol) is False
+
+        # Tuples of tensors
+        tuple1 = (torch.tensor([1.0]), torch.tensor([2.0]))
+        tuple2 = (torch.tensor([1.01]), torch.tensor([2.01]))
+        assert allclose(tuple1, tuple2, atol=atol, rtol=rtol) is True
+
+        # Nested structures
+        nested1 = [[torch.tensor([1.0])], (torch.tensor([2.0]), torch.tensor([3.0]))]
+        nested2 = [[torch.tensor([1.01])], (torch.tensor([2.01]), torch.tensor([3.01]))]
+        assert allclose(nested1, nested2, atol=atol, rtol=rtol) is True
+
+        # Length mismatch
+        list1 = [torch.tensor([1.0]), torch.tensor([2.0])]
+        list2 = [torch.tensor([1.0])]
+        assert allclose(list1, list2, atol=atol, rtol=rtol) is False
 
 
 class TestEvalCorrectness:
@@ -84,8 +108,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([-1.0, 0.0, 1.0])], {})
 
-        result = eval_correctness_test(op, impl, test)
-        assert result is True
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        assert is_correct is True
 
     def test_eval_correctness_test_fail(self):
         # Use different operations that produce different results
@@ -101,8 +125,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([1.0, 2.0, 3.0])], {})
 
-        result = eval_correctness_test(op, impl, test)
-        assert result is False
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        assert is_correct is False
 
     def test_eval_correctness_test_exception(self):
         op = torch.relu
@@ -118,8 +142,11 @@ class TestEvalCorrectness:
         test = TestCase([torch.tensor([1.0])], {})
 
         # Just test that it returns False on exception
-        result = eval_correctness_test(op, impl_with_error, test)
-        assert result is False
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
+            op, impl_with_error, test
+        )
+        assert is_correct is False
+        assert error_msg is not None  # Should have an error message
 
     def test_eval_correctness_multiple_tests(self):
         op = torch.abs
@@ -135,8 +162,10 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        score = eval_correctness(op, impl, tests)
+        test_data = {}
+        score = eval_correctness(op, impl, tests, test_data)
         assert score == 1.0
+        assert len(test_data) == len(tests)  # Should have data for each test
 
 
 class TestEvalPerformance:
@@ -180,9 +209,13 @@ class TestEvalOneOp:
         correctness_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(3)]
         performance_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(2)]
 
-        correctness, performance = eval_one_op(op, impl, correctness_tests, performance_tests)
+        correctness, performance, test_data = eval_one_op(
+            op, impl, correctness_tests, performance_tests
+        )
 
         # Should have perfect correctness since using same implementation
         assert correctness[0]
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0
+        # Verbose data should be populated
+        assert len(test_data) > 0

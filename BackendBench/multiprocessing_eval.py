@@ -51,6 +51,7 @@ class EvalResult:
     task_id: int
     correctness_score: float
     performance_score: float
+    test_data: Optional[dict] = None
     error: Optional[str] = None
 
 
@@ -99,13 +100,14 @@ def _worker_process(worker_id, task_queue, result_queue):
                     if isinstance(impl, str):
                         impl = get_operator(impl)
 
-                    correctness_score, performance_score = eval_one_op(
+                    correctness_score, performance_score, test_data = eval_one_op(
                         op, impl, task.correctness_tests, task.performance_tests
                     )
                     result = EvalResult(
                         task_id=task.task_id,
                         correctness_score=correctness_score,
                         performance_score=performance_score,
+                        test_data=test_data,
                     )
                 except Exception as e:
                     error_msg = f"Error in eval_one_op: {str(e)}\n{traceback.format_exc()}"
@@ -121,6 +123,14 @@ def _worker_process(worker_id, task_queue, result_queue):
                         task_id=task.task_id,
                         correctness_score=(False, 0.0),
                         performance_score=1.0,
+                        test_data={
+                            "correctness_score": 0.0,
+                            "benchmark_time": "",
+                            "speedup": "",
+                            "correctness_errors": f"{error_msg}",
+                            "absolute_error": "",
+                            "relative_error": "",
+                        },
                         error=error_msg,
                     )
 
