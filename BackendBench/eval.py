@@ -111,7 +111,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
         logger.warning(f"No correctness tests available for {str(op)}")
         return False, 0.0
 
-    return correct == total, correct / total
+    return correct / total
 
 
 def cpu_bench(fn, num_runs=100):

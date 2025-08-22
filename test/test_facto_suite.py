@@ -53,17 +53,17 @@ class TestFactoSuite:
                         assert value.numel() > 0, f"Tensor kwarg is empty for {test.op}"
 
             # Evaluate the operation
-            correctness, _, _ = eval_one_op(
+            correctness, _, op_test_data = eval_one_op(
                 test.op,
                 backend[test.op],  # AtenBackend returns the original op
                 test.correctness_tests,
                 test.performance_tests,
             )
-            print(f"Correctness for {test.op}: {correctness[0]}")
-            overall_correctness.append(correctness[0])
+            is_correct = all(data["correctness_score"] == 1 for data in op_test_data.values())
+            overall_correctness.append(is_correct)
 
             # Individual test assertions
-            assert correctness[1] > 0, f"Operation {test.op} failed all correctness tests"
+            assert correctness > 0, f"Operation {test.op} failed all correctness tests"
 
         # Calculate mean correctness
         mean_correctness = torch.tensor(overall_correctness).float().mean().item()

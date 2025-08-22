@@ -107,7 +107,7 @@ class TestBackendEvaluation(unittest.TestCase):
                 try:
                     impl = backend[op]
                     test = Test(*arg_generators)
-                    _, correctness = eval_correctness(op, impl, [test])
+                    correctness = eval_correctness(op, impl, [test])
 
                     total_tested += 1
                     if correctness == 0.0:
@@ -183,13 +183,11 @@ class TestBackendEvaluation(unittest.TestCase):
             correctness, performance, _ = eval_one_op(test_op, impl, [test], [test])
 
             print(f"   Operation: {test_op}")
-            print(f"   Correctness: {correctness[0]}")
+            print(f"   Correctness: {correctness}")
             print(f"   Performance: {performance}")
 
             # Watermarked implementation should fail correctness
-            self.assertEqual(
-                correctness[0], 0, "Watermarked implementation should fail correctness"
-            )
+            self.assertEqual(correctness, 0.0, "Watermarked implementation should fail correctness")
 
             print("   ✓ eval_one_op works correctly with watermarked implementation")
         else:

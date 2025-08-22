@@ -210,7 +210,12 @@ def cli(
                 test.correctness_tests,
                 test.performance_tests,
             )
-            overall_correctness.append(correctness[0])
+            # TODO: ensure correctness_score is always present in op_test_data
+            for args_str, data in op_test_data.items():
+                if "correctness_score" not in data.keys():
+                    logger.debug(f"Correctness score not found for {test.op, args_str}")
+                    op_test_data[args_str]["correctness_score"] = correctness == 1.0
+            overall_correctness.append(all(data["correctness_score"] for data in op_test_data.values()))
             overall_performance.append(perf)
 
             # Convert dict to list entries with op_name
@@ -244,7 +249,14 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-            correctness_score = result.correctness_score[0]
+            
+            # TODO: ensure correctness_score is always present in op_test_data
+            for args_str, data in op_test_data.items():
+                if "correctness_score" not in data.keys():
+                    logger.debug(f"Correctness score not found for {test.op, args_str}")
+                    op_test_data[args_str]["correctness_score"] = correctness == 1.0
+
+            correctness_score = all(data["correctness_score"] for data in result.test_data.values())
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
@@ -257,11 +269,12 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
+    mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    fastp_score = fastp(overall_correctness, overall_performance, 1.0)
+    fastp_score = fastp(overall_correctness, overall_performance)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    print(f"fastp score (rate of correct samples with a speedup greater than p): {fastp_score:.2f}")
 
     # Save verbose results if output path is specified
     if output_path and verbose_results:

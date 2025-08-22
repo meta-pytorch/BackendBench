@@ -214,7 +214,7 @@ class TestEvalOneOp:
         )
 
         # Should have perfect correctness since using same implementation
-        assert correctness[0]
+        assert correctness == 1.0
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0
         # Verbose data should be populated
