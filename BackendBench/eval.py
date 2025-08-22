@@ -61,6 +61,12 @@ def eval_correctness(op, impl, tests):
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
+
+    # Handle the case where no tests are available
+    if total == 0:
+        logger.warning(f"No correctness tests available for {str(op)}")
+        return 0.0
+
     return correct / total
 
 

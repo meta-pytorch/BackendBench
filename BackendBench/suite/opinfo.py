@@ -84,9 +84,7 @@ def build_op_tests(device, dtype, filter=None):
 
         for overload, indices in op_indices.items():
             if len(indices) > 0:
-                op_info_op_tests.append(
-                    OpInfoOpTest(overload, op.sample_inputs(device, dtype), indices)
-                )
+                op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
 
     return op_info_op_tests
 
