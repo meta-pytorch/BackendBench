@@ -90,7 +90,9 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
         op["included_in_benchmark"] = True
         op["why_excluded"] = []
         op["runtime_ms"] = ""
+        op["relative_runtime_to_kernel_launch"] = ""
         op["runnable"] = True
+        op["performance_canary"] = False
 
     # apply filters
     ops = apply_skip_ops_filter(ops)
