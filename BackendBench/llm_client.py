@@ -10,6 +10,7 @@ import anthropic
 import requests
 
 from .kernel_templates import KernelTemplateManager
+from .conversation_manager import ConversationManager
 
 
 # This is where a KernelAgent would be plugged in, this is a toy one that 1 shots the problem
@@ -130,6 +131,122 @@ class ClaudeKernelGenerator:
         )
 
         return "\n".join(feedback_parts)
+
+    def generate_kernel_with_conversation_history(
+        self,
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton",
+        max_attempts: int = 5,
+        feedback_callback: Optional[Callable] = None,
+        debug_mode: bool = False
+    ) -> tuple[str, int, bool, ConversationManager]:
+        """Generate kernel with full conversation history tracking."""
+        # Initialize conversation manager
+        conversation_manager = ConversationManager(op_name, debug_mode)
+
+        # Create initial prompt
+        initial_prompt = self.template_manager.create_prompt(
+            op_name, op_signature, op_description, framework
+        )
+
+        # Start conversation
+        conversation_manager.start_conversation(initial_prompt, framework, max_attempts)
+
+        if debug_mode:
+            print(f"🎯 Starting conversation-aware generation for {op_name}")
+
+        kernel_code = ""  # Initialize to avoid unbound variable error
+
+        for attempt in range(max_attempts):
+            attempt_num = attempt + 1
+            if debug_mode:
+                print(f"  📝 Conversation attempt {attempt_num}/{max_attempts}")
+
+            # Build prompt (initial on first attempt, conversation history on subsequent)
+            if attempt == 0:
+                prompt = initial_prompt
+            else:
+                prompt = conversation_manager.build_next_prompt(
+                    self.template_manager, op_signature, op_description
+                )
+
+            if debug_mode:
+                print(f"    📤 Sending prompt ({len(prompt)} chars)")
+
+            # Generate kernel
+            try:
+                response = self.client.messages.create(
+                    model="claude-sonnet-4-20250514",
+                    max_tokens=8000,
+                    temperature=0.2,
+                    timeout=120.0,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                content = response.content[0].text
+                kernel_code = self._extract_code_from_response(content)
+
+                # Add response to conversation
+                conversation_manager.add_response(kernel_code, attempt_num, prompt)
+
+                if debug_mode:
+                    print(f"    📥 Received response ({len(kernel_code)} chars)")
+
+            except Exception as e:
+                error_msg = f"LLM generation failed: {str(e)}"
+                if debug_mode:
+                    print(f"    ❌ {error_msg}")
+
+                # Add error as feedback
+                error_feedback = {"compilation_error": error_msg}
+                conversation_manager.add_feedback(error_feedback, attempt_num)
+                continue
+
+            # Test kernel if feedback callback provided
+            if feedback_callback is None:
+                # No testing needed, mark as success
+                success_feedback = {"success": True}
+                conversation_manager.add_feedback(success_feedback, attempt_num)
+
+                if debug_mode:
+                    print(f"    ✅ No testing required, marking as success")
+
+                return kernel_code, attempt_num, True, conversation_manager
+
+            # Test the kernel
+            if debug_mode:
+                print(f"    🧪 Testing kernel...")
+
+            is_correct, feedback_info = feedback_callback(kernel_code, attempt_num)
+
+            if debug_mode:
+                test_errors_count = len(feedback_info.get('test_errors', []))
+                compilation_error = feedback_info.get('compilation_error', None)
+                print(f"    📊 Test Results: correct={is_correct}, test_errors={test_errors_count}, compilation_error={compilation_error is not None}")
+
+            # Add feedback to conversation
+            feedback_info["success"] = is_correct
+            conversation_manager.add_feedback(feedback_info, attempt_num)
+
+            if is_correct:
+                if debug_mode:
+                    success_summary = feedback_info.get('summary', 'Success')
+                    print(f"    ✅ Kernel correct on attempt {attempt_num}: {success_summary}")
+                return kernel_code, attempt_num, True, conversation_manager
+            else:
+                if debug_mode:
+                    error_summary = feedback_info.get('summary', 'Unknown error')
+                    print(f"    ❌ Kernel failed: {error_summary}")
+                    if feedback_info.get('test_errors'):
+                        print(f"    📝 {len(feedback_info['test_errors'])} test errors found")
+                    if feedback_info.get('compilation_error'):
+                        print(f"    🔧 Compilation error: {feedback_info['compilation_error'][:100]}...")
+
+        if debug_mode:
+            print(f"  ❌ Failed after {max_attempts} attempts")
+
+        return kernel_code, max_attempts, False, conversation_manager
 
     def _extract_code_from_response(self, response: str) -> str:
         if "```python" not in response:
@@ -286,6 +403,149 @@ class LLMKernelGenerator:
 
         print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
         return kernel_code, max_attempts, False
+
+    def generate_kernel_with_conversation_history(
+        self,
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton",
+        max_attempts: int = 5,
+        feedback_callback: Optional[Callable] = None,
+        debug_mode: bool = False
+    ) -> tuple[str, int, bool, ConversationManager]:
+        """Generate kernel with full conversation history tracking."""
+        # Initialize conversation manager
+        conversation_manager = ConversationManager(op_name, debug_mode)
+
+        # Create initial prompt
+        initial_prompt = self.template_manager.create_prompt(
+            op_name, op_signature, op_description, framework
+        )
+
+        # Start conversation
+        conversation_manager.start_conversation(initial_prompt, framework, max_attempts)
+
+        if debug_mode:
+            print(f"🎯 Starting conversation-aware generation for {op_name} (LLM Relay)")
+
+        kernel_code = ""  # Initialize to avoid unbound variable error
+
+        for attempt in range(max_attempts):
+            attempt_num = attempt + 1
+            if debug_mode:
+                print(f"  📝 Conversation attempt {attempt_num}/{max_attempts}")
+
+            # Build prompt (initial on first attempt, conversation history on subsequent)
+            if attempt == 0:
+                prompt = initial_prompt
+            else:
+                prompt = conversation_manager.build_next_prompt(
+                    self.template_manager, op_signature, op_description
+                )
+
+            if debug_mode:
+                print(f"    📤 Sending prompt to relay server ({len(prompt)} chars)")
+
+            # Generate kernel
+            try:
+                # Prepare request data for the plugboard server
+                request_data = {
+                    "messages": [{"role": "user", "content": prompt}],
+                    "model": self.model,
+                    "temperature": 0.2,
+                    "max_tokens": 8000,
+                    "top_p": 0.95,
+                }
+
+                # Bypass proxy for localhost connections
+                proxies = (
+                    {"http": None, "https": None}
+                    if "127.0.0.1" in self.server_url or "localhost" in self.server_url
+                    else None
+                )
+
+                response = requests.post(
+                    self.server_url,
+                    json=request_data,
+                    headers={"Content-Type": "application/json"},
+                    timeout=120.0,
+                    proxies=proxies,
+                )
+
+                if response.status_code != 200:
+                    raise RuntimeError(
+                        f"Server returned status {response.status_code}: {response.text}"
+                    )
+
+                response_data = response.json()
+                content = response_data.get("output", "")
+
+                if not content:
+                    raise RuntimeError("Empty response from LLM relay server")
+
+                kernel_code = self._extract_code_from_response(content)
+
+                # Add response to conversation
+                conversation_manager.add_response(kernel_code, attempt_num, prompt)
+
+                if debug_mode:
+                    print(f"    📥 Received response from relay ({len(kernel_code)} chars)")
+
+            except Exception as e:
+                error_msg = f"LLM relay generation failed: {str(e)}"
+                if debug_mode:
+                    print(f"    ❌ {error_msg}")
+
+                # Add error as feedback
+                error_feedback = {"compilation_error": error_msg}
+                conversation_manager.add_feedback(error_feedback, attempt_num)
+                continue
+
+            # Test kernel if feedback callback provided
+            if feedback_callback is None:
+                # No testing needed, mark as success
+                success_feedback = {"success": True}
+                conversation_manager.add_feedback(success_feedback, attempt_num)
+
+                if debug_mode:
+                    print(f"    ✅ No testing required, marking as success")
+
+                return kernel_code, attempt_num, True, conversation_manager
+
+            # Test the kernel
+            if debug_mode:
+                print(f"    🧪 Testing kernel...")
+
+            is_correct, feedback_info = feedback_callback(kernel_code, attempt_num)
+
+            if debug_mode:
+                test_errors_count = len(feedback_info.get('test_errors', []))
+                compilation_error = feedback_info.get('compilation_error', None)
+                print(f"    📊 Test Results: correct={is_correct}, test_errors={test_errors_count}, compilation_error={compilation_error is not None}")
+
+            # Add feedback to conversation
+            feedback_info["success"] = is_correct
+            conversation_manager.add_feedback(feedback_info, attempt_num)
+
+            if is_correct:
+                if debug_mode:
+                    success_summary = feedback_info.get('summary', 'Success')
+                    print(f"    ✅ Kernel correct on attempt {attempt_num}: {success_summary}")
+                return kernel_code, attempt_num, True, conversation_manager
+            else:
+                if debug_mode:
+                    error_summary = feedback_info.get('summary', 'Unknown error')
+                    print(f"    ❌ Kernel failed: {error_summary}")
+                    if feedback_info.get('test_errors'):
+                        print(f"    📝 {len(feedback_info['test_errors'])} test errors found")
+                    if feedback_info.get('compilation_error'):
+                        print(f"    🔧 Compilation error: {feedback_info['compilation_error'][:100]}...")
+
+        if debug_mode:
+            print(f"  ❌ Failed after {max_attempts} attempts")
+
+        return kernel_code, max_attempts, False, conversation_manager
 
     def _format_feedback(self, feedback_info: Dict) -> str:
         """Format feedback information for the LLM."""

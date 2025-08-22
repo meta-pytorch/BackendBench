@@ -7,7 +7,7 @@
 import logging
 import os
 import sys
-from typing import Dict
+from typing import Dict, Optional
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
@@ -120,6 +120,21 @@ def setup_logging(log_level):
     type=int,
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
+@click.option(
+    "--enable-conversation-history",
+    is_flag=True,
+    help="Enable conversation history for LLM backends (improves learning from previous attempts)"
+)
+@click.option(
+    "--debug-conversation",
+    is_flag=True,
+    help="Enable detailed conversation logging for LLM backends (saves conversation logs to disk)"
+)
+@click.option(
+    "--debug-op",
+    type=str,
+    help="Specific operator to log full conversation for (e.g., 'add')"
+)
 def cli(
     log_level,
     suite,
@@ -134,18 +149,23 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
+    enable_conversation_history,
+    debug_conversation,
+    debug_op,
 ):
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
 
+    # Backend creation with debug mode support for LLM backends
     if backend == "llm-relay":
-        backend = backends.LLMRelayBackend(model=llm_relay_model)
+        backend = backends.LLMRelayBackend(model=llm_relay_model, debug_mode=debug_conversation)
+    elif backend == "llm":
+        backend = backends.LLMBackend(debug_mode=debug_conversation)
     else:
         backend = {
             "aten": backends.AtenBackend,
             "flag_gems": backends.FlagGemsBackend,
-            "llm": backends.LLMBackend,
             "kernel_agent": backends.KernelAgentBackend,
             "directory": backends.DirectoryBackend,
         }[backend]()
@@ -175,12 +195,12 @@ def cli(
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
         llm_client = ClaudeKernelGenerator()
-        backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts)
+        backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts, enable_conversation_history, debug_conversation, debug_op)
 
     # For LLM Relay backend, we need to generate kernels using the local server
     elif backend.name == "llm-relay":
         llm_client = LLMKernelGenerator(model=llm_relay_model)
-        backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts)
+        backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts, enable_conversation_history, debug_conversation, debug_op)
 
     # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
@@ -267,7 +287,7 @@ def cli(
         print(f"Detailed results saved to: {output_path}")
 
 
-def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
+def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5, enable_conversation_history=False, debug_conversation=False, debug_op=None):
     """Setup LLM backend by generating kernels for all operations in the suite."""
     try:
         successful_ops = 0
@@ -298,15 +318,21 @@ def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
 
-            # Generate kernel with iterative refinement
-            kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
-                op_name,
-                op_signature,
-                op_description,
-                framework="triton",
-                max_attempts=max_attempts,
-                feedback_callback=feedback_callback,
-            )
+            # Use conversation-aware generation when conversation history is enabled or debug mode is enabled
+            if enable_conversation_history or debug_conversation or debug_op == op_name:
+                kernel_code, attempts_used, success = eval.generate_and_test_kernel_with_llm_backend(
+                    llm_backend, op, op_test.correctness_tests, max_attempts, debug_conversation, debug_op
+                )
+            else:
+                # Generate kernel with iterative refinement (legacy approach)
+                kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
+                    op_name,
+                    op_signature,
+                    op_description,
+                    framework="triton",
+                    max_attempts=max_attempts,
+                    feedback_callback=feedback_callback,
+                )
 
             if success:
                 try:
@@ -382,7 +408,7 @@ def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
         sys.exit(1)
 
 
-def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5):
+def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5, enable_conversation_history=False, debug_conversation=False, debug_op=None):
     """Setup LLM Relay backend by generating kernels using the local plugboard server."""
     try:
         successful_ops = 0
@@ -391,6 +417,11 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
         for op_test in suite:
             op = op_test.op
             total_ops += 1
+
+            # Clear CUDA cache before each operation to prevent accumulation
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
 
             # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
             op_str = str(op)
@@ -414,15 +445,21 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
 
-            # Generate kernel with iterative refinement
-            kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
-                op_name,
-                op_signature,
-                op_description,
-                framework="triton",
-                max_attempts=max_attempts,
-                feedback_callback=feedback_callback,
-            )
+            # Use conversation-aware generation when conversation history is enabled or debug mode is enabled
+            if enable_conversation_history or debug_conversation or debug_op == op_name:
+                kernel_code, attempts_used, success = eval.generate_and_test_kernel_with_llm_backend(
+                    llm_relay_backend, op, op_test.correctness_tests, max_attempts, debug_conversation, debug_op
+                )
+            else:
+                # Generate kernel with iterative refinement (legacy approach)
+                kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
+                    op_name,
+                    op_signature,
+                    op_description,
+                    framework="triton",
+                    max_attempts=max_attempts,
+                    feedback_callback=feedback_callback,
+                )
 
             if success:
                 try:
@@ -464,6 +501,11 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                     f.write(f"Server: {llm_client.server_url}\n")
                     f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                 # Continue with other operations
+
+            # Force memory cleanup after each operation (especially important after failures)
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.synchronize()
 
         # Print summary
         print(f"\n{'=' * 60}")

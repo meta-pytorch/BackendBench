@@ -8,7 +8,7 @@
 Kernel code templates and prompt engineering for LLM-based kernel generation.
 """
 
-from typing import Dict
+from typing import Dict, List
 from .prompts import (
     TRITON_KERNEL_PROMPT,
     PYTORCH_KERNEL_PROMPT,
@@ -120,5 +120,97 @@ Fix the above errors and generate corrected code."""
             refinement_prompt = f"""{base_prompt}
 
 The previous attempt failed. Please generate a corrected version."""
+
+        return refinement_prompt
+
+    def create_conversation_prompt(
+        self,
+        conversation_history: List,  # List[ConversationTurn] - avoiding import cycle
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton"
+    ) -> str:
+        """Create prompt with full conversation context."""
+        if not conversation_history:
+            # No history, return initial prompt
+            return self.create_prompt(op_name, op_signature, op_description, framework)
+
+        # Start with initial prompt
+        initial_prompt = self.create_prompt(op_name, op_signature, op_description, framework)
+
+        # Add conversation context
+        conversation_context = self.format_conversation_context(conversation_history)
+
+        # Combine for full conversation prompt
+        conversation_prompt = f"""{initial_prompt}
+
+{conversation_context}
+
+## NEXT ATTEMPT
+
+Based on the conversation history above, generate an improved version that addresses all the previous failures and feedback.
+Focus on learning from the errors and avoiding the same mistakes."""
+
+        return conversation_prompt
+
+    def format_conversation_context(
+        self,
+        conversation_history: List  # List[ConversationTurn] - avoiding import cycle
+    ) -> str:
+        """Format conversation history for LLM context."""
+        if not conversation_history:
+            return ""
+
+        context_parts = ["## CONVERSATION HISTORY"]
+
+        for turn in conversation_history:
+            context_parts.append(f"\n### ATTEMPT {turn.attempt_number}")
+            context_parts.append(f"**Generated Code:**")
+            context_parts.append(f"```python\n{turn.response}\n```")
+
+            if turn.feedback:
+                context_parts.append(f"**Feedback:**")
+                context_parts.append(turn.feedback)
+
+            # Add success/failure status
+            status = "✅ SUCCESS" if turn.success else "❌ FAILED"
+            context_parts.append(f"**Status:** {status}")
+
+        return "\n".join(context_parts)
+
+    def create_conversation_refinement_prompt(
+        self,
+        initial_prompt: str,
+        conversation_history: List,  # List[ConversationTurn] - avoiding import cycle
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton"
+    ) -> str:
+        """Create refinement prompt with conversation context."""
+        if not conversation_history:
+            # No history, return initial prompt
+            return initial_prompt
+
+        # Format conversation history
+        conversation_context = self.format_conversation_context(conversation_history)
+
+        num_attempts = len(conversation_history)
+
+        # Simple guidance for all refinement attempts
+        analysis_section = f"""## NEXT ATTEMPT
+
+You have attempted to generate the {op_name} kernel {num_attempts} time(s) above.
+
+Based on the conversation history and feedback, generate an improved version that resolves the previous mistakes.
+Focus on the specific errors and feedback from the most recent attempt."""
+
+        # Combine everything
+        refinement_prompt = f"""{initial_prompt}
+
+{conversation_context}
+
+{analysis_section}"""
 
         return refinement_prompt
