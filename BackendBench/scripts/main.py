@@ -23,6 +23,7 @@ from BackendBench.suite import (
     TorchBenchTestSuite,
     FactoTestSuite,
 )
+from BackendBench.score import fastp
 
 logger = logging.getLogger(__name__)
 
@@ -209,7 +210,14 @@ def cli(
                 test.correctness_tests,
                 test.performance_tests,
             )
-            overall_correctness.append(correctness)
+
+            overall_correctness.append(
+                all(
+                    data["correctness_score"]
+                    for data in op_test_data.values()
+                    if "correctness_score" in data.keys()
+                )
+            )
             overall_performance.append(perf)
 
             # Convert dict to list entries with op_name
@@ -243,7 +251,11 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-            correctness_score = result.correctness_score
+            correctness_score = all(
+                data["correctness_score"]
+                for data in op_test_data.values()
+                if "correctness_score" in data.keys()
+            )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
@@ -256,10 +268,12 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
+    mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+    fastp_score = fastp(overall_correctness, overall_performance)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    print(f"fastp score (rate of correct samples with a speedup greater than p): {fastp_score:.2f}")
 
     # Save verbose results if output path is specified
     if output_path and verbose_results:
