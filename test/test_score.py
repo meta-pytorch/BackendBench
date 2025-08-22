@@ -9,7 +9,9 @@ import torch
 from BackendBench.score import fastp
 
 
-def fastp_kernel_bench(is_correct: np.ndarray, baseline_speed: np.ndarray, actual_speed: np.ndarray, n: int, p: float) -> float:
+def fastp_kernel_bench(
+    is_correct: np.ndarray, baseline_speed: np.ndarray, actual_speed: np.ndarray, n: int, p: float
+) -> float:
     """
     Original fastp implementation from kernelBench
     """
@@ -26,7 +28,6 @@ class TestFastp:
         overall_performance = np.random.uniform(0.5, 2, size=num_tests)
         return overall_correctness, overall_performance
 
-
     def test_fastp(self):
         for num_tests in [5, 10, 50, 100]:
             for p in [0, 1, 1.5, 2]:
@@ -34,8 +35,12 @@ class TestFastp:
 
                 actual_speed = np.random.randint(1, 101, size=num_tests)
                 baseline_speed = actual_speed * overall_performance
-                fastp_score_orig = fastp_kernel_bench(overall_correctness, baseline_speed, actual_speed, num_tests, p)
+                fastp_score_orig = fastp_kernel_bench(
+                    overall_correctness, baseline_speed, actual_speed, num_tests, p
+                )
 
                 fastp_score = fastp(overall_correctness.tolist(), overall_performance.tolist(), p)
 
-                assert torch.allclose(fastp_score, torch.tensor(fastp_score_orig, dtype=torch.float32))
+                assert torch.allclose(
+                    fastp_score, torch.tensor(fastp_score_orig, dtype=torch.float32)
+                )

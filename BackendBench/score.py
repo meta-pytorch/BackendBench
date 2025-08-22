@@ -6,6 +6,13 @@
 
 import torch
 
+
 def fastp(correctness, performance, p=0.8):
-    assert len(correctness) == len(performance), "correctness and performance must have the same length"
-    return torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0).float().mean()
+    assert len(correctness) == len(performance), (
+        "correctness and performance must have the same length"
+    )
+    return (
+        torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0)
+        .float()
+        .mean()
+    )

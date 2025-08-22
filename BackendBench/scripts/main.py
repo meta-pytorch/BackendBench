@@ -215,7 +215,9 @@ def cli(
                 if "correctness_score" not in data.keys():
                     logger.debug(f"Correctness score not found for {test.op, args_str}")
                     op_test_data[args_str]["correctness_score"] = correctness == 1.0
-            overall_correctness.append(all(data["correctness_score"] for data in op_test_data.values()))
+            overall_correctness.append(
+                all(data["correctness_score"] for data in op_test_data.values())
+            )
             overall_performance.append(perf)
 
             # Convert dict to list entries with op_name
@@ -249,7 +251,6 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-            
             # TODO: ensure correctness_score is always present in op_test_data
             for args_str, data in op_test_data.items():
                 if "correctness_score" not in data.keys():

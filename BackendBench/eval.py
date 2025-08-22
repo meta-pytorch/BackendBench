@@ -106,7 +106,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
         if is_correct:
             correct += 1
         total += 1
-    
+
     if total == 0:
         logger.warning(f"No correctness tests available for {str(op)}")
         return False, 0.0
