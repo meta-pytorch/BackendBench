@@ -2,13 +2,13 @@ __pycache__/
 .claude/
 .vscode/
 .ruff_cache/
-generated_kernels/
 backendbench.egg-info/
 CLAUDE.md
 venv/
 ops/
 datasets/
 uv.lock
-pytorch_operator_coverage.csv
 .pre-commit-cache/
 logs/
+generated_kernels/
+*.csv

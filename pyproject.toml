@@ -25,6 +25,7 @@ dependencies = [
     "pytest",
     "requests",
     "huggingface_hub",
+    "pandas"
 ]
 
 [project.optional-dependencies]
