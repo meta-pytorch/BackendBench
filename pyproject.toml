@@ -33,7 +33,7 @@ flaggems = [
     # flag_gems must be installed from source: https://github.com/FlagOpen/FlagGems
 ]
 facto = [
-    # facto must be installed from source: https://github.com/pytorch-labs/FACTO
+    # facto must be installed from source: https://github.com/meta-pytorch/FACTO
 ]
 
 [project.scripts]
