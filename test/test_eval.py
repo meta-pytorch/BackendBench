@@ -183,6 +183,6 @@ class TestEvalOneOp:
         correctness, performance = eval_one_op(op, impl, correctness_tests, performance_tests)
 
         # Should have perfect correctness since using same implementation
-        assert correctness[0] == 1
+        assert correctness[0]
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0

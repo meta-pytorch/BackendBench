@@ -107,10 +107,10 @@ class TestBackendEvaluation(unittest.TestCase):
                 try:
                     impl = backend[op]
                     test = Test(*arg_generators)
-                    _, correct, _ = eval_correctness(op, impl, [test])
+                    _, correctness = eval_correctness(op, impl, [test])
 
                     total_tested += 1
-                    if correct == 0:
+                    if correctness == 0.0:
                         failed_count += 1
                         print(f"  ✓ {str(op).split('.')[-2]}: Failed correctness (watermarked)")
                     else:

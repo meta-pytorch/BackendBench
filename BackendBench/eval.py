@@ -25,8 +25,6 @@ Exception raised for {op}:
     exc: {exc}
 """
 
-FAIL_FACTOR = 1.1
-
 
 def format_exception(e, op, args, kwargs):
     op_name = getattr(op, "__name__", str(op))
@@ -63,7 +61,7 @@ def eval_correctness(op, impl, tests):
         if eval_correctness_test(op, impl, test):
             correct += 1
         total += 1
-    return correct == total, correct, total
+    return correct == total, correct / total
 
 
 def cpu_bench(fn, num_runs=100):
@@ -93,7 +91,7 @@ def eval_performance(op, impl, tests):
         try:
             allclose(op(*test.args, **test.kwargs), impl(*test.args, **test.kwargs))
         except Exception:
-            test_times.append(base_times[-1] * FAIL_FACTOR)
+            test_times.append(base_times[-1])
             continue
         test_times.append(bench_fn(lambda: impl(*test.args, **test.kwargs)))
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
@@ -106,7 +104,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
-        return (False, 0, 0), 1.0
+        return (False, 0.0), 1.0
     return eval_correctness(op, impl, correctness_tests), eval_performance(
         op, impl, performance_tests
     )
