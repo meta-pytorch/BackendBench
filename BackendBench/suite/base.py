@@ -4,14 +4,6 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
-
-from BackendBench.opregistry import get_operator
-
-
-def randn(*args, **kwargs):
-    return lambda: torch.randn(*args, **kwargs)
-
 
 class Test:
     def __init__(self, *args, **kwargs):
@@ -42,19 +34,3 @@ class TestSuite:
     def __iter__(self):
         for optest in self.optests:
             yield optest
-
-
-SmokeTestSuite = TestSuite(
-    "smoke",
-    [
-        OpTest(
-            get_operator(torch.ops.aten.relu.default),
-            [
-                Test(randn(2, device="cpu")),
-            ],
-            [
-                Test(randn(2**28, device="cpu")),
-            ],
-        )
-    ],
-)

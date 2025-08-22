@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from BackendBench.torchbench_suite import TorchBenchOpTest
+from BackendBench.suite import TorchBenchOpTest
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import BackendBench.backends as backends
 import torch

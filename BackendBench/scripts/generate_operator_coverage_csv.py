@@ -17,8 +17,7 @@ from BackendBench.scripts.pytorch_operators import (
     extract_aten_ops,
     extract_operator_name,
 )
-from BackendBench.opinfo_suite import OpInfoTestSuite
-from BackendBench.torchbench_suite import TorchBenchTestSuite
+from BackendBench.suite import OpInfoTestSuite, TorchBenchTestSuite
 
 
 def get_torchbench_ops():

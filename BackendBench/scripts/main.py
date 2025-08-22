@@ -15,11 +15,14 @@ import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
 
-from BackendBench.facto_suite import FactoTestSuite
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
-from BackendBench.opinfo_suite import OpInfoTestSuite
-from BackendBench.suite import SmokeTestSuite
-from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL, TorchBenchTestSuite
+from BackendBench.suite import (
+    SmokeTestSuite,
+    OpInfoTestSuite,
+    DEFAULT_HUGGINGFACE_URL,
+    TorchBenchTestSuite,
+    FactoTestSuite,
+)
 
 logger = logging.getLogger(__name__)
 
