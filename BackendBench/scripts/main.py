@@ -23,6 +23,7 @@ from BackendBench.suite import (
     TorchBenchTestSuite,
     FactoTestSuite,
 )
+from BackendBench.score import fastp
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +233,10 @@ def cli(
 
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+    fastp_score = fastp(overall_correctness, overall_performance, 1.0)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    print(f"fastp score: {fastp_score:.2f}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
