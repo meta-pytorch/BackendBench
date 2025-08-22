@@ -212,7 +212,11 @@ def cli(
             )
 
             overall_correctness.append(
-                all(data["correctness_score"] for data in op_test_data.values() if "correctness_score" in data.keys())
+                all(
+                    data["correctness_score"]
+                    for data in op_test_data.values()
+                    if "correctness_score" in data.keys()
+                )
             )
             overall_performance.append(perf)
 
@@ -247,8 +251,11 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-
-            correctness_score = all(data["correctness_score"] for data in op_test_data.values() if "correctness_score" in data.keys())
+            correctness_score = all(
+                data["correctness_score"]
+                for data in op_test_data.values()
+                if "correctness_score" in data.keys()
+            )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
