@@ -85,7 +85,9 @@ or understand the sophisticated generation process used by KernelAgent.
                 # Import KernelAgent from the submodule
                 import sys
 
-                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "..", "KernelAgent")
+                kernel_agent_path = os.path.join(
+                    os.path.dirname(__file__), "..", "..", "KernelAgent"
+                )
                 if kernel_agent_path not in sys.path:
                     sys.path.insert(0, os.path.abspath(kernel_agent_path))
 
@@ -267,24 +269,24 @@ import torch.nn.functional as F
     def _create_test_code_from_backendbench(self, op, op_name: str, test_cases) -> str:
         """
         Convert BackendBench test cases to KernelAgent-compatible test code.
-        
+
         Args:
             op: PyTorch operation
             op_name: Operation name
             test_cases: BackendBench test cases
-            
+
         Returns:
             Test code string for KernelAgent, or None if no test cases
         """
         test_list = list(test_cases) if test_cases else []
         if not test_list:
             return None
-            
+
         print(f"    Using {len(test_list)} BackendBench test cases")
-        
+
         # Use a few representative test cases (not all, to avoid overwhelming the LLM)
         max_tests = min(5, len(test_list))
-        
+
         test_code = f'''import torch
 import torch.nn.functional as F
 
@@ -296,29 +298,29 @@ def test_kernel():
     failed_tests = []
     
 '''
-        
+
         for i, test in enumerate(test_list[:max_tests]):
             test_code += f"    # Test case {i + 1} from BackendBench\n"
             test_code += "    try:\n"
-            
+
             # Build args
             test_code += "        args = [\n"
             for arg in test.args:
-                if hasattr(arg, 'shape') and hasattr(arg, 'dtype') and hasattr(arg, 'device'):
+                if hasattr(arg, "shape") and hasattr(arg, "dtype") and hasattr(arg, "device"):
                     # Recreate tensor with same properties
                     test_code += f"            torch.randn({list(arg.shape)}, dtype={arg.dtype}, device='{arg.device}'),\n"
                 else:
                     test_code += f"            {repr(arg)},\n"
             test_code += "        ]\n"
-            
+
             # Add kwargs
             if test.kwargs:
                 test_code += f"        kwargs = {repr(test.kwargs)}\n"
             else:
                 test_code += "        kwargs = {}\n"
-            
+
             # Test execution
-            op_str = str(op).replace('OpOverload', '').replace('OpOverloadPacket', '')
+            op_str = str(op).replace("OpOverload", "").replace("OpOverloadPacket", "")
             test_code += f"""
         # Get reference result from PyTorch
         ref_result = torch.ops.{op_str}(*args, **kwargs)
@@ -335,7 +337,7 @@ def test_kernel():
         failed_tests.append({i + 1})
         all_passed = False
 """
-        
+
         test_code += """
     if all_passed:
         print("All BackendBench tests passed!")
@@ -349,7 +351,7 @@ if __name__ == "__main__":
     success = test_kernel()
     sys.exit(0 if success else 1)
 """
-        
+
         return test_code
 
     def generate_kernel_with_agent(self, op, op_name: str, test_cases=None) -> tuple[str, bool]:
@@ -369,7 +371,7 @@ if __name__ == "__main__":
 
             # Create problem description
             problem_description = self._create_problem_description_from_op(op, op_name)
-            
+
             # Create test code from BackendBench tests if provided
             test_code = None
             if test_cases:
