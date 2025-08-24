@@ -17,7 +17,6 @@ from .base import Backend
 from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
 from .kernel_agent import KernelAgentBackend
-from .kernel_agent_fp16 import KernelAgentFP16Backend
 from .llm import LLMBackend
 from .llm_relay import LLMRelayBackend
 
@@ -29,5 +28,4 @@ __all__ = [
     "LLMBackend",
     "LLMRelayBackend",
     "KernelAgentBackend",
-    "KernelAgentFP16Backend",
 ]

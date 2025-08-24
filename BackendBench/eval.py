@@ -54,9 +54,32 @@ def eval_correctness_test(op, impl, test):
         return False
 
 
-def eval_correctness(op, impl, tests):
+def eval_correctness(op, impl, tests, filter_fp16_bf16=False):
     correct, total = 0, 0
+    skipped = 0
     for test in tests:
+        # Filter test cases to only FP16/BF16 if requested
+        if filter_fp16_bf16:
+            skip_test = False
+            for arg in test.args:
+                if isinstance(arg, torch.Tensor) and arg.dtype not in [
+                    torch.float16,
+                    torch.bfloat16,
+                ]:
+                    skip_test = True
+                    break
+            if not skip_test and test.kwargs:
+                for value in test.kwargs.values():
+                    if isinstance(value, torch.Tensor) and value.dtype not in [
+                        torch.float16,
+                        torch.bfloat16,
+                    ]:
+                        skip_test = True
+                        break
+            if skip_test:
+                skipped += 1
+                continue
+
         logging.debug(f"Testing {op.__name__} with args {serialize_args(test.args, test.kwargs)}")
         if eval_correctness_test(op, impl, test):
             correct += 1
@@ -64,8 +87,16 @@ def eval_correctness(op, impl, tests):
 
     # Handle the case where no tests are available
     if total == 0:
-        logger.warning(f"No correctness tests available for {str(op)}")
+        if skipped > 0:
+            logger.warning(f"All {skipped} tests for {str(op)} were skipped due to dtype filtering")
+        else:
+            logger.warning(f"No correctness tests available for {str(op)}")
         return 0.0
+
+    if filter_fp16_bf16 and skipped > 0:
+        logger.info(
+            f"Filtered {skipped} non-FP16/BF16 tests for {str(op)}, evaluated {total} tests"
+        )
 
     return correct / total
 
@@ -104,13 +135,13 @@ def eval_performance(op, impl, tests):
     return speedups.log().mean().exp()
 
 
-def eval_one_op(op, impl, correctness_tests, performance_tests):
+def eval_one_op(op, impl, correctness_tests, performance_tests, filter_fp16_bf16=False):
     """Evaluate impl of op against correctness_tests and performance_tests."""
     # TODO: We should have proper error reporting instead of just saying this is 0,
     # but that should be a separate PR.
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
         return 0.0, 1.0
-    return eval_correctness(op, impl, correctness_tests), eval_performance(
-        op, impl, performance_tests
-    )
+    return eval_correctness(
+        op, impl, correctness_tests, filter_fp16_bf16=filter_fp16_bf16
+    ), eval_performance(op, impl, performance_tests)
