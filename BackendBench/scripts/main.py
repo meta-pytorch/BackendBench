@@ -109,10 +109,16 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
+    "--output-path",
+    default=None,
+    type=str,
+    help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+)
+@click.option(
     "--num-workers",
     default=None,
     type=int,
-    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing)",
+    help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
 @click.option(
     "--filter-fp16-bf16",
@@ -132,6 +138,7 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
+    output_path,
     num_workers,
     filter_fp16_bf16,
 ):
@@ -200,6 +207,7 @@ def cli(
 
     overall_correctness = []
     overall_performance = []
+    verbose_results = []
 
     # Automatically enable FP16/BF16 filtering for kernel_agent backend
     if backend.__class__.__name__ == "KernelAgentBackend" and not filter_fp16_bf16:
@@ -213,7 +221,7 @@ def cli(
 
             logger.debug(test.op)
 
-            correctness, perf = eval.eval_one_op(
+            correctness, perf, op_test_data = eval.eval_one_op(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
@@ -223,19 +231,29 @@ def cli(
             overall_correctness.append(correctness)
             overall_performance.append(perf)
 
+            # Convert dict to list entries with op_name
+            op_name = getattr(test.op, "__name__", str(test.op))
+            for args_str, data in op_test_data.items():
+                entry = {"op_name": op_name, "args": args_str}
+                entry.update(data)
+                verbose_results.append(entry)
+
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
         with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-            # Submit all tasks
+            # Submit all tasks and track op names
+            task_to_op_name = {}
             for test in suite:
                 if test.op not in backend:
                     continue
 
                 logger.debug(test.op)
 
-                evaluator.submit_task(
+                task_id = evaluator.submit_task(
                     test.op, backend[test.op], test.correctness_tests, test.performance_tests
                 )
+                op_name = getattr(test.op, "__name__", str(test.op))
+                task_to_op_name[task_id] = op_name
 
             # Start evaluation
             evaluator.start_evaluation()
@@ -249,10 +267,23 @@ def cli(
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
 
+            # Handle verbose data if present
+            if result.test_data and result.task_id in task_to_op_name:
+                op_name = task_to_op_name[result.task_id]
+                for args_str, data in result.test_data.items():
+                    entry = {"op_name": op_name, "args": args_str}
+                    entry.update(data)
+                    verbose_results.append(entry)
+
     mean_correctness = torch.tensor(overall_correctness).mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+
+    # Save verbose results if output path is specified
+    if output_path and verbose_results:
+        eval.save_verbose_results(verbose_results, output_path)
+        print(f"Detailed results saved to: {output_path}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
