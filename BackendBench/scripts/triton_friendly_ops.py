@@ -31,7 +31,6 @@ TRITON_FRIENDLY_OPS = [
     "round",  # Round
     "erf",  # Error function
     "sgn",  # Sign function
-    
     # === Activation functions ===
     "relu",  # ReLU activation
     "relu_",  # In-place ReLU
@@ -51,7 +50,6 @@ TRITON_FRIENDLY_OPS = [
     "leaky_relu_",  # In-place leaky ReLU
     "_softmax",  # Softmax (single-axis reduction)
     "_log_softmax",  # Log softmax (single-axis reduction)
-    
     # === Binary operations (element-wise) ===
     "add",  # Addition
     "add_",  # In-place addition
@@ -64,13 +62,11 @@ TRITON_FRIENDLY_OPS = [
     "pow",  # Power (prefer float base/exp)
     "maximum",  # Element-wise maximum
     "minimum",  # Element-wise minimum
-    
     # === Ternary operations ===
     "addcmul",  # a + alpha * b * c
     "where",  # Conditional selection (with masks)
     "clamp",  # Clamp values
     "clamp_min",  # Clamp minimum only
-    
     # === Comparison operations ===
     "eq",  # Equal
     "ne",  # Not equal
@@ -80,7 +76,6 @@ TRITON_FRIENDLY_OPS = [
     "ge",  # Greater than or equal
     "isinf",  # Check for infinity (element-wise)
     "isnan",  # Check for NaN (element-wise)
-    
     # === Simple reductions (single-axis) ===
     "sum",  # Sum reduction
     "mean",  # Mean reduction
@@ -89,12 +84,10 @@ TRITON_FRIENDLY_OPS = [
     "std",  # Standard deviation (single-axis)
     "var_mean",  # Variance and mean (single-axis)
     "any",  # Any true (reduction)
-    
     # === Regular matrix operations ===
     "mm",  # Matrix multiplication
     "bmm",  # Batch matrix multiplication
     "addmm",  # Add matrix multiplication (C + A @ B)
-    
     # === Backward operations (element-wise gradients) ===
     "sigmoid_backward",  # Sigmoid gradient
     "tanh_backward",  # Tanh gradient
@@ -106,17 +99,14 @@ TRITON_FRIENDLY_OPS = [
     "leaky_relu_backward",  # Leaky ReLU gradient
     "silu_backward",  # SiLU gradient
     "threshold_backward",  # Threshold gradient
-    
     # === Simple loss functions ===
     "mse_loss",  # Mean squared error (element-wise + reduction)
     "mse_loss_backward",  # MSE gradient
-    
     # === Bitwise operations (int32 preferred) ===
     "bitwise_and",  # Bitwise AND (int32)
     "bitwise_xor",  # Bitwise XOR (int32)
     "bitwise_not",  # Bitwise NOT (int32)
     "logical_and_",  # Logical AND (int32)
-    
     # === Simple memory operations ===
     "clone",  # Clone tensor (simple copy)
     "copy_",  # In-place copy
@@ -135,7 +125,6 @@ TRITON_CAPABLE_OPS = [
     "norm",  # Norm computation (may need multi-pass)
     "_softmax_backward_data",  # Softmax gradient (reduction + broadcast)
     "_log_softmax_backward_data",  # Log softmax gradient
-    
     # === Convolution/pooling (engineering-heavy but doable) ===
     "convolution",  # Can be done with careful SMEM tiling
     "convolution_backward",  # Gradient convolution
@@ -145,35 +134,29 @@ TRITON_CAPABLE_OPS = [
     "_adaptive_avg_pool2d_backward",  # Adaptive average pooling backward
     "max_pool2d_with_indices",  # Max pooling with indices
     "max_pool2d_with_indices_backward",  # Max pooling backward
-    
     # === Backward operations (need gradient computation) ===
     "grid_sampler_2d_backward",  # Grid sampler backward
     "reflection_pad2d_backward",  # Reflection padding backward
     "select_backward",  # Select backward
     "slice_backward",  # Slice backward
     "unfold_backward",  # Unfold backward
-    
     # === Normalization (requires atomics for training) ===
     "native_layer_norm",  # Layer norm (reduction + broadcast)
     "native_group_norm",  # Group norm
     "native_group_norm_backward",  # Group norm backward
     "native_batch_norm",  # Batch norm (training needs atomics)
     "native_batch_norm_backward",  # BN gradients
-    
     # === Integer operations (prefer int32) ===
     "floor_divide",  # Integer division (slower than float ops)
     "fmod",  # Floating modulo
     "remainder",  # Integer remainder
-    
     # === Tensor manipulation (depends on layout) ===
     "cat",  # Concatenation (OK if contiguous)
     "stack",  # Stack (OK if regular strides)
     "split",  # Split (OK if even splits)
     "repeat",  # Repeat (OK if affine pattern)
-    
     # === Indexing operations (performance varies) ===
     # Note: Removed index, index_put, scatter, gather as they're not in TorchBench
-    
     # === Special operations ===
     "grid_sampler_2d",  # Bilinear sampling (careful indexing)
     "upsample_bilinear2d",  # Bilinear upsampling
@@ -190,28 +173,23 @@ TRITON_CHALLENGING_OPS = [
     # === Int64-heavy arithmetic ===
     "cumsum",  # Cumulative sum (often int64 indices)
     # Note: Removed cumprod as it's not in TorchBench
-    
     # === Highly dynamic/irregular ops ===
     "nonzero",  # Dynamic output size
     # Note: Removed unique as it's not in TorchBench
     "topk",  # Data-dependent sorting
-    
     # === Complex memory patterns ===
     "as_strided_",  # Arbitrary striding
     "_unsafe_view",  # Unsafe view operations
     # Note: Removed unfold as it's not in TorchBench
     "roll",  # Circular shift (non-affine)
     "flip",  # Reverse dimensions
-    
     # === Ragged/variable operations ===
     "split_with_sizes",  # Variable size splits
     "unbind",  # Unbind into list
     # Note: Removed nested_tensor as it's not in TorchBench
-    
     # === Special tensor types ===
     "_sparse_coo_tensor_with_dims_and_tensors",  # Sparse ops
     "_to_copy",  # Complex dtype/device copies
-    
     # === Dynamic tensor creation ===
     "lift_fresh_copy",  # Creates new tensor copies
     "new_empty",  # Dynamic tensor creation
@@ -219,16 +197,13 @@ TRITON_CHALLENGING_OPS = [
     "new_full",  # Dynamic tensor creation with fill
     "new_ones",  # Dynamic tensor creation (ones)
     "new_zeros",  # Dynamic tensor creation (zeros)
-    
     # === Multi-device/distributed ===
     # Note: Removed _c10d_functional and all_reduce as they're not in TorchBench
-    
     # === Very complex patterns ===
     "_cudnn_rnn",  # Complex RNN implementations
     "reflection_pad2d",  # Reflection padding (complex indexing)
     "col2im",  # Complex layout transformation
     "im2col",  # Complex layout transformation
-    
     # === Dynamic control flow ===
     # Note: Removed cond and while_loop as they're not in TorchBench
 ]
@@ -271,20 +246,24 @@ if __name__ == "__main__":
     print("   Easy wins with good expected performance")
     for i, op in enumerate(sorted(TRITON_FRIENDLY_OPS), 1):
         print(f"   {i:3d}. {op}")
-    
+
     print(f"\n⚠️  Triton-capable operations ({len(TRITON_CAPABLE_OPS)} ops):")
     print("   Doable but requires careful engineering")
     for i, op in enumerate(sorted(TRITON_CAPABLE_OPS), 1):
         print(f"   {i:3d}. {op}")
-    
+
     print(f"\n❌ Triton-challenging operations ({len(TRITON_CHALLENGING_OPS)} ops):")
     print("   Genuinely problematic due to limitations")
     for i, op in enumerate(sorted(TRITON_CHALLENGING_OPS), 1):
         print(f"   {i:3d}. {op}")
-    
+
     # Summary
     total_ops = len(TRITON_FRIENDLY_OPS) + len(TRITON_CAPABLE_OPS) + len(TRITON_CHALLENGING_OPS)
     print(f"\nTotal categorized: {total_ops} operations")
-    print(f"Friendly: {len(TRITON_FRIENDLY_OPS)} ({len(TRITON_FRIENDLY_OPS)/total_ops*100:.1f}%)")
-    print(f"Capable: {len(TRITON_CAPABLE_OPS)} ({len(TRITON_CAPABLE_OPS)/total_ops*100:.1f}%)")
-    print(f"Challenging: {len(TRITON_CHALLENGING_OPS)} ({len(TRITON_CHALLENGING_OPS)/total_ops*100:.1f}%)")
+    print(
+        f"Friendly: {len(TRITON_FRIENDLY_OPS)} ({len(TRITON_FRIENDLY_OPS) / total_ops * 100:.1f}%)"
+    )
+    print(f"Capable: {len(TRITON_CAPABLE_OPS)} ({len(TRITON_CAPABLE_OPS) / total_ops * 100:.1f}%)")
+    print(
+        f"Challenging: {len(TRITON_CHALLENGING_OPS)} ({len(TRITON_CHALLENGING_OPS) / total_ops * 100:.1f}%)"
+    )

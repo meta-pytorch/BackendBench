@@ -213,9 +213,6 @@ def _load_from_parquet(
 
     # Apply filter if provided
     if filter:
-        # Import the function to extract operation names
-        from BackendBench.scripts.pytorch_operators import extract_operator_name
-
         # Extract operation names and do exact matching
         def matches_filter(op_full_name):
             op_name = extract_operator_name(op_full_name)

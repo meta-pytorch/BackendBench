@@ -45,6 +45,7 @@ def get_triton_core_ops():
 def get_triton_capable_core_ops():
     """Get Triton-capable core operators (require more engineering)."""
     from .triton_friendly_ops import TRITON_CAPABLE_OPS
+
     return [op for op in TORCHBENCH_CORE_OPS if op in TRITON_CAPABLE_OPS]
 
 
@@ -227,7 +228,9 @@ def main():
         logger.info(f"Operations: {', '.join(ops_list[:10])}{'...' if len(ops_list) > 10 else ''}")
     elif args.triton_capable:
         ops_list = get_triton_capable_core_ops()
-        logger.info(f"Running {len(ops_list)} Triton-capable core operations (require careful engineering)")
+        logger.info(
+            f"Running {len(ops_list)} Triton-capable core operations (require careful engineering)"
+        )
         logger.info(f"Operations: {', '.join(ops_list[:10])}{'...' if len(ops_list) > 10 else ''}")
     else:
         ops_list = get_torchbench_core_ops()

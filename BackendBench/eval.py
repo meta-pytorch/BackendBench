@@ -88,7 +88,9 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict), filter_fp16_bf16=False):
+def eval_correctness(
+    op, impl, tests, test_data: defaultdict = defaultdict(dict), filter_fp16_bf16=False
+):
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     skipped = 0
@@ -221,7 +223,9 @@ def eval_one_op(op, impl, correctness_tests, performance_tests, filter_fp16_bf16
             }
         return 0, 1.0, test_data
 
-    correctness_score = eval_correctness(op, impl, correctness_tests, test_data, filter_fp16_bf16=filter_fp16_bf16)
+    correctness_score = eval_correctness(
+        op, impl, correctness_tests, test_data, filter_fp16_bf16=filter_fp16_bf16
+    )
     performance_score = eval_performance(op, impl, performance_tests, test_data)
     test_data = dict(test_data)
     return correctness_score, performance_score, test_data

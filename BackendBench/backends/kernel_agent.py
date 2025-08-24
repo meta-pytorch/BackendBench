@@ -284,8 +284,74 @@ import torch.nn.functional as F
         # Use a few representative test cases (not all, to avoid overwhelming the LLM)
         max_tests = min(5, len(test_list))
 
+        # Import the serialization utility
+        from BackendBench.utils import serialize_args
+
         test_code = f'''import torch
 import torch.nn.functional as F
+import re
+
+def _deserialize_tensor(match):
+    """Convert T([shape], dtype) to appropriate torch tensor creation"""
+    # Parse the T(...) format
+    content = match.group(1)
+    parts = [p.strip() for p in content.split(', ')]
+    
+    # Extract shape (first part)
+    shape_str = parts[0]
+    
+    # Extract dtype (second part)
+    dtype_str = parts[1]
+    
+    # Handle stride if present (third part)
+    # For now, we ignore stride and create contiguous tensors
+    
+    # Convert dtype abbreviations to torch dtypes
+    dtype_map = {{
+        'bf16': 'torch.bfloat16',
+        'f64': 'torch.float64', 
+        'f32': 'torch.float32',
+        'f16': 'torch.float16',
+        'c32': 'torch.complex32',
+        'c64': 'torch.complex64',
+        'c128': 'torch.complex128',
+        'i8': 'torch.int8',
+        'i16': 'torch.int16',
+        'i32': 'torch.int32',
+        'i64': 'torch.int64',
+        'b8': 'torch.bool',
+        'u8': 'torch.uint8',
+    }}
+    
+    torch_dtype = dtype_map.get(dtype_str, 'torch.float32')
+    
+    # Choose appropriate tensor creation based on dtype
+    if dtype_str in ['b8']:  # Boolean
+        return f"torch.randint(0, 2, {{shape_str}}, dtype={{torch_dtype}}, device='cuda').bool()"
+    elif dtype_str in ['i8', 'i16', 'i32', 'i64', 'u8']:  # Integer types
+        return f"torch.randint(0, 10, {{shape_str}}, dtype={{torch_dtype}}, device='cuda')"
+    elif dtype_str in ['c32', 'c64', 'c128']:  # Complex types
+        return f"torch.randn({{shape_str}}, dtype={{torch_dtype}}, device='cuda')"
+    else:  # Float types
+        return f"torch.randn({{shape_str}}, dtype={{torch_dtype}}, device='cuda')"
+
+def deserialize_test_args(serialized_str):
+    """Convert serialized args string to actual args and kwargs"""
+    # Replace T(...) with torch.randn(...)
+    pattern = r'T\(([^)]+)\)'
+    deserialized = re.sub(pattern, _deserialize_tensor, serialized_str)
+    
+    # The serialized format is: (args_tuple, kwargs_dict)
+    # Evaluate to get the tuple
+    full_data = eval(deserialized)
+    
+    # Extract args and kwargs
+    if isinstance(full_data, tuple) and len(full_data) == 2:
+        args, kwargs = full_data
+        return list(args), kwargs
+    else:
+        # Handle case where there's only args
+        return list(full_data), {{}}
 
 def test_kernel():
     """Test the {op_name} kernel using BackendBench test cases."""
@@ -297,24 +363,14 @@ def test_kernel():
 '''
 
         for i, test in enumerate(test_list[:max_tests]):
+            # Use BackendBench's serialization format
+            serialized_args = serialize_args(test.args, test.kwargs)
+
             test_code += f"    # Test case {i + 1} from BackendBench\n"
             test_code += "    try:\n"
-
-            # Build args
-            test_code += "        args = [\n"
-            for arg in test.args:
-                if hasattr(arg, "shape") and hasattr(arg, "dtype") and hasattr(arg, "device"):
-                    # Recreate tensor with same properties
-                    test_code += f"            torch.randn({list(arg.shape)}, dtype={arg.dtype}, device='{arg.device}'),\n"
-                else:
-                    test_code += f"            {repr(arg)},\n"
-            test_code += "        ]\n"
-
-            # Add kwargs
-            if test.kwargs:
-                test_code += f"        kwargs = {repr(test.kwargs)}\n"
-            else:
-                test_code += "        kwargs = {}\n"
+            test_code += "        # Deserialize the test arguments\n"
+            test_code += f'        serialized = """{serialized_args}"""\n'
+            test_code += "        args, kwargs = deserialize_test_args(serialized)\n"
 
             # Test execution
             op_str = str(op).replace("OpOverload", "").replace("OpOverloadPacket", "")
