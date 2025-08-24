@@ -126,7 +126,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
             "relative_error": str(rel_error) if rel_error is not None else "",
         }
 
-        if is_correct
+        if is_correct:
             correct += 1
         total += 1
 
