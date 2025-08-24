@@ -88,10 +88,35 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
+def eval_correctness(
+    op, impl, tests, test_data: defaultdict = defaultdict(dict), filter_fp16_bf16=False
+):
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
+    skipped = 0
     for test in tests:
+        # Filter test cases to only FP16/BF16 if requested
+        if filter_fp16_bf16:
+            skip_test = False
+            for arg in test.args:
+                if isinstance(arg, torch.Tensor) and arg.dtype not in [
+                    torch.float16,
+                    torch.bfloat16,
+                ]:
+                    skip_test = True
+                    break
+            if not skip_test and test.kwargs:
+                for value in test.kwargs.values():
+                    if isinstance(value, torch.Tensor) and value.dtype not in [
+                        torch.float16,
+                        torch.bfloat16,
+                    ]:
+                        skip_test = True
+                        break
+            if skip_test:
+                skipped += 1
+                continue
+
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
         is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
@@ -109,8 +134,16 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
 
     # Handle the case where no tests are available
     if total == 0:
-        logger.warning(f"No correctness tests available for {str(op)}")
+        if skipped > 0:
+            logger.warning(f"All {skipped} tests for {str(op)} were skipped due to dtype filtering")
+        else:
+            logger.warning(f"No correctness tests available for {str(op)}")
         return 0.0
+
+    if filter_fp16_bf16 and skipped > 0:
+        logger.info(
+            f"Filtered {skipped} non-FP16/BF16 tests for {str(op)}, evaluated {total} tests"
+        )
 
     return correct / total
 
@@ -168,7 +201,7 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     return speedups.log().mean().exp()
 
 
-def eval_one_op(op, impl, correctness_tests, performance_tests):
+def eval_one_op(op, impl, correctness_tests, performance_tests, filter_fp16_bf16=False):
     """Evaluate impl of op against correctness_tests and performance_tests.
 
     Returns:
@@ -190,7 +223,9 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
             }
         return 0, 1.0, test_data
 
-    correctness_score = eval_correctness(op, impl, correctness_tests, test_data)
+    correctness_score = eval_correctness(
+        op, impl, correctness_tests, test_data, filter_fp16_bf16=filter_fp16_bf16
+    )
     performance_score = eval_performance(op, impl, performance_tests, test_data)
     test_data = dict(test_data)
     return correctness_score, performance_score, test_data

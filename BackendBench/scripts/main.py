@@ -120,6 +120,12 @@ def setup_logging(log_level):
     type=int,
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
+@click.option(
+    "--filter-fp16-bf16",
+    is_flag=True,
+    default=False,
+    help="Only evaluate test cases with FP16/BF16 tensors (useful for KernelAgent)",
+)
 def cli(
     log_level,
     suite,
@@ -134,6 +140,7 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
+    filter_fp16_bf16,
 ):
     setup_logging(log_level)
     if ops:
@@ -188,6 +195,12 @@ def cli(
             backend, suite, kernel_agent_workers, kernel_agent_max_rounds
         )
 
+    # For KernelAgentFP16 backend, we need to generate kernels with FP16/BF16 filtering
+    elif backend.name == "kernel_agent_fp16":
+        backend = setup_kernel_agent_backend(
+            backend, suite, kernel_agent_workers, kernel_agent_max_rounds
+        )
+
     # For Directory backend, we need to load existing kernels from a directory
     elif backend.name == "directory":
         backend = backends.DirectoryBackend(ops_directory)
@@ -195,6 +208,11 @@ def cli(
     overall_correctness = []
     overall_performance = []
     verbose_results = []
+
+    # Automatically enable FP16/BF16 filtering for kernel_agent backend
+    if backend.__class__.__name__ == "KernelAgentBackend" and not filter_fp16_bf16:
+        logger.info("Automatically enabling FP16/BF16 filtering for KernelAgent backend")
+        filter_fp16_bf16 = True
 
     if num_workers is None:
         for test in suite:
@@ -208,6 +226,7 @@ def cli(
                 backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
+                filter_fp16_bf16=filter_fp16_bf16,
             )
             overall_correctness.append(correctness)
             overall_performance.append(perf)
@@ -548,7 +567,9 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
             print(f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each")
 
             # Generate kernel using KernelAgent's sophisticated system
-            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(op, op_name)
+            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(
+                op, op_name, test_cases=op_test.correctness_tests
+            )
 
             if success:
                 try:
