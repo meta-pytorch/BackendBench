@@ -20,9 +20,9 @@ except ImportError:
     SpecDictDB = None
 
 
-from .eval import allclose
-from .opregistry import get_operator
-from .suite import OpTest, TestSuite
+from BackendBench.eval import allclose
+from BackendBench.opregistry import get_operator
+from .base import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)
 
