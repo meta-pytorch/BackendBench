@@ -25,6 +25,7 @@ except ImportError:
 
 from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
 from BackendBench.scripts.pytorch_operators import extract_operator_name
+from BackendBench.scripts.dataset_filters import UNTESTABLE_OPERATORS
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +34,6 @@ Exception raised for {op}:
     args: {args}
     exc: {exc}
 """
-
-UNTESTABLE_OPERATORS = [
-    "empty_like",
-    "new_empty",
-    "new_empty_strided",
-    "bernoulli",
-]
 
 
 def format_exception(e, op, args, kwargs):
