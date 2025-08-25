@@ -17,11 +17,11 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    SmokeTestSuite,
-    OpInfoTestSuite,
     DEFAULT_HUGGINGFACE_URL,
-    TorchBenchTestSuite,
     FactoTestSuite,
+    OpInfoTestSuite,
+    SmokeTestSuite,
+    TorchBenchTestSuite,
 )
 
 logger = logging.getLogger(__name__)
@@ -120,6 +120,12 @@ def setup_logging(log_level):
     type=int,
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
+@click.option(
+    "--performance-canary",
+    default=False,
+    is_flag=True,
+    help="Run performance canary tests only",
+)
 def cli(
     log_level,
     suite,
@@ -134,7 +140,14 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
+    performance_canary,
 ):
+    if suite != "torchbench":
+        if topn_inputs is not None:
+            raise ValueError("topn-inputs is only supported for torchbench suite")
+        if performance_canary:
+            raise ValueError("performance-canary is only supported for torchbench suite")
+
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
@@ -163,6 +176,7 @@ def cli(
             torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
+            performance_canary_mode=performance_canary,
         ),
         "facto": lambda: FactoTestSuite(
             "facto_cuda_bfloat16",
@@ -231,7 +245,10 @@ def cli(
                 logger.debug(test.op)
 
                 task_id = evaluator.submit_task(
-                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                    test.op,
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
                 )
                 op_name = getattr(test.op, "__name__", str(test.op))
                 task_to_op_name[task_id] = op_name

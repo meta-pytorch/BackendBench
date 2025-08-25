@@ -57,7 +57,7 @@ class TorchBenchOpTest:
 
 
 class TorchBenchTestSuite:
-    def __init__(self, name, filename=None, filter=None, topn=None):
+    def __init__(self, name, filename=None, filter=None, topn=None, performance_canary_mode=False):
         self.name = name
         self.topn = topn
 
@@ -71,6 +71,9 @@ class TorchBenchTestSuite:
             format="auto",  # Auto-detect based on file extension
             filter=filter,
         )
+        if performance_canary_mode:
+            # Filter out ops that are not supported by the backend
+            ops_list = [op for op in ops_list if op.get("performance_canary", False)]
 
         # Convert to dictionary format using utility function
         self.optests = op_list_to_benchmark_dict(ops_list)
