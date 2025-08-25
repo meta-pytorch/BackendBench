@@ -24,6 +24,7 @@ except ImportError:
     TRITON_AVAILABLE = False
 
 from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
+from BackendBench.scripts.pytorch_operators import extract_operator_name
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,13 @@ Exception raised for {op}:
     args: {args}
     exc: {exc}
 """
+
+UNTESTABLE_OPERATORS = [
+    "empty_like",
+    "new_empty",
+    "new_empty_strided",
+    "bernoulli",
+]
 
 
 def format_exception(e, op, args, kwargs):
@@ -64,6 +72,21 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
         return False
 
 
+def equal_metadata(a, b):
+    try:
+        _allclose(a.shape, b.shape, atol=0.0, rtol=0.0)
+        _allclose(a.stride(), b.stride(), atol=0.0, rtol=0.0)
+        _allclose(a.dtype, b.dtype, atol=0.0, rtol=0.0)
+        _allclose(a.device, b.device, atol=0.0, rtol=0.0)
+        return True
+    except Exception:
+        return False
+
+
+def test_metadata(op):
+    return extract_operator_name(str(op)) in UNTESTABLE_OPERATORS
+
+
 def eval_correctness_test(
     op, impl, test
 ) -> Tuple[bool, Optional[str], Optional[float], Optional[float]]:
@@ -76,12 +99,16 @@ def eval_correctness_test(
     ref = op(*args, **kwargs)
     try:
         res = impl(*args, **kwargs)
-        is_correct = allclose(ref, res)
+        if test_metadata(op):
+            is_correct = equal_metadata(ref, res)
+            return is_correct, None, 0.0, 0.0
+        else:
+            is_correct = allclose(ref, res)
 
-        # Compute errors even if test passes (for verbose mode)
-        abs_error, rel_error = compute_errors(ref, res)
+            # Compute errors even if test passes (for verbose mode)
+            abs_error, rel_error = compute_errors(ref, res)
 
-        return is_correct, None, abs_error, rel_error
+            return is_correct, None, abs_error, rel_error
     except Exception as e:
         error_msg = format_exception(e, op, args, kwargs)
         logger.warning(error_msg)
