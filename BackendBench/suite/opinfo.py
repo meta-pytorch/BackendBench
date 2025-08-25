@@ -10,8 +10,8 @@ from collections import defaultdict
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
-from .eval import allclose
-from .suite import OpTest, TestSuite
+from BackendBench.eval import allclose
+from .base import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)
 
@@ -84,9 +84,7 @@ def build_op_tests(device, dtype, filter=None):
 
         for overload, indices in op_indices.items():
             if len(indices) > 0:
-                op_info_op_tests.append(
-                    OpInfoOpTest(overload, op.sample_inputs(device, dtype), indices)
-                )
+                op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
 
     return op_info_op_tests
 

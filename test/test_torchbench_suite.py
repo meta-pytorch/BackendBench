@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from BackendBench.torchbench_suite import TorchBenchOpTest
+from BackendBench.suite import TorchBenchOpTest
 
 
 class TestOpTest:
