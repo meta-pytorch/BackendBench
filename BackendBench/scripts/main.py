@@ -23,7 +23,6 @@ from BackendBench.suite import (
     TorchBenchTestSuite,
     FactoTestSuite,
 )
-from BackendBench.score import perf_at_p
 
 logger = logging.getLogger(__name__)
 
@@ -260,7 +259,7 @@ def cli(
         for result in results:
             correctness_score = all(
                 data["correctness_score"]
-                for data in op_test_data.values()
+                for data in result.test_data.values()
                 if "correctness_score" in data.keys()
             )
             performance_score = result.performance_score
@@ -277,7 +276,7 @@ def cli(
 
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    perf_at_p_score = perf_at_p(overall_correctness, overall_performance, p)
+    perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
     print(
