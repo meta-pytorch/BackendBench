@@ -6,7 +6,7 @@
 
 import numpy as np
 import torch
-from BackendBench.score import pass_at_p
+from BackendBench.score import perf_at_p
 
 
 def fastp_kernel_bench(
@@ -28,7 +28,7 @@ class TestPassAtP:
         overall_performance = np.random.uniform(0.5, 2, size=num_tests)
         return overall_correctness, overall_performance
 
-    def test_pass_at_p(self):
+    def test_perf_at_p(self):
         for num_tests in [5, 10, 50, 100]:
             for p in [0, 1, 1.5, 2]:
                 overall_correctness, overall_performance = self.get_results(num_tests)
@@ -39,10 +39,10 @@ class TestPassAtP:
                     overall_correctness, baseline_speed, actual_speed, num_tests, p
                 )
 
-                pass_at_p_score = pass_at_p(
+                perf_at_p_score = perf_at_p(
                     overall_correctness.tolist(), overall_performance.tolist(), p
                 )
 
                 assert torch.allclose(
-                    pass_at_p_score, torch.tensor(fastp_score_orig, dtype=torch.float32)
+                    perf_at_p_score, torch.tensor(fastp_score_orig, dtype=torch.float32)
                 )
