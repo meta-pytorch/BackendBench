@@ -177,6 +177,69 @@ import torch.nn.functional as F
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
+    def _nuclear_memory_reset(self, op_name: str, attempt: int):
+        """Nuclear option: Completely reset GPU memory state."""
+        if not torch.cuda.is_available():
+            return
+
+        try:
+            # Log memory state before reset
+            allocated_before = torch.cuda.memory_allocated() / (1024**3)
+            reserved_before = torch.cuda.memory_reserved() / (1024**3)
+
+            # Step 1: Clear all PyTorch caches
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+
+            # Step 2: Reset memory allocator completely
+            torch.cuda.reset_peak_memory_stats()
+            torch.cuda.reset_accumulated_memory_stats()
+
+            # Step 3: Nuclear option - force garbage collection
+            import gc
+            gc.collect()
+
+            # Step 4: Clear all CUDA streams and events
+            try:
+                torch.cuda.empty_cache()
+                # Force synchronization on all devices
+                for device_id in range(torch.cuda.device_count()):
+                    with torch.cuda.device(device_id):
+                        torch.cuda.synchronize()
+                        torch.cuda.empty_cache()
+            except Exception:
+                pass
+
+            # Step 5: Clear Triton cache completely
+            try:
+                if hasattr(triton, 'cache'):
+                    triton.cache.clear()
+                if hasattr(triton, 'compiler') and hasattr(triton.compiler, 'clear_cache'):
+                    triton.compiler.clear_cache()
+
+                # Nuclear: Remove entire triton cache directory
+                import shutil
+                triton_cache_dir = os.path.expanduser("~/.triton/cache")
+                if os.path.exists(triton_cache_dir):
+                    try:
+                        shutil.rmtree(triton_cache_dir, ignore_errors=True)
+                        logger.debug(f"[{op_name}:{attempt}] Completely cleared Triton cache directory")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+            # Log final memory state
+            allocated_after = torch.cuda.memory_allocated() / (1024**3)
+            reserved_after = torch.cuda.memory_reserved() / (1024**3)
+
+            logger.debug(f"[{op_name}:{attempt}] Memory reset: "
+                        f"Allocated {allocated_before:.2f}GB -> {allocated_after:.2f}GB, "
+                        f"Reserved {reserved_before:.2f}GB -> {reserved_after:.2f}GB")
+
+        except Exception as e:
+            logger.warning(f"[{op_name}:{attempt}] Memory reset failed: {e}")
+
     def test_kernel_correctness(
         self, op, kernel_code: str, test_cases: List, attempt: int = 1
     ) -> tuple[bool, Dict]:
@@ -203,43 +266,48 @@ import torch.nn.functional as F
             "summary": None,
         }
 
-        # Clear CUDA cache at the beginning of each attempt to prevent memory buildup
+        # Nuclear memory reset for each attempt
+        self._nuclear_memory_reset(op_name, attempt)
+
+        # Check available memory and abort if too low
         if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.synchronize()
-
-            # Log current memory usage for debugging
-            allocated = torch.cuda.memory_allocated() / (1024**3)  # GB
-            cached = torch.cuda.memory_reserved() / (1024**3)  # GB
-            logger.debug(f"CUDA Memory before attempt {attempt}: Allocated={allocated:.2f}GB, Cached={cached:.2f}GB")
-
-        # Clear Triton cache to prevent kernel accumulation - use nuclear approach
-        try:
-            # Clear Triton's internal kernel cache
-            if hasattr(triton, 'cache'):
-                triton.cache.clear()
-            # Also clear any Triton compiler caches
-            if hasattr(triton, 'compiler') and hasattr(triton.compiler, 'clear_cache'):
-                triton.compiler.clear_cache()
-            # Nuclear option: clear the entire triton compile cache directory
             try:
-                import shutil
-                triton_cache_dir = os.path.expanduser("~/.triton/cache")
-                if os.path.exists(triton_cache_dir):
-                    # Only clear if cache is getting too large (> 2GB)
-                    cache_size = sum(
-                        os.path.getsize(os.path.join(dirpath, filename))
-                        for dirpath, dirnames, filenames in os.walk(triton_cache_dir)
-                        for filename in filenames
-                    ) / (1024**3)
-                    if cache_size > 2.0:  # 2GB threshold
-                        shutil.rmtree(triton_cache_dir, ignore_errors=True)
-                        logger.debug(f"Cleared large Triton cache ({cache_size:.2f}GB)")
-            except Exception:
-                pass  # Ignore errors in cache clearing
-        except AttributeError:
-            # Triton might not have these methods
-            pass
+                # Get available memory (this might not be 100% accurate but gives an idea)
+                allocated = torch.cuda.memory_allocated()
+                reserved = torch.cuda.memory_reserved()
+                total_memory = torch.cuda.get_device_properties(0).total_memory
+                available_approx = total_memory - reserved
+
+                logger.debug(f"[{op_name}:{attempt}] Memory status: {available_approx/1024**3:.2f}GB available of {total_memory/1024**3:.2f}GB total")
+
+                # If less than 2GB available, this is very risky for complex operations
+                if available_approx < 2 * 1024**3:  # 2GB
+                    logger.warning(f"[{op_name}:{attempt}] Very low GPU memory: {available_approx/1024**3:.2f}GB available")
+                    # Try one more aggressive reset
+                    self._nuclear_memory_reset(op_name, attempt)
+
+                    # If still low after reset, this operation might be too complex
+                    allocated_after = torch.cuda.memory_allocated()
+                    reserved_after = torch.cuda.memory_reserved()
+                    available_after = total_memory - reserved_after
+
+                    if available_after < 1.5 * 1024**3:  # 1.5GB
+                        logger.error(f"[{op_name}:{attempt}] Critical memory shortage: {available_after/1024**3:.2f}GB available after reset")
+
+                        # For certain complex operations, skip early to avoid crashes
+                        complex_ops = ['col2im', 'conv2d', 'conv_transpose2d', 'batch_norm', 'layer_norm', 'scaled_dot_product_attention']
+                        if op_name in complex_ops:
+                            logger.error(f"[{op_name}:{attempt}] Skipping complex operation {op_name} due to memory constraints")
+                            feedback_info["compilation_error"] = f"Skipped complex operation {op_name}: Only {available_after/1024**3:.2f}GB GPU memory available, need at least 2GB for complex ops"
+                            feedback_info["summary"] = f"Skipped complex operation due to insufficient memory"
+                            return False, feedback_info
+
+                        feedback_info["compilation_error"] = f"Insufficient GPU memory: {available_after/1024**3:.2f}GB available, need at least 1.5GB"
+                        feedback_info["summary"] = "Insufficient GPU memory"
+                        return False, feedback_info
+
+            except Exception as e:
+                logger.warning(f"[{op_name}:{attempt}] Memory check failed: {e}")
 
         module_name = f"test_kernel_{op_name}_{attempt}"
         try:
