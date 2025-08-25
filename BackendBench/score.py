@@ -7,7 +7,7 @@
 import torch
 
 
-def fastp(correctness, performance, p=0.8):
+def perf_at_p(correctness, performance, p=1.0):
     assert len(correctness) == len(performance), (
         "correctness and performance must have the same length"
     )

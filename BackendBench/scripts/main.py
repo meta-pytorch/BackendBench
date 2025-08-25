@@ -23,7 +23,7 @@ from BackendBench.suite import (
     TorchBenchTestSuite,
     FactoTestSuite,
 )
-from BackendBench.score import fastp
+from BackendBench.score import perf_at_p
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,12 @@ def setup_logging(log_level):
     type=int,
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
+@click.option(
+    "--p",
+    default=1.0,
+    type=float,
+    help="Performance score threshold for perf@p score calculation",
+)
 def cli(
     log_level,
     suite,
@@ -135,6 +141,7 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
+    p,
 ):
     setup_logging(log_level)
     if ops:
@@ -270,10 +277,12 @@ def cli(
 
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-    fastp_score = fastp(overall_correctness, overall_performance)
+    perf_at_p_score = perf_at_p(overall_correctness, overall_performance, p)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
-    print(f"fastp score (rate of correct samples with a speedup greater than p): {fastp_score:.2f}")
+    print(
+        f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
+    )
 
     # Save verbose results if output path is specified
     if output_path and verbose_results:
