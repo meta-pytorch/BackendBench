@@ -109,10 +109,10 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
-    "--output-path",
+    "--output-dir",
     default=None,
     type=str,
-    help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+    help="Path for outputing logs. If None it will be the same as op-directory (recommended)",
 )
 @click.option(
     "--num-workers",
@@ -132,7 +132,7 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
-    output_path,
+    output_dir,
     num_workers,
 ):
     setup_logging(log_level)
@@ -171,6 +171,9 @@ def cli(
             filter=ops,
         ),
     }[suite]()
+
+    if not output_dir:
+        output_dir = ops_directory
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
@@ -262,9 +265,9 @@ def cli(
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
 
     # Save verbose results if output path is specified
-    if output_path and verbose_results:
-        eval.save_verbose_results(verbose_results, output_path)
-        print(f"Detailed results saved to: {output_path}")
+    if output_dir and verbose_results:
+        eval.save_verbose_results(verbose_results, output_dir)
+        print(f"Detailed results saved to: {output_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):

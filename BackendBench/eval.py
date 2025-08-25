@@ -4,11 +4,12 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import csv
 import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
@@ -196,12 +197,200 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     return correctness_score, performance_score, test_data
 
 
+def clean_op_name_for_directory(op_name: str) -> str:
+    """Convert operator name to valid directory name.
+
+    This follows the same logic as in setup_operator_directories.py
+    """
+    # Remove aten:: prefix
+    if op_name.startswith("aten::"):
+        op_name = op_name[6:]
+
+    # Remove torch.ops.aten. prefix
+    if op_name.startswith("torch.ops.aten."):
+        op_name = op_name[15:]
+
+    # Handle .default, .Tensor, .out suffixes
+    if "." in op_name:
+        parts = op_name.split(".")
+        base = parts[0]
+        suffix = parts[1] if len(parts) > 1 else ""
+
+        # For common suffixes, keep them to distinguish overloads
+        if suffix in ["out", "inplace", "scalar"]:
+            op_name = f"{base}_{suffix}"
+        else:
+            # For .default, .Tensor, etc., just use the base name
+            op_name = base
+
+    # Replace any remaining invalid characters
+    op_name = op_name.replace(":", "_").replace("/", "_").replace("\\", "_")
+
+    return op_name
+
+
 def save_verbose_results(
     results: List[Dict[str, Any]],
-    output_path: str = "backendbench_verbose_results.json",
+    output_path: Union[str, Path] = "generated_kernels",
 ):
-    """Save verbose results to a JSON file."""
-    with open(Path(output_path), "w") as f:
-        json.dump(results, f, indent=2)
+    """Save verbose results following DirectoryBench structure.
 
-    logger.info(f"Verbose results saved to {output_path}")
+    Args:
+        results: List of test results, each containing op_name, args, and test metrics
+        output_path: Base directory for saving results (default: "generated_kernels")
+
+    Structure created:
+        output_path/
+        ├── full_results.json          # Complete results log
+        ├── operator_summary.csv       # Operator-level summary
+        ├── failed_ops.json            # Log of failed operations
+        └── <op_name>/                 # Per-operator directories
+            └── test_results.json      # Test results for this operator
+    """
+    base_dir = Path(output_path)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Save the full log in the base directory
+    full_log_path = base_dir / "full_results.json"
+    with open(full_log_path, "w") as f:
+        json.dump(results, f, indent=2)
+    logger.info(f"Full results saved to {full_log_path}")
+
+    # 2. Organize results by operator and create directory structure
+    op_results = defaultdict(list)
+    op_summaries = {}
+    failed_ops = []
+
+    for result in results:
+        op_name = result.get("op_name", "unknown")
+        op_results[op_name].append(result)
+
+    # Process each operator
+    for op_name, op_tests in op_results.items():
+        # Clean the operator name for directory
+        clean_name = clean_op_name_for_directory(op_name)
+        if not clean_name:
+            logger.warning(f"Could not clean operator name: {op_name}")
+            continue
+
+        # Create operator directory
+        op_dir = base_dir / clean_name
+        op_dir.mkdir(exist_ok=True)
+
+        # Save operator-specific results
+        op_results_path = op_dir / "test_results.json"
+        with open(op_results_path, "w") as f:
+            json.dump(op_tests, f, indent=2)
+
+        # Calculate operator-level summary
+        total_tests = len(op_tests)
+        correct_tests = sum(1 for t in op_tests if t.get("correctness_score", 0) == 1)
+        failed_tests = []
+
+        # Collect performance metrics
+        speedups = []
+        benchmark_times = []
+        abs_errors = []
+        rel_errors = []
+
+        for test in op_tests:
+            # Check for failures
+            if test.get("correctness_score", 0) == 0:
+                failed_tests.append(
+                    {
+                        "op_name": op_name,
+                        "args": test.get("args", ""),
+                        "error": test.get("correctness_errors", ""),
+                    }
+                )
+
+            # Collect metrics
+            if test.get("speedup"):
+                try:
+                    speedups.append(float(test["speedup"]))
+                except (ValueError, TypeError):
+                    pass
+
+            if test.get("benchmark_time"):
+                try:
+                    benchmark_times.append(float(test["benchmark_time"]))
+                except (ValueError, TypeError):
+                    pass
+
+            if test.get("absolute_error"):
+                try:
+                    abs_errors.append(float(test["absolute_error"]))
+                except (ValueError, TypeError):
+                    pass
+
+            if test.get("relative_error"):
+                try:
+                    rel_errors.append(float(test["relative_error"]))
+                except (ValueError, TypeError):
+                    pass
+
+        # Calculate summary statistics
+        correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
+        avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
+        geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
+        avg_benchmark_time = sum(benchmark_times) / len(benchmark_times) if benchmark_times else 0.0
+        max_abs_error = max(abs_errors) if abs_errors else 0.0
+        max_rel_error = max(rel_errors) if rel_errors else 0.0
+
+        op_summaries[op_name] = {
+            "operator": op_name,
+            "directory": clean_name,
+            "total_tests": total_tests,
+            "passed_tests": correct_tests,
+            "failed_tests": total_tests - correct_tests,
+            "correctness_rate": correctness_rate,
+            "avg_speedup": avg_speedup,
+            "geomean_speedup": geomean_speedup,
+            "avg_benchmark_time": avg_benchmark_time,
+            "max_absolute_error": max_abs_error,
+            "max_relative_error": max_rel_error,
+        }
+
+        # Add to failed ops list if there were failures
+        if failed_tests:
+            failed_ops.extend(failed_tests)
+
+    # 3. Create operator-level summary CSV
+    summary_csv_path = base_dir / "operator_summary.csv"
+    if op_summaries:
+        fieldnames = [
+            "operator",
+            "directory",
+            "total_tests",
+            "passed_tests",
+            "failed_tests",
+            "correctness_rate",
+            "avg_speedup",
+            "geomean_speedup",
+            "avg_benchmark_time",
+            "max_absolute_error",
+            "max_relative_error",
+        ]
+
+        with open(summary_csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for summary in op_summaries.values():
+                writer.writerow(summary)
+
+        logger.info(f"Operator summary CSV saved to {summary_csv_path}")
+
+    # 4. Save failed operations log
+    if failed_ops:
+        failed_ops_path = base_dir / "failed_ops.json"
+        with open(failed_ops_path, "w") as f:
+            json.dump(failed_ops, f, indent=2)
+        logger.info(f"Failed operations log saved to {failed_ops_path}")
+
+    # Log summary of where everything was saved
+    logger.info(f"Verbose results saved to directory: {base_dir.absolute()}")
+    logger.info(f"  - Full results: {full_log_path.name}")
+    logger.info(f"  - Operator summary: {summary_csv_path.name}")
+    if failed_ops:
+        logger.info("  - Failed operations: failed_ops.json")
+    logger.info(f"  - Per-operator results in: {len(op_summaries)} subdirectories")
