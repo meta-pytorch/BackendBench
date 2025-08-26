@@ -226,6 +226,15 @@ class MultiprocessingEvaluator:
         if not is_pickleable(impl):
             impl = _extract_spec_name_from_op(impl)
 
+        # To use multiprocessing here, we need to submit all tests to the multiprocessing
+        # queue upfront because iterator objects are not picklable. However, submitting
+        # all tests at once causes all input tensors on CUDA to be serialized, which
+        # results in excessive memory usage and leads to an OOM error.
+
+        # To avoid this, we convert each CUDA tensor to CPU immediately after creation to
+        # prevent the OOM. These tensors are then converted back to their original device
+        # within each worker process during the experiments.
+
         orig_device = None
         cpu_correctness_tests = []
         for test in correctness_tests:
