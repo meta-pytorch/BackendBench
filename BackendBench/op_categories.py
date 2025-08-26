@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
+
 TENSOR_CREATION_AND_MANIPULATION_OPS = [
     "arange",
     "as_strided",  # broken in Shahin's run
