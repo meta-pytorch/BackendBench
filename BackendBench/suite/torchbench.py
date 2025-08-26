@@ -14,7 +14,8 @@ from BackendBench.data_loaders import (
     load_ops_from_source,
     op_list_to_benchmark_dict,
 )
-from BackendBench.op_categories import UNSUPPORTED_OPERATORS, _clean_op_name
+from BackendBench.op_categories import UNSUPPORTED_OPERATORS
+from BackendBench.scripts.dataset_filters import _clean_op_name
 from BackendBench.utils import deserialize_args
 
 # for details on the dataset read this:
