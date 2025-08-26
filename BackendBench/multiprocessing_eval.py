@@ -42,7 +42,6 @@ class EvalTask:
     impl: Any
     correctness_tests: List[Any]
     performance_tests: List[Any]
-    device: str
 
 
 @dataclass
@@ -101,17 +100,8 @@ def _worker_process(worker_id, task_queue, result_queue):
                     if isinstance(impl, str):
                         impl = get_operator(impl)
 
-                    device = torch.device(task.device)
-
-                    def test_to_device_iterator(tests, device):
-                        for test in tests:
-                            yield test_to_device(test, device)
-
-                    correctness_tests = test_to_device_iterator(task.correctness_tests, device)
-                    performance_tests = test_to_device_iterator(task.performance_tests, device)
-
                     correctness_score, performance_score, test_data = eval_one_op(
-                        op, impl, correctness_tests, performance_tests
+                        op, impl, task.correctness_tests, task.performance_tests
                     )
                     result = EvalResult(
                         task_id=task.task_id,
@@ -128,8 +118,6 @@ def _worker_process(worker_id, task_queue, result_queue):
                         )
                         logger.error(error_msg)
                         result_queue.put(ProcessDeathSignal(worker_id, error_msg))
-                        torch.cuda.synchronize()
-                        torch.cuda.empty_cache()
                         break
                     result = EvalResult(
                         task_id=task.task_id,
@@ -170,37 +158,6 @@ def _worker_process(worker_id, task_queue, result_queue):
     logger.info(f"Worker {worker_id} exiting")
 
 
-def args_to_device(value, device):
-    if isinstance(value, torch.Tensor):
-        return value.to(device)
-    elif isinstance(value, list):
-        return [args_to_device(item, device) for item in value]
-    elif isinstance(value, tuple):
-        return tuple(args_to_device(item, device) for item in value)
-    elif isinstance(value, dict):
-        return {key: args_to_device(item, device) for key, item in value.items()}
-    else:
-        return value
-
-
-def find_device(test):
-    if isinstance(test, torch.Tensor):
-        return test.device
-    elif isinstance(test, list):
-        for item in test:
-            return find_device(item)
-    elif isinstance(test, dict):
-        for item in test.values():
-            return find_device(item)
-    return None
-
-
-def test_to_device(test, device):
-    test.args = args_to_device(test.args, device)
-    test.kwargs = args_to_device(test.kwargs, device)
-    return test
-
-
 class MultiprocessingEvaluator:
     def __init__(self, num_workers: int = 1):
         assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
@@ -226,26 +183,12 @@ class MultiprocessingEvaluator:
         if not is_pickleable(impl):
             impl = _extract_spec_name_from_op(impl)
 
-        orig_device = None
-        cpu_correctness_tests = []
-        for test in correctness_tests:
-            if orig_device is None:
-                orig_device = find_device(test)
-            cpu_correctness_tests.append(test_to_device(test, torch.device("cpu")))
-        if orig_device is None:
-            orig_device = torch.device("cuda")
-
-        cpu_performance_tests = []
-        for test in performance_tests:
-            cpu_performance_tests.append(test_to_device(test, torch.device("cpu")))
-
         task = EvalTask(
             task_id=task_id,
             op=op,
             impl=impl,
-            correctness_tests=cpu_correctness_tests,
-            performance_tests=cpu_performance_tests,
-            device=str(orig_device),
+            correctness_tests=list(correctness_tests),
+            performance_tests=list(performance_tests),
         )
 
         self.task_queue.put(task)
