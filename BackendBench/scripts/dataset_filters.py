@@ -34,6 +34,7 @@ UNTESTABLE_OPERATORS = [
     "bernoulli",  # We can write a custom test to verify this one (albeit not the randomness)
 ]
 
+# Check using metadata
 TENSOR_CREATION_OPERATORS = [
     "empty_like",
     "new_empty",
