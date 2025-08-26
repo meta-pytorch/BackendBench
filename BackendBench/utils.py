@@ -225,5 +225,6 @@ def compute_errors(ref, res, eps=1e-10):
 def cleanup_memory_and_gpu():
     """Helper function to clean up GPU memory"""
     gc.collect()
-    torch.cuda.synchronize()
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
