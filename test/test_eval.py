@@ -253,6 +253,10 @@ class TestPerfAtP:
                     overall_correctness, baseline_speed, actual_speed, num_tests, p
                 )
 
+                # Note: The perf@p score calculation here differs subtly from the original fastp score in
+                # kernel bench. The original fastp score filters correct samples first, then averages.
+                # Here, perf@p averages first, then filters correct samples. Despite this difference,
+                # both methods produce equivalent results, so the test remains valid.
                 perf_at_p_score = perf_at_p(
                     overall_correctness.tolist(), overall_performance.tolist(), p
                 )

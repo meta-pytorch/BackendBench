@@ -124,7 +124,11 @@ def setup_logging(log_level):
     "--p",
     default=1.0,
     type=float,
-    help="Performance score threshold for perf@p score calculation",
+    help=(
+        "Performance score threshold for perf@p score calculation"
+        "Note: Increasing this value makes the threshold more stringent, "
+        "requiring a higher speedup to meet the performance criteria."
+    ),
 )
 def cli(
     log_level,
