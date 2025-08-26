@@ -31,10 +31,14 @@ SKIP_OPERATORS = [
 # https://github.com/meta-pytorch/BackendBench/issues/108
 RELATIVE_RUNTIME_THRESHOLD = 1.3
 UNTESTABLE_OPERATORS = [
-    "empty_like",  # We can check using metadata
-    "new_empty",  # We can check using metadata
-    "new_empty_strided",  # We can check using metadata
     "bernoulli",  # We can write a custom test to verify this one (albeit not the randomness)
+]
+
+# Check using metadata
+TENSOR_CREATION_OPERATORS = [
+    "empty_like",
+    "new_empty",
+    "new_empty_strided",
 ]
 
 
