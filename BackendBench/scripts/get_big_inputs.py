@@ -14,6 +14,8 @@ from typing import Dict, List, Tuple
 
 import requests
 import torch
+from main import setup_logging
+from tqdm import tqdm
 
 from BackendBench.torchbench_suite import (
     _args_size,
@@ -23,8 +25,6 @@ from BackendBench.torchbench_suite import (
     dtype_abbrs,
     SKIP_OPERATORS,
 )
-from main import setup_logging
-from tqdm import tqdm
 from BackendBench.utils import cleanup_memory_and_gpu
 
 # Magic numbers and constants

@@ -15,11 +15,11 @@ from typing import List
 import click
 import pyarrow as pa
 import pyarrow.parquet as pq
+from huggingface_hub import HfApi
+
 from BackendBench.data_loaders import _load_from_trace
 from BackendBench.scripts.dataset_filters import apply_skip_ops_filter
 from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
-from huggingface_hub import HfApi
-
 
 """
 Columns for the parquet dataset:

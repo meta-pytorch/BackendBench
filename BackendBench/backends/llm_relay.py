@@ -9,9 +9,10 @@ import importlib.util
 import logging
 import os
 import sys
-import torch
 import traceback
 from typing import Callable, Dict, List
+
+import torch
 
 from .base import Backend
 

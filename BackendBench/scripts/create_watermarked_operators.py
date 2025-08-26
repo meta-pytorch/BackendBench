@@ -11,11 +11,10 @@ Create watermarked operator implementations that return constant tensors.
 These implementations will verify monkey patching works but will fail correctness tests.
 """
 
-import os
 import argparse
 import hashlib
+import os
 from pathlib import Path
-
 
 WATERMARK_BASE = 42.0
 

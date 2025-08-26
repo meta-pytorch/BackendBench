@@ -13,11 +13,11 @@ collection of tests to evaluate the correctness and/or performacne of
 backend implementations by comparing them against PyTorch operations.
 """
 
-from .base import Test, OpTest, TestSuite
+from .base import OpTest, Test, TestSuite
 from .facto import FactoTestSuite
 from .opinfo import OpInfoTestSuite
-from .smoke import SmokeTestSuite, randn
-from .torchbench import TorchBenchOpTest, TorchBenchTestSuite, DEFAULT_HUGGINGFACE_URL
+from .smoke import randn, SmokeTestSuite
+from .torchbench import DEFAULT_HUGGINGFACE_URL, TorchBenchOpTest, TorchBenchTestSuite
 
 __all__ = [
     "Test",

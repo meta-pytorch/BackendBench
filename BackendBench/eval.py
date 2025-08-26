@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 
-
 try:
     if torch.cuda.is_available():
         import triton.testing
@@ -23,7 +22,7 @@ try:
 except ImportError:
     TRITON_AVAILABLE = False
 
-from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
+from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 logger = logging.getLogger(__name__)
 

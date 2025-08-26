@@ -59,4 +59,11 @@ dev-dependencies = [
 [tool.ruff]
 line-length = 100
 
-[tool.ruff.format]
+[tool.ruff.lint]
+extend-select = ["I"]  # Enable isort rules
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+detect-same-package = false
+order-by-type = false
