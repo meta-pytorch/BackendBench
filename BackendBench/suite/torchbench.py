@@ -17,10 +17,6 @@ from BackendBench.data_loaders import (
 from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
 from BackendBench.utils import deserialize_args
 
-# for details on the dataset read this:
-# https://huggingface.co/datasets/GPUMODE/huggingface_op_trace
-DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/backend_bench_problems.parquet"
-
 
 class TorchBenchTest:
     def __init__(self, *args, **kwargs):
@@ -58,14 +54,15 @@ class TorchBenchOpTest:
 
 class TorchBenchTestSuite:
     def __init__(
-        self, name, filename=None, filter=None, topn=None, check_overhead_dominated_ops=False
+        self,
+        name,
+        filename=None,
+        filter=None,
+        topn=None,
+        check_overhead_dominated_ops=False,
     ):
         self.name = name
         self.topn = topn
-
-        # Use default URL if no filename provided
-        if filename is None:
-            filename = DEFAULT_HUGGINGFACE_URL
 
         # Load operations using the shared data loader
         ops_list = load_ops_from_source(

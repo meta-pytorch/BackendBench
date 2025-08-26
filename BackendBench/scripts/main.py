@@ -17,7 +17,6 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    DEFAULT_HUGGINGFACE_URL,
     FactoTestSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
@@ -98,7 +97,7 @@ def setup_logging(log_level):
 )
 @click.option(
     "--torchbench-data-path",
-    default=DEFAULT_HUGGINGFACE_URL,
+    default=None,
     type=str,
     help="Path to TorchBench operator data",
 )

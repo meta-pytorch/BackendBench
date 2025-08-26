@@ -18,10 +18,10 @@ import pyarrow.parquet as pq
 
 import requests
 import torch
+from BackendBench.constants import HUGGINGFACE_REPO, TEST_SET_FILE, TEST_SET_REVISON
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
-from tqdm import tqdm
-from BackendBench.constants import TEST_SET_REVISON, TEST_SET_FILE, HUGGINGFACE_REPO
 from datasets import load_dataset
+from tqdm import tqdm
 
 
 def _args_size(args):
@@ -158,9 +158,7 @@ def _detect_format(source: Union[str, Path, None]) -> str:
         return "parquet"
 
     if not isinstance(source, (str, Path)):
-        raise ValueError(
-            f"Unsupported source type: {type(source)}, should be str, Path, or None"
-        )
+        raise ValueError(f"Unsupported source type: {type(source)}, should be str, Path, or None")
 
     source_str = str(source)
     if source_str.endswith(".parquet"):
@@ -169,8 +167,7 @@ def _detect_format(source: Union[str, Path, None]) -> str:
         return "trace"
     else:
         raise ValueError(
-            f"Cannot auto-detect format for source: {source}. "
-            "Please specify format explicitly."
+            f"Cannot auto-detect format for source: {source}. Please specify format explicitly."
         )
 
 
@@ -183,7 +180,7 @@ def load_ops_from_source(
     Load operation data from various sources and formats.
 
     Args:
-        source: File path or URL or None. If None, use huggingface dataset for parquet mode (default).
+        source: File path or URL (only trace) or None. If None, use huggingface dataset for parquet mode (default).
         format: "trace", "parquet", or "auto" (detect from file extension)
         filter: Optional list of operation name filters
 
@@ -194,6 +191,7 @@ def load_ops_from_source(
         - None → parquet format test set from huggingface (default)
         - *.parquet → parquet format
         - *.txt → trace format
+        - http*.txt → trace format
         - Other extensions → error (must specify format explicitly)
     """
     # Format detection/validation
@@ -203,10 +201,7 @@ def load_ops_from_source(
         raise ValueError(f"Unsupported format: {format}")
 
     # Dispatch to appropriate loader
-    loaders = {
-        "parquet": _load_from_parquet,
-        "trace": _load_from_trace
-    }
+    loaders = {"parquet": _load_from_parquet, "trace": _load_from_trace}
 
     return loaders[format](source, filter)
 
@@ -227,9 +222,11 @@ def _load_from_parquet(
 
     if source is None:
         # read parquet file from huggingface
-        df = load_dataset(
-            HUGGINGFACE_REPO, dataframe=TEST_SET_FILE, revision=TEST_SET_REVISON
-        ).to_pandas()
+        table = load_dataset(
+            HUGGINGFACE_REPO,
+            data_files=TEST_SET_FILE,
+            revision=TEST_SET_REVISON,
+        )["train"]
     else:
         # read parquet file directly
         table = pq.read_table(source)
