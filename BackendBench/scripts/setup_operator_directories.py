@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 
 from .generate_operator_coverage_csv import generate_coverage_csv
-from .utils import clean_op_name_for_directory
+from BackendBench.utils import clean_op_name_for_directory
 
 
 def create_readme_for_op(
