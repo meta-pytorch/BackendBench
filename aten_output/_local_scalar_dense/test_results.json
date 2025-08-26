@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "_local_scalar_dense.default",
+    "args": "((T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "_local_scalar_dense.default",
+    "args": "((T([1], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  }
+]

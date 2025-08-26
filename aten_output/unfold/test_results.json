@@ -1,0 +1,178 @@
+[
+  {
+    "op_name": "unfold.default",
+    "args": "((T([], bf16), 0, 1, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 0, 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 1, 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 2, 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 3, 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 0, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 1, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 2, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 3, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 0, 4, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 1, 4, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 2, 4, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5, 5], bf16), 3, 4, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10], bf16), 0, 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10], bf16), 0, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10], bf16), 0, 3, 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([1000], bf16), 0, 3, 11,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([1000], bf16), 0, 2, 27,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10, 10], bf16), 0, 1, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10, 10], bf16), 1, 2, 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([10, 10], bf16), 1, 2, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unfold.default",
+    "args": "((T([5, 5, 5], bf16), 2, 3, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

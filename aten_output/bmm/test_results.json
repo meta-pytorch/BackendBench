@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "bmm.default",
+    "args": "((T([10, 5, 10], bf16), T([10, 10, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

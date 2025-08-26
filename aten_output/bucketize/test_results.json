@@ -1,0 +1,194 @@
+[
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 5, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 1, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 1, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 1, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 1, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 0, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 0, 5], bf16), T([5], bf16),), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 0, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "bucketize.Tensor",
+    "args": "((T([5, 0, 5], bf16), T([5], bf16),), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

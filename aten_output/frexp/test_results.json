@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "frexp.Tensor",
+    "args": "((T([20], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "frexp.Tensor",
+    "args": "((T([1, 0, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "frexp.Tensor",
+    "args": "((T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

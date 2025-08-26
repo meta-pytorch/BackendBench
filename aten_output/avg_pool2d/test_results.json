@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 3, 9, 9], bf16), 3, 1, 1, True, False, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 3, 9, 9], bf16), (4, 4), (2, 3), 1, True, False, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 3, 9, 9], bf16), (6, 6), (3, 3), (2, 3), True, True, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([2, 3, 9, 9], bf16), (3, 3), (1, 1), (1,), True, False, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 1, 4, 4], bf16), (2, 2), (), (0,), False, True, -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 2, 6, 6], bf16), (4, 4), (2, 2), (2,), True, True, None,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([1, 3, 9, 9], bf16), 3, 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

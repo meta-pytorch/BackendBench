@@ -1,0 +1,82 @@
+[
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5, 5, 5], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5, 5, 5], bf16), 2, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5, 5, 5], bf16), 2, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5, 5, 5], bf16), 2, 1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5, 5, 5], bf16), 2, -1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5], bf16), 2, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([5], bf16), 2, 0, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([], bf16), 1, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "kthvalue.default",
+    "args": "((T([], bf16), 1, 0, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

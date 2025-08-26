@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "_adaptive_avg_pool2d.default",
+    "args": "((T([1, 8, 8, 8], bf16), (5, 7),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_adaptive_avg_pool2d.default",
+    "args": "((T([8, 8, 8], bf16), (5, 7),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([1, 2, 3], bf16), -1, -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([1, 2, 3], bf16), -1, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([1, 2, 3], bf16), 1, -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([1, 2, 3], bf16), 1, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([], bf16), 0, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([1], bf16), 0, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([10, 10], bf16), 0, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "transpose_copy.int",
+    "args": "((T([5, 5, 5], bf16), 2, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

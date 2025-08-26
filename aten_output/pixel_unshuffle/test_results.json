@@ -1,0 +1,42 @@
+[
+  {
+    "op_name": "pixel_unshuffle.default",
+    "args": "((T([1, 1, 6, 6], bf16),), {'downscale_factor': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "pixel_unshuffle.default",
+    "args": "((T([1, 1, 6, 6], bf16),), {'downscale_factor': 3})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "pixel_unshuffle.default",
+    "args": "((T([1, 0, 1, 1], bf16),), {'downscale_factor': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "pixel_unshuffle.default",
+    "args": "((T([1, 1, 0, 1], bf16),), {'downscale_factor': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "pixel_unshuffle.default",
+    "args": "((T([1, 1, 1, 0], bf16),), {'downscale_factor': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

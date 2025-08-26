@@ -1,0 +1,258 @@
+[
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'mean',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'mean',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'mean',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'mean',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'mean',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'mean',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'mean',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'mean',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'prod',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'prod',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'prod',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'prod',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'prod',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'prod',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'prod',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'prod',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'amin',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'amin',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'amin',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'amin',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'amin',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'amin',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'amin',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'amin',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'amax',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16), 'amax',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'amax',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16), 'amax',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'amax',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5], bf16), 1, T([10], i64), T([5, 10], bf16), 'amax',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'amax',), {'include_self': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 1, T([10], i64), T([5, 10, 5], bf16), 'amax',), {'include_self': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "_native_batch_norm_legit.no_stats",
+    "args": "((T([1, 2, 3], bf16), None, None, True, 0.5, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

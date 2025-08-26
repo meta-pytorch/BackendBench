@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "_prelu_kernel.default",
+    "args": "((T([], bf16),), {'weight': T([], bf16)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_prelu_kernel.default",
+    "args": "((T([], bf16), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_prelu_kernel.default",
+    "args": "((T([5], bf16), T([1], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

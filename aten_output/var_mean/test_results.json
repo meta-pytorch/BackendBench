@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'dim': (1,), 'correction': 1.3})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'dim': (1,), 'correction': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'dim': None, 'correction': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'dim': None, 'correction': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([5, 5, 5], bf16),), {'correction': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([3, 4, 5], bf16),), {'dim': -3})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

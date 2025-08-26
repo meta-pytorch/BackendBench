@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "sort.stable",
+    "args": "((T([5, 5, 5], bf16),), {'stable': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "sort.stable",
+    "args": "((T([5, 5, 5], bf16),), {'dim': 0, 'stable': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "sort.stable",
+    "args": "((T([5, 5, 5], bf16),), {'dim': 0, 'descending': True, 'stable': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([5, 10], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 1, 'alpha': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([1], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 1, 'alpha': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([5, 10], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 0.6, 'alpha': 0.2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([1], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 0.6, 'alpha': 0.2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 1, 'alpha': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "addbmm.default",
+    "args": "((T([], bf16), T([5, 5, 5], bf16), T([5, 5, 10], bf16),), {'beta': 0.6, 'alpha': 0.2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

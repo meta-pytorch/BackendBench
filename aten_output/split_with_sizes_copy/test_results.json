@@ -1,0 +1,34 @@
+[
+  {
+    "op_name": "split_with_sizes_copy.default",
+    "args": "((T([5, 5, 5], bf16), torch.Size([1, 3, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "split_with_sizes_copy.default",
+    "args": "((T([5, 5, 5], bf16), torch.Size([1, 4, 0]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "split_with_sizes_copy.default",
+    "args": "((T([5, 5, 5], bf16), torch.Size([1, 3, 1]), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "split_with_sizes_copy.default",
+    "args": "((T([5, 5, 5], bf16), torch.Size([1, 3, 1]), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

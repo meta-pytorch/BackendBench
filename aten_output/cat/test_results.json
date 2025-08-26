@@ -1,0 +1,90 @@
+[
+  {
+    "op_name": "cat.default",
+    "args": "(((tensor([-6.7188,  5.6875,  0.7930,  2.8750, -4.0938], device='cuda:0',\n       dtype=torch.bfloat16), tensor([ 2.1719, -8.5000, -3.1406, -7.0000,  3.2656], device='cuda:0',\n       dtype=torch.bfloat16), tensor([-4.5000, -5.9062, -0.9531, -2.3594,  1.5625], device='cuda:0',\n       dtype=torch.bfloat16)),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([5, 5], bf16), T([5, 5], bf16)],), {'dim': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([5, 5], bf16), T([5, 5], bf16)],), {'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([10, 5], bf16), T([5, 5], bf16)],), {'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([1, 2, 3], bf16), T([1, 2, 3], bf16)],), {'dim': -2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([0], bf16), T([0], bf16)],), {'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([0], bf16), T([5, 5], bf16)],), {'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([0, 5], bf16), T([5, 5], bf16)],), {'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([1], bf16), T([1], bf16)],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([2, 2, 2, 2], bf16, [8, 1, 4, 2])], 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(((tensor([[-6.7188,  5.6875,  0.7930,  2.8750, -4.0938],\n        [ 8.5000, -1.9766, -2.8906,  0.8125,  4.1562],\n        [-2.0469,  1.7266,  4.6562, -5.1875,  3.9531],\n        [ 8.7500,  0.9336, -7.2500, -7.9375,  1.5078],\n        [-7.0625,  8.0000, -3.2969,  6.0000,  3.0156]], device='cuda:0',\n       dtype=torch.bfloat16), tensor([[ 2.1719, -8.5000, -3.1406, -7.0000,  3.2656],\n        [-2.5000, -5.9062, -5.4688,  6.1250, -8.1875],\n        [-3.5781, -8.5000, -6.0625,  2.3438, -8.1875],\n        [-7.3438,  1.3281, -6.8750,  7.1562, -8.0625],\n        [ 4.5938, -4.0312, -6.2188, -2.1250, -8.5000]], device='cuda:0',\n       dtype=torch.bfloat16), tensor([[-4.5000, -5.9062, -0.9531, -2.3594,  1.5625],\n        [-6.2812, -5.7188,  7.7188,  1.7500, -3.0469],\n        [ 1.0781, -8.9375, -3.2969,  1.3828,  5.2812],\n        [ 6.1250, -3.3281,  5.8125, -8.3750,  5.3438],\n        [-6.0000, -6.5938, -6.4375, -4.5312,  1.9922]], device='cuda:0',\n       dtype=torch.bfloat16)),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

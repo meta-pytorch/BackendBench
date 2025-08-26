@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "zeros.default",
+    "args": "(((10,),), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "zeros.default",
+    "args": "(((5, 5),), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "arange.default",
+    "args": "((3,), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "arange.default",
+    "args": "((3.1,), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "arange.default",
+    "args": "((2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

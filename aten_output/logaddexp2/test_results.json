@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "logaddexp2.default",
+    "args": "((T([5, 5], bf16), T([5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

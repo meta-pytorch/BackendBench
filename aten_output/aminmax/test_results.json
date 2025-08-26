@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([5, 5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([5, 5, 5], bf16),), {'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([5, 5, 5], bf16),), {'dim': 1, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([], bf16),), {'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([], bf16),), {'dim': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "aminmax.default",
+    "args": "((T([5, 0, 5], bf16),), {'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

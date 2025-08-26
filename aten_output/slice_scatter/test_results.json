@@ -1,0 +1,74 @@
+[
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 20, 20], bf16), 0, 0, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([10, 20, 20], bf16), 0, 10, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([5, 20, 20], bf16), 0, 10, 20, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 20, 20], bf16), 1, 0, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 10, 20], bf16), 1, 10, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 5, 20], bf16), 1, 10, 20, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 20, 20], bf16), 2, 0, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 20, 10], bf16), 2, 10, 20, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "slice_scatter.default",
+    "args": "((T([20, 20, 20], bf16), T([20, 20, 5], bf16), 2, 10, 20, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

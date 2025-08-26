@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([2, 3, 3, 4, 4], bf16), (2, 2, 2),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 2, 4, 4, 4], bf16), 2,), {'stride': 1, 'padding': 1, 'ceil_mode': True, 'count_include_pad': False, 'divisor_override': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 2, 5, 5, 5], bf16), (2, 3, 4),), {'stride': (1, 2, 2), 'padding': (0, 1, 2), 'ceil_mode': True, 'count_include_pad': True, 'divisor_override': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 2, 5, 5, 5], bf16), (2, 3, 4),), {'stride': (1, 2, 2), 'padding': (0, 1, 2), 'ceil_mode': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 1, 7, 5, 7], bf16), (6, 3, 4),), {'stride': (2, 3, 2), 'padding': (3, 1, 0), 'ceil_mode': False, 'count_include_pad': False, 'divisor_override': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 1, 4, 5, 4], bf16), (2, 2, 3),), {'stride': (2, 2, 1), 'padding': 0, 'ceil_mode': False, 'count_include_pad': True, 'divisor_override': -2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([1, 1, 6, 5, 6], bf16), (4, 5, 6),), {'stride': (2, 3, 2), 'padding': 2, 'ceil_mode': True, 'count_include_pad': True, 'divisor_override': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "avg_pool3d.default",
+    "args": "((T([0, 1, 4, 5, 4], bf16), (2, 3, 1),), {'stride': (2, 1, 2), 'padding': 0, 'ceil_mode': False, 'count_include_pad': True, 'divisor_override': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

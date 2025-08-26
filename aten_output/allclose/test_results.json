@@ -1,0 +1,98 @@
+[
+  {
+    "op_name": "allclose.default",
+    "args": "((T([], bf16), T([], bf16),), {'rtol': 0.1, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([], bf16), T([], bf16),), {'rtol': 0.1, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([], bf16), T([], bf16),), {'rtol': 0.5, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([], bf16), T([], bf16),), {'rtol': 0.5, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5], bf16), T([5], bf16),), {'rtol': 0.1, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5], bf16), T([5], bf16),), {'rtol': 0.1, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5], bf16), T([5], bf16),), {'rtol': 0.5, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5], bf16), T([5], bf16),), {'rtol': 0.5, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5, 5, 5], bf16), T([5, 5, 5], bf16),), {'rtol': 0.1, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5, 5, 5], bf16), T([5, 5, 5], bf16),), {'rtol': 0.1, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5, 5, 5], bf16), T([5, 5, 5], bf16),), {'rtol': 0.5, 'atol': 0.01})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "allclose.default",
+    "args": "((T([5, 5, 5], bf16), T([5, 5, 5], bf16),), {'rtol': 0.5, 'atol': 1e-16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  }
+]

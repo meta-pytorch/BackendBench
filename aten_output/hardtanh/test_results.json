@@ -1,0 +1,50 @@
+[
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([5, 5], bf16),), {'min_val': -0.5, 'max_val': 0.5})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([5, 5], bf16),), {'min_val': 0.0, 'max_val': 0.0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([20], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([1, 0, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([1, 0, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

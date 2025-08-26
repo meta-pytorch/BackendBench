@@ -1,0 +1,194 @@
+[
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([10, 10], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([10, 10], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([10, 10], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([10, 10], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5], bf16),), {'offset': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5], bf16),), {'offset': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16),), {'offset': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([3, 5], bf16),), {'offset': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16),), {'offset': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 3], bf16),), {'offset': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5, 5], bf16),), {'offset': 1, 'dim1': 1, 'dim2': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5, 5], bf16),), {'offset': 2, 'dim1': 0, 'dim2': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_copy.default",
+    "args": "((T([5, 5, 5], bf16),), {'offset': -2, 'dim1': 0, 'dim2': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

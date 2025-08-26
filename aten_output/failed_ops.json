@@ -1,0 +1,17 @@
+[
+  {
+    "op_name": "new_empty.default",
+    "args": "((T([5], bf16), (2, 3),), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "error": ""
+  },
+  {
+    "op_name": "new_empty.default",
+    "args": "((T([5], bf16), (10,),), {'dtype': torch.float64})",
+    "error": ""
+  },
+  {
+    "op_name": "bernoulli.default",
+    "args": "((T([], bf16),), {})",
+    "error": ""
+  }
+]

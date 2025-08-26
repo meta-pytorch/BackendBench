@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "roll.default",
+    "args": "((T([0, 0, 0], bf16), (1, 2, -1), (0, 1, 2),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "roll.default",
+    "args": "((T([5, 5, 5], bf16), (1, 2, -1), (0, 1, 2),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

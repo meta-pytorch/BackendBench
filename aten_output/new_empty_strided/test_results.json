@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "new_empty_strided.default",
+    "args": "((T([], bf16), (), (),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.8367099231598242e-40",
+    "relative_error": "1.8367099231598242e-30"
+  },
+  {
+    "op_name": "new_empty_strided.default",
+    "args": "((T([5, 5], bf16), (2, 0), (3, 4),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "new_empty_strided.default",
+    "args": "((T([5], bf16), (2, 2, 2), (20, 10, 5),), {'dtype': torch.float64, 'device': 'cpu'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0009765627328306437",
+    "relative_error": "0.125"
+  }
+]

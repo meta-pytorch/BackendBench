@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "leaky_relu.default",
+    "args": "((T([10, 10], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "log1p.default",
+    "args": "((T([20, 20], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

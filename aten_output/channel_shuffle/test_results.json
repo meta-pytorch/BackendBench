@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "channel_shuffle.default",
+    "args": "((T([1, 4, 10, 10], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "channel_shuffle.default",
+    "args": "((T([2, 6, 8, 8], bf16), 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "channel_shuffle.default",
+    "args": "((T([2, 8, 5, 5], bf16), 4,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

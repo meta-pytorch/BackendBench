@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "_unsafe_masked_index.default",
+    "args": "((T([5, 5], bf16), T([10, 10], b8), [T([10, 1], i64), T([1, 10], i64)], -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_unsafe_masked_index.default",
+    "args": "((T([5, 5], bf16), T([5, 5], b8), [T([5, 1], i64), T([1, 5], i64)], -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_unsafe_masked_index.default",
+    "args": "((T([5, 5, 5], bf16), T([10, 10, 10], b8), [T([10, 1, 1], i64), T([1, 10, 1], i64), T([1, 1, 10], i64)], -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

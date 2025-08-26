@@ -1,0 +1,178 @@
+[
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 5, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 1, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unique_consecutive.default",
+    "args": "((T([5, 0, 5], bf16),), {'return_inverse': True, 'return_counts': True, 'dim': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

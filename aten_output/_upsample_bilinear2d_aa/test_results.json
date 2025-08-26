@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "_upsample_bilinear2d_aa.default",
+    "args": "((T([6, 3, 10, 20], bf16),), {'output_size': torch.Size([3, 3]), 'align_corners': False, 'scales_h': None, 'scales_w': None})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_upsample_bilinear2d_aa.default",
+    "args": "((T([6, 3, 10, 20], bf16),), {'output_size': torch.Size([3, 3]), 'align_corners': False, 'scales_h': 1.7, 'scales_w': 0.9})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_upsample_bilinear2d_aa.default",
+    "args": "((T([6, 3, 10, 20], bf16),), {'output_size': torch.Size([3, 3]), 'align_corners': True, 'scales_h': 1.7, 'scales_w': 0.9})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "_to_sparse.sparse_dim",
+    "args": "((T([5, 5], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  }
+]

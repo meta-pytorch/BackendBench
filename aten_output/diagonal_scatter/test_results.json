@@ -1,0 +1,122 @@
+[
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10], bf16), T([10], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10], bf16), T([8], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10], bf16), T([8], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10], bf16), T([9], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([3, 5], bf16), T([3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([3, 5], bf16), T([3], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([3, 5], bf16), T([1], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([3, 5], bf16), T([3], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([5, 3], bf16), T([3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([5, 3], bf16), T([1], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([5, 3], bf16), T([3], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([5, 3], bf16), T([2], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10, 10], bf16), T([10, 9], bf16), 1, 1, 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10, 10], bf16), T([10, 8], bf16), 2, 0, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "diagonal_scatter.default",
+    "args": "((T([10, 10, 10], bf16), T([10, 8], bf16), -2, 0, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

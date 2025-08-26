@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "bernoulli.default",
+    "args": "((T([], bf16),), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "1.0",
+    "relative_error": "1.0"
+  },
+  {
+    "op_name": "bernoulli.default",
+    "args": "((T([0, 3], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "cauchy_.default",
+    "args": "((T([10], bf16), 0, 0.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cauchy_.default",
+    "args": "((T([5, 5], bf16), 0, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "cauchy_.default",
+    "args": "((T([5, 5, 5], bf16), -2, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

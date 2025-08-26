@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([1], bf16), T([], bf16), (), (),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([1], bf16), T([1], bf16), (1,), (1,),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([3, 3], bf16), T([2, 2], bf16), (2, 2), (1, 2),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([3, 3], bf16), T([2, 2], bf16), (2, 2), (1, 2),), {'storage_offset': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([3, 3], bf16), T([2, 2], bf16), (2, 2), (2, 1),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([16], bf16), T([2, 2, 2, 2], bf16), (2, 2, 2, 2), (8, 4, 2, 1),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided_scatter.default",
+    "args": "((T([16], bf16), T([2, 1, 1, 2], bf16), (2, 1, 1, 2), (1, 2, 4, 8),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

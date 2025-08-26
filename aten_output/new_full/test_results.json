@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "new_full.default",
+    "args": "((T([], bf16), (), -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5, 5], bf16), (2, 0), -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([0, 5, 0], bf16), (3, 2, 2), -5.6875,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5], bf16), (2, 3), -5.6875,), {'dtype': torch.bfloat16, 'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5], bf16), (10,), -4.826984902407649,), {'dtype': torch.float64})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5], bf16), (1, 1, 12), -5.6875,), {'device': 'cpu'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5], bf16), (2, 2, 2), -4.826984902407649,), {'dtype': torch.float64, 'device': 'cpu'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([5], bf16), (7, 2), -5.6875,), {'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "scatter.value_reduce",
+    "args": "((T([], bf16), 0, T([], i64), 2.5,), {'reduce': 'add'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "scatter.value_reduce",
+    "args": "((T([], bf16), 0, T([], i64), 2.5,), {'reduce': 'multiply'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

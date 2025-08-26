@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([5], bf16), T([5], bf16), 0, torch.bfloat16,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([5, 5], bf16), T([5, 5], bf16), 0, torch.bfloat16,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([5, 10, 5], bf16), T([5, 10, 5], bf16), -1, torch.bfloat16,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

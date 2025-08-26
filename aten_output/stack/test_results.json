@@ -1,0 +1,74 @@
+[
+  {
+    "op_name": "stack.default",
+    "args": "(([T([3, 4], bf16)], -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([3, 4], bf16)], 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16)], -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16)], 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16)], 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16), T([1, 2, 1, 4], bf16)], 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([0, 1, 0], bf16), T([0, 1, 0], bf16)], -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([0, 1, 0], bf16), T([0, 1, 0], bf16)], 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([0, 1, 0], bf16), T([0, 1, 0], bf16)], 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

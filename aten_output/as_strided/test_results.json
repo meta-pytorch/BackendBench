@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([1], bf16), (1,), (1,),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([3, 3], bf16), (2, 2), (1, 2),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([3, 3], bf16), (2, 2), (1, 2),), {'storage_offset': 1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([16], bf16), (2, 2, 2, 2), (1, 1, 1, 1),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([16], bf16), (2, 1, 1, 2), (1, 7, 7, 1),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([10], bf16), (2, 2), (1, 2),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([10], bf16), (2, 2), (1, 2),), {'storage_offset': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "as_strided.default",
+    "args": "((T([10], bf16), (2, 2), (1, 2),), {'storage_offset': 10})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

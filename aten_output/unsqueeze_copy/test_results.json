@@ -1,0 +1,74 @@
+[
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([3, 4, 5], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([3, 4, 5], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([3, 4, 5], bf16), 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([3, 4, 5], bf16), -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([3, 4, 5], bf16), -3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([], bf16), -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([1], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "unsqueeze_copy.default",
+    "args": "((T([1], bf16), -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

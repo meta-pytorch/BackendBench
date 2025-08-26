@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "embedding.default",
+    "args": "((T([10, 5], bf16), T([], i64),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([10, 5], bf16), T([5], i64),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([10, 5], bf16), T([5, 5], i64),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([5, 5], bf16), T([2, 2], i64),), {'padding_idx': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([5, 5], bf16), T([2, 2], i64),), {'padding_idx': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([5, 5], bf16), T([2, 2], i64),), {'scale_grad_by_freq': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "embedding.default",
+    "args": "((T([5, 5], bf16), T([2, 2], i64),), {'sparse': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

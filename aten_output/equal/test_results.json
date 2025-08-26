@@ -1,0 +1,50 @@
+[
+  {
+    "op_name": "equal.default",
+    "args": "((T([], bf16), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "equal.default",
+    "args": "((T([5], bf16), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "equal.default",
+    "args": "((T([], bf16), T([5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "equal.default",
+    "args": "((T([5, 1], bf16), T([5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "equal.default",
+    "args": "((T([10, 5], bf16), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  },
+  {
+    "op_name": "equal.default",
+    "args": "((T([5, 5], bf16), T([5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "",
+    "relative_error": ""
+  }
+]

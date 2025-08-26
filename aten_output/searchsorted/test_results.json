@@ -1,0 +1,194 @@
+[
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'side': 'left'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'right': False, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'side': 'left', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'side': 'right'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'right': True, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': False, 'side': 'right', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'right': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'side': 'left'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'right': False, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'side': 'left', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'right': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'side': 'right'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'right': True, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16), 2.171875,), {'out_int32': True, 'side': 'right', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': False, 'right': False, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': False, 'side': 'left', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': False, 'right': True, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': False, 'side': 'right', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': True, 'right': False, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': True, 'side': 'left', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': True, 'right': True, 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "searchsorted.Scalar",
+    "args": "((T([20], bf16, [2]), 2.171875,), {'out_int32': True, 'side': 'right', 'sorter': T([20], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

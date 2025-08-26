@@ -1,0 +1,346 @@
+[
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 0.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 3,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -0.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -1.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -2, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -1, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 0, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 1, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 2, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 2, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 3, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 2, 1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 3, 1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([], bf16), 2, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([], bf16), 3, 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([], bf16), 2, 0, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([], bf16), 3, 0, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -2, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -1, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 0, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 1, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 2, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), 3, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 2, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 3, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 2, -1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 3, -1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 1.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 1.5, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 1.5, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 1.5, 1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5, 5], bf16), 1.5, -1, True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), -inf,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), inf,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), inf, 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "linalg_vector_norm.default",
+    "args": "((T([5, 5], bf16), inf, -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

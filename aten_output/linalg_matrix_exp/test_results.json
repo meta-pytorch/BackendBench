@@ -1,0 +1,18 @@
+[
+  {
+    "op_name": "linalg_matrix_exp.default",
+    "args": "((T([5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  },
+  {
+    "op_name": "linalg_matrix_exp.default",
+    "args": "((T([5, 5, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

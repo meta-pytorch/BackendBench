@@ -1,0 +1,146 @@
+[
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([1], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([0], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 1,), {'dtype': torch.bfloat16})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 0,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 1,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 2,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([], bf16), 0,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([1], bf16), 0,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([0], bf16), 0,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([5, 5, 5], bf16), 1,), {'dtype': torch.bfloat16, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([3, 3, 3], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([3, 3, 3], bf16), 1,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([3, 0], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "prod.dim_int",
+    "args": "((T([3, 0], bf16), 1,), {'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

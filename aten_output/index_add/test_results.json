@@ -1,0 +1,74 @@
+[
+  {
+    "op_name": "index_add.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16),), {'alpha': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16),), {'alpha': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([], bf16), 0, T([1], i64), T([], bf16),), {'alpha': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16),), {'alpha': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16),), {'alpha': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([1], bf16), 0, T([1], i64), T([1], bf16),), {'alpha': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([5, 5], bf16), -1, T([5], i64), T([5, 5], bf16),), {'alpha': -1})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([5, 5], bf16), -1, T([5], i64), T([5, 5], bf16),), {'alpha': 0})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "index_add.default",
+    "args": "((T([5, 5], bf16), -1, T([5], i64), T([5, 5], bf16),), {'alpha': 2})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

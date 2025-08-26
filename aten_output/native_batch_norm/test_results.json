@@ -1,0 +1,66 @@
+[
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([5, 5, 5], bf16), T([5], bf16), T([5], bf16), T([5], bf16), T([5], bf16), True, 0.5, 0.6,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([3, 2, 4], bf16), T([2], bf16), T([2], bf16), T([2], bf16), T([2], bf16), False, -1.2, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([3, 1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), True, 0.0, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([3, 2, 3, 4], bf16), T([2], bf16), T([2], bf16), T([2], bf16), T([2], bf16), True, -1.0, 0.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([3, 2, 3, 4], bf16), T([2], bf16), T([2], bf16), T([2], bf16), T([2], bf16), False, -1.0, 0.5,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([2, 1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), True, 0.5, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([2, 1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), T([1], bf16), False, 0.5, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([1, 2, 3], bf16), None, None, None, None, True, 0.5, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

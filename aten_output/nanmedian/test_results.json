@@ -1,0 +1,74 @@
+[
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([], bf16),), {'dim': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([], bf16),), {'dim': -1, 'keepdim': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([2], bf16),), {'dim': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([2], bf16),), {'dim': -1, 'keepdim': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([3, 5], bf16),), {'dim': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([3, 5], bf16),), {'dim': -1, 'keepdim': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([3, 2, 1, 2], bf16),), {'dim': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([3, 2, 1, 2], bf16),), {'dim': -1, 'keepdim': False})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "nanmedian.dim",
+    "args": "((T([3, 2, 1, 2], bf16),), {'dim': 2, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

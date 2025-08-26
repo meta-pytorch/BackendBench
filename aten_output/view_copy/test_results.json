@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([5, 5, 5], bf16), (25, 5),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([25, 5], bf16), (5, 5, 5),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([25, 5], bf16), (5, -1, 5),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([50, 5], bf16), (5, -1),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([5], bf16), (5,),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([], bf16), (),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "view_copy.default",
+    "args": "((T([], bf16), (1,),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

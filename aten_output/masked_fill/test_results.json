@@ -1,0 +1,26 @@
+[
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([5, 5], bf16), T([5, 5], b8), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([], bf16), T([], b8), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([5], bf16), T([5, 5], b8), T([], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

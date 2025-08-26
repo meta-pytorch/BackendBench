@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "randint_like.low_dtype",
+    "args": "((T([0, 5, 0], bf16), 2, 10,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

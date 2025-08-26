@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "randint.low",
+    "args": "((2, 10, torch.Size([0, 5, 0]),), {'device': 'cuda'})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan"
+  }
+]

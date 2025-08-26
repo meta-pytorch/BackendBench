@@ -1,0 +1,50 @@
+[
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([1, 1, 1, 1], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([5, 1, 5, 1], bf16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([5, 1, 5, 1], bf16), -1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([5, 1, 5, 1], bf16), 2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([5, 1, 5, 1], bf16), -2,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "squeeze_copy.dim",
+    "args": "((T([], bf16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

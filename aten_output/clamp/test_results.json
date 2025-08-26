@@ -1,0 +1,58 @@
+[
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([5, 10, 5], bf16), T([5, 10, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([10, 5], bf16), T([10, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([5, 1, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), None, T([5, 10, 5], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([5, 10, 5], bf16), None,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([5, 10, 5], i32), None,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "clamp.Tensor",
+    "args": "((T([5, 10, 5], bf16), T([5, 10, 5], bf16), T([5, 10, 5], i32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

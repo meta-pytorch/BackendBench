@@ -1,0 +1,10 @@
+[
+  {
+    "op_name": "neg.default",
+    "args": "((T([20, 20], bf16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]

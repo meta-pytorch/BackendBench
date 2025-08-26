@@ -1,0 +1,962 @@
+[
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 1, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 2, 'lengths': T([4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 1, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 2, 'lengths': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 1, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 2, 'lengths': T([5, 4], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 1, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': False, 'initial': 2, 'offsets': T([5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'max',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'mean',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'min',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'sum',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 1, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([10, 5, 5], bf16), 'prod',), {'axis': 0, 'unsafe': True, 'initial': 2, 'offsets': T([6], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'max',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'mean',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'min',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'sum',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 1, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  },
+  {
+    "op_name": "segment_reduce.default",
+    "args": "((T([5, 5, 5], bf16), 'prod',), {'axis': 1, 'unsafe': False, 'initial': 2, 'offsets': T([5, 5], i64)})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0"
+  }
+]
