@@ -287,8 +287,10 @@ def save_verbose_results(
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
         geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        mean_abs_error = max(abs_errors) if abs_errors else 0.0
-        mean_rel_error = max(rel_errors) if rel_errors else 0.0
+        mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
+        mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
+        max_rel_error = max(rel_errors) if rel_errors else 0.0
+        max_abs_error = max(abs_errors) if abs_errors else 0.0
 
         op_summaries[op_name] = {
             "operator": op_name,
@@ -301,6 +303,8 @@ def save_verbose_results(
             "geomean_speedup": geomean_speedup,
             "mean_absolute_error": mean_abs_error,
             "mean_relative_error": mean_rel_error,
+            "max_relative_error": max_rel_error,
+            "max_absolute_error": max_abs_error,
         }
 
         # Add to failed ops list if there were failures
@@ -320,8 +324,10 @@ def save_verbose_results(
             "avg_speedup",
             "geomean_speedup",
             "avg_benchmark_time",
-            "max_absolute_error",
+            "mean_absolute_error",
+            "mean_relative_error",
             "max_relative_error",
+            "max_absolute_error",
         ]
 
         with open(summary_csv_path, "w", newline="") as f:
