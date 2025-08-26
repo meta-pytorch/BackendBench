@@ -15,7 +15,6 @@ from BackendBench.data_loaders import (
     op_list_to_benchmark_dict,
 )
 from BackendBench.op_categories import UNSUPPORTED_OPERATORS
-from BackendBench.scripts.dataset_filters import _clean_op_name
 from BackendBench.utils import deserialize_args
 
 # for details on the dataset read this:
@@ -86,6 +85,6 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if _clean_op_name(op) in UNSUPPORTED_OPERATORS:
+            if any(s in op for s in UNSUPPORTED_OPERATORS):
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)

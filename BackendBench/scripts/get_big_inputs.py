@@ -22,7 +22,7 @@ from BackendBench.torchbench_suite import (
     _parse_inputs,
     dtype_abbrs,
 )
-from BackendBench.op_categories import UNTESTABLE_OPERATORS
+from BackendBench.op_categories import UNSUPPORTED_OPERATORS
 from main import setup_logging
 from tqdm import tqdm
 from BackendBench.utils import cleanup_memory_and_gpu
@@ -400,7 +400,7 @@ def process_operator_traces(
     log.info(f"Successfully parsed {sum(len(v) for v in op_inputs.values())} traces")
     log.info(f"Found {len(op_inputs)} unique operators")
 
-    scaling_skip_list = UNTESTABLE_OPERATORS
+    scaling_skip_list = UNSUPPORTED_OPERATORS
     # skip operators in manually_scaled_ops
     for op_name, _ in manually_scaled_ops.items():
         scaling_skip_list.append(op_name)

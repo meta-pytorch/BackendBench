@@ -21,53 +21,20 @@ from BackendBench.op_categories import (
 RELATIVE_RUNTIME_THRESHOLD = 1.3
 
 
-def _clean_op_name(op_name: str) -> str:
-    """
-    grabs the name of the base op, and the suffixes
-    Examples:
-    - aten::add.Tensor -> add
-    - aten::add.out -> add
-    - torch.ops.aten.add.default -> add
-    - torch.ops.aten._add.out -> add
-    - torch.ops.aten.add.out -> add
-    """
-    # Remove aten:: prefix
-    if op_name.startswith("aten::"):
-        op_name = op_name[6:]
-
-    # Remove torch.ops.aten. prefix
-    if op_name.startswith("torch.ops.aten."):
-        op_name = op_name[15:]
-
-    # Handle .default, .Tensor, .out suffixes
-    if "." in op_name:
-        parts = op_name.split(".")
-        base = parts[0]
-
-        op_name = base
-
-    # Replace any remaining invalid characters
-    op_name = op_name.replace(":", "_").replace("/", "_").replace("\\", "_")
-
-    # Remove any trailing or leading a_
-    op_name = op_name.strip("_")
-    return op_name
-
-
 def apply_skip_ops_filter(ops):
     for op in tqdm.tqdm(ops, desc="Filtering ops by skip and synthetic ops"):
-        if _clean_op_name(op["op_name"]) in UNSUPPORTED_OPERATORS:
+        if any(s in op for s in UNSUPPORTED_OPERATORS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append("We cannot run this op on backendbench yet")
             op["runnable"] = False
 
-        if _clean_op_name(op["op_name"]) in RANDOM_OPS:
+        if any(s in op for s in RANDOM_OPS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append(
                 "BackendBench does not support correctness testing for random ops yet"
             )
 
-        if _clean_op_name(op["op_name"]) in TENSOR_CREATION_AND_MANIPULATION_OPS:
+        if any(s in op for s in TENSOR_CREATION_AND_MANIPULATION_OPS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append(
                 "BackendBench does not support correctness testing for tensor creation and manipulation ops yet"
