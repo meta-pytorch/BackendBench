@@ -11,7 +11,6 @@ Shared data loading utilities for reading trace and parquet files.
 import hashlib
 import logging
 import re
-from io import BytesIO
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -21,6 +20,8 @@ import requests
 import torch
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from tqdm import tqdm
+from BackendBench.constants import TEST_SET_REVISON, TEST_SET_FILE, HUGGINGFACE_REPO
+from datasets import load_dataset
 
 
 def _args_size(args):
@@ -151,8 +152,30 @@ def _parse_trace_stream(
     return op_inputs
 
 
+def _detect_format(source: Union[str, Path, None]) -> str:
+    """Detect format based on source type and extension."""
+    if source is None:
+        return "parquet"
+
+    if not isinstance(source, (str, Path)):
+        raise ValueError(
+            f"Unsupported source type: {type(source)}, should be str, Path, or None"
+        )
+
+    source_str = str(source)
+    if source_str.endswith(".parquet"):
+        return "parquet"
+    elif source_str.endswith(".txt"):
+        return "trace"
+    else:
+        raise ValueError(
+            f"Cannot auto-detect format for source: {source}. "
+            "Please specify format explicitly."
+        )
+
+
 def load_ops_from_source(
-    source: Union[str, Path],
+    source: Union[str, Path, None],
     format: str = "auto",
     filter: Optional[List[str]] = None,
 ) -> List[Dict]:
@@ -160,7 +183,7 @@ def load_ops_from_source(
     Load operation data from various sources and formats.
 
     Args:
-        source: File path or URL
+        source: File path or URL or None. If None, use huggingface dataset for parquet mode (default).
         format: "trace", "parquet", or "auto" (detect from file extension)
         filter: Optional list of operation name filters
 
@@ -168,66 +191,50 @@ def load_ops_from_source(
         List of dictionaries with detailed operation info
 
     Auto-detection behavior:
-        - https://domain.com/data.parquet → parquet format
-        - https://domain.com/data.txt → trace format
-        - https://domain.com/data → trace format (fallback)
-        - local_file.parquet → parquet format
-        - local_file.txt → trace format
+        - None → parquet format test set from huggingface (default)
+        - *.parquet → parquet format
+        - *.txt → trace format
+        - Other extensions → error (must specify format explicitly)
     """
-
-    # Auto-detect format if not specified
+    # Format detection/validation
     if format == "auto":
-        if isinstance(source, str):
-            # Check file extension first (works for both local files and URLs)
-            if source.endswith(".parquet"):
-                format = "parquet"
-            elif source.endswith(".txt"):
-                format = "trace"
-            else:
-                raise ValueError(f"Unsupported source: {source}")
-        else:
-            raise ValueError(f"Unsupported source type: {type(source)} it should be a string")
-
-    if format == "parquet":
-        return _load_from_parquet(source, filter)
-    elif format == "trace":
-        # Always load full data - consumers can extract what they need
-        return _load_from_trace(source, filter)
-    else:
+        format = _detect_format(source)
+    elif format not in ("parquet", "trace"):
         raise ValueError(f"Unsupported format: {format}")
+
+    # Dispatch to appropriate loader
+    loaders = {
+        "parquet": _load_from_parquet,
+        "trace": _load_from_trace
+    }
+
+    return loaders[format](source, filter)
 
 
 def _load_from_parquet(
-    source: Union[str, Path], filter: Optional[List[str]] = None, timeout: int = 30
+    source: Optional[Union[str, Path]] = None, filter: Optional[List[str]] = None
 ):
     """
     Load operations from parquet file or URL.
 
     Args:
-        source: Local file path or URL to parquet file
+        source: Local file path or None. If None, use huggingface dataset (default).
         filter: Optional list of strings to filter operation names
-        timeout: Timeout in seconds for URL requests (default: 30)
 
     Returns:
         List of dictionaries containing the data
     """
 
-    # Check if source is a URL
-    if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
-        try:
-            # Download the file content with timeout
-            response = requests.get(source, timeout=timeout)
-            response.raise_for_status()
-
-            # Read parquet from bytes in memory
-            table = pq.read_table(BytesIO(response.content))
-        except requests.RequestException as e:
-            raise ValueError(f"Failed to download parquet file from URL: {e}")
+    if source is None:
+        # read parquet file from huggingface
+        df = load_dataset(
+            HUGGINGFACE_REPO, dataframe=TEST_SET_FILE, revision=TEST_SET_REVISON
+        ).to_pandas()
     else:
+        # read parquet file directly
         table = pq.read_table(source)
 
     df = table.to_pandas()
-
     # Apply filter if provided
     if filter:
         mask = df["op_name"].apply(lambda op: any(f in op for f in filter))
