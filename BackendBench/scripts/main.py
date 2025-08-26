@@ -121,10 +121,10 @@ def setup_logging(log_level):
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
 @click.option(
-    "--check-mostly-overhead-ops",
+    "--check-overhead-dominated-ops",
     default=False,
     is_flag=True,
-    help="Run tests for ops that are mostly overhead ONLY",
+    help="Run tests for ops that are dominated by overhead ONLY",
 )
 def cli(
     log_level,
@@ -140,13 +140,13 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
-    check_mostly_overhead_ops,
+    check_overhead_dominated_ops,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
             raise ValueError("topn-inputs is only supported for torchbench suite")
-        if check_mostly_overhead_ops:
-            raise ValueError("check-mostly-overhead-ops is only supported for torchbench suite")
+        if check_overhead_dominated_ops:
+            raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
 
     setup_logging(log_level)
     if ops:
@@ -176,7 +176,7 @@ def cli(
             torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
-            check_mostly_overhead_ops=check_mostly_overhead_ops,
+            check_overhead_dominated_ops=check_overhead_dominated_ops,
         ),
         "facto": lambda: FactoTestSuite(
             "facto_cuda_bfloat16",

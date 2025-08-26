@@ -87,5 +87,5 @@ def apply_runtime_filter(ops):
             relative_runtime = ms / runtime_threshold_ms
             op["relative_runtime_to_kernel_launch"] = relative_runtime
             if relative_runtime < RELATIVE_RUNTIME_THRESHOLD:
-                op["mostly_overhead_ops"] = True
+                op["is_overhead_dominated_op"] = True
     return ops
