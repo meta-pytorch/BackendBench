@@ -27,17 +27,10 @@ class OpInfoOpTest(OpTest):
         self.op = op
         self._correctness_tests = correctness_tests
         self.indices = set(indices)
-        # self.performance_tests = []
+        self.performance_tests = []
 
     @property
     def correctness_tests(self):
-        for idx, test in enumerate(self._correctness_tests):
-            if idx in self.indices:
-                # print(f"{idx} {test.input=} {test.args=} {test.kwargs=}")
-                yield OpInfoTest(test.input, *test.args, **test.kwargs)
-
-    @property
-    def performance_tests(self):
         for idx, test in enumerate(self._correctness_tests):
             if idx in self.indices:
                 # print(f"{idx} {test.input=} {test.args=} {test.kwargs=}")
