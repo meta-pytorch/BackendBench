@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "sigmoid.default",
+    "args": "((T([6, 1, 352, 352], f16, [619520, 123904, 352, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.3136010057479552e-09",
+    "relative_error": "2.616979521974372e-09",
+    "benchmark_time": "0.007996765340237948",
+    "speedup": "1.1467723846435547"
+  }
+]

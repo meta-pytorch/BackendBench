@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "gelu.default",
+    "args": "((T([128, 3137, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.8140607288899546e-12",
+    "relative_error": "1.8331517992464796e-07",
+    "benchmark_time": "0.3868406403064728",
+    "speedup": "0.980638861656189"
+  }
+]

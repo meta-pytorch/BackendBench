@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "where.self",
+    "args": "((T([1, 1, 1024, 1024], b8), T([4, 12, 1024, 1024], f16), T([], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.38079132998518167",
+    "speedup": "0.3852795362472534"
+  }
+]

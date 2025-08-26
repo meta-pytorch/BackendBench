@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "addmm.default",
+    "args": "((T([64], f16), T([401536, 512], f16), T([512, 64], f16, [1, 512]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.3175553362420265",
+    "speedup": "0.7382253408432007"
+  }
+]

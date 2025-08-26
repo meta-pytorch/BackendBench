@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "remainder.Scalar",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.006101067626488661",
+    "speedup": "1.3714063167572021"
+  }
+]

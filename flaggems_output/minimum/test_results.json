@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "minimum.default",
+    "args": "((T([2, 1, 1, 448], f16), T([2, 12, 64, 448], f32),), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "2.9445247491821647e-05",
+    "relative_error": "8.849286678014323e-05",
+    "benchmark_time": "0.011012926090995006",
+    "speedup": "1.0"
+  }
+]

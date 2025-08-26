@@ -1,0 +1,872 @@
+[
+  {
+    "op_name": "_log_softmax.default",
+    "args": "((T([8192, 50265], f16), 1, False,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "5.2555012786115185e-08",
+    "relative_error": "4.846431256311234e-09",
+    "benchmark_time": "1.9071190089595562",
+    "speedup": "0.4569477438926697"
+  },
+  {
+    "op_name": "_log_softmax_backward_data.default",
+    "args": "((T([8192, 50265], f16), T([8192, 50265], f16), 1, torch.float16,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "1.4872851621720098",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "_softmax.default",
+    "args": "((T([256, 1024, 1024], f16), -1, False,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "6.02931038429233e-11",
+    "relative_error": "6.240163230586404e-08",
+    "benchmark_time": "0.4928800971219034",
+    "speedup": "1.114104151725769"
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([256, 1024, 1024], f16), T([256, 1024, 1024], f16), -1, torch.float16,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0008692158735357225",
+    "relative_error": "6.814712833147496e-06",
+    "benchmark_time": "0.71967946489652",
+    "speedup": "2.133909225463867"
+  },
+  {
+    "op_name": "abs.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.009995512192978001",
+    "speedup": "0.957202136516571"
+  },
+  {
+    "op_name": "add.Tensor",
+    "args": "((T([256, 32, 32, 32, 32], f16, [66528, 63, 2079, 1, 0]), T([256, 32, 32, 32, 32], f16, [66528, 2079, 63, 0, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "1.8822316765785216",
+    "speedup": "0.5352447032928467"
+  },
+  {
+    "op_name": "add_.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), T([128, 256, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.2819685033691211",
+    "speedup": "0.9947469234466553"
+  },
+  {
+    "op_name": "addmm.default",
+    "args": "((T([64], f16), T([401536, 512], f16), T([512, 64], f16, [1, 512]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.3175553362420265",
+    "speedup": "0.7382253408432007"
+  },
+  {
+    "op_name": "any.default",
+    "args": "((T([64, 128, 512], b8),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.011352216224220446",
+    "speedup": "1.3826016187667847"
+  },
+  {
+    "op_name": "bitwise_and.Tensor",
+    "args": "((T([5000], b8), T([5000], b8),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0053272615330150494",
+    "speedup": "1.384379506111145"
+  },
+  {
+    "op_name": "bitwise_not.default",
+    "args": "((T([4, 1, 512, 512], b8),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.00650726065207361",
+    "speedup": "1.0317679643630981"
+  },
+  {
+    "op_name": "bmm.default",
+    "args": "((T([256, 32, 1024], f16), T([256, 1024, 1024], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.2824311278441537",
+    "speedup": "1.0039993524551392"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([128, 64, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16)], 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "1.1027398996236848",
+    "speedup": "0.45395922660827637"
+  },
+  {
+    "op_name": "clamp.default",
+    "args": "((T([1438452, 1], f16), None, 4.135166556742356,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.009086566565662046",
+    "speedup": "0.9152933955192566"
+  },
+  {
+    "op_name": "constant_pad_nd.default",
+    "args": "((T([128, 96, 113, 113], f16), [0, -1, 0, -1],), {})",
+    "correctness_score": 0,
+    "correctness_errors": "'list' object is not callable",
+    "absolute_error": "",
+    "relative_error": "",
+    "benchmark_time": "0.4208447652611327",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "cos.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.007764119744122385",
+    "speedup": "1.0225011110305786"
+  },
+  {
+    "op_name": "cumsum.default",
+    "args": "((T([64, 128], i32), 1,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.011948064914887094",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "div.Scalar",
+    "args": "((T([128, 256, 56, 56], f16, [256, 1, 0, 0]), 3136,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.6900332877712865",
+    "speedup": "0.2705424427986145"
+  },
+  {
+    "op_name": "div.Tensor",
+    "args": "((T([64, 4, 512, 512], f16), 8.0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.129990647452465",
+    "speedup": "0.9953066110610962"
+  },
+  {
+    "op_name": "div_.Tensor",
+    "args": "((T([1024, 2, 768], f16), 8.0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.008359149742898518",
+    "speedup": "0.996372401714325"
+  },
+  {
+    "op_name": "elu.default",
+    "args": "((T([256, 197951], f16), 1.6732632423543772, 1.0507009873554805,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.09886282075392573",
+    "speedup": "0.998369574546814"
+  },
+  {
+    "op_name": "eq.Scalar",
+    "args": "((T([2, 256, 12, 257], f16, [0, 257, 0, 1]), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.019584335430694908",
+    "speedup": "0.5258067846298218"
+  },
+  {
+    "op_name": "eq.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "0.00047810873365961015",
+    "relative_error": "0.00047810873365961015",
+    "benchmark_time": "0.009296622868273815",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "erf.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.022299090147138764",
+    "speedup": "1.0062097311019897"
+  },
+  {
+    "op_name": "exp.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.022587710467164703",
+    "speedup": "0.9871873259544373"
+  },
+  {
+    "op_name": "fill_.Scalar",
+    "args": "((T([476], i64), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.004762947370369009",
+    "speedup": "1.0141528844833374"
+  },
+  {
+    "op_name": "fill_.Tensor",
+    "args": "((T([118], f16), T([], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.004978387777996715",
+    "speedup": "1.1371465921401978"
+  },
+  {
+    "op_name": "flip.default",
+    "args": "((T([256, 257], f16), [0],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.00561501185914099",
+    "speedup": "1.3410199880599976"
+  },
+  {
+    "op_name": "floor_divide.default",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0073390000028526765",
+    "speedup": "1.3842241764068604"
+  },
+  {
+    "op_name": "ge.Scalar",
+    "args": "((T([5000, 4], f32), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0055130188845379175",
+    "speedup": "1.0148019790649414"
+  },
+  {
+    "op_name": "gelu.default",
+    "args": "((T([128, 3137, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.8140607288899546e-12",
+    "relative_error": "1.8331517992464796e-07",
+    "benchmark_time": "0.3868406403064728",
+    "speedup": "0.980638861656189"
+  },
+  {
+    "op_name": "gelu_backward.default",
+    "args": "((T([128, 3137, 512], f16), T([128, 3137, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "9.411547097215589e-09",
+    "relative_error": "2.3323702080801922e-08",
+    "benchmark_time": "0.5714261919668276",
+    "speedup": "0.9684426188468933"
+  },
+  {
+    "op_name": "gt.Scalar",
+    "args": "((T([16, 128], i64), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.005375735582662867",
+    "speedup": "0.9797821640968323"
+  },
+  {
+    "op_name": "gt.Tensor",
+    "args": "((T([5000, 4], f32), T([4], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.005802185251432827",
+    "speedup": "1.3967617750167847"
+  },
+  {
+    "op_name": "isinf.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.01188980833071236",
+    "speedup": "1.5921173095703125"
+  },
+  {
+    "op_name": "isnan.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.012149725497389833",
+    "speedup": "1.0097568035125732"
+  },
+  {
+    "op_name": "le.Scalar",
+    "args": "((T([0, 91], f16), 4.135166556742356,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.0029315903782308685",
+    "speedup": "1.0006904602050781"
+  },
+  {
+    "op_name": "lt.Scalar",
+    "args": "((T([2, 1024], f16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.005269459263479871",
+    "speedup": "1.0170488357543945"
+  },
+  {
+    "op_name": "lt.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.009638267642888637",
+    "speedup": "0.9841992855072021"
+  },
+  {
+    "op_name": "masked_fill.Scalar",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.10540668556937388",
+    "speedup": "1.3790216445922852"
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), T([], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.18736576372236938",
+    "speedup": "0.8593940138816833"
+  },
+  {
+    "op_name": "masked_fill_.Scalar",
+    "args": "((T([4, 12, 512, 512], f16), T([4, 1, 512, 512], b8), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.05615729717160198",
+    "speedup": "0.8994936943054199"
+  },
+  {
+    "op_name": "max.default",
+    "args": "((T([5000, 4], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.008325910084809596",
+    "speedup": "1.3025343418121338"
+  },
+  {
+    "op_name": "max.dim",
+    "args": "((T([64, 196, 1000], f16), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.1155707683456078",
+    "speedup": "0.30168014764785767"
+  },
+  {
+    "op_name": "maximum.default",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.009495513426443593",
+    "speedup": "1.0178176164627075"
+  },
+  {
+    "op_name": "mean.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "inf",
+    "relative_error": "inf",
+    "benchmark_time": "0.014674204822003314",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "mean.dim",
+    "args": "((T([128, 256, 56, 56], f16), [2, 3], True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "7.450580596923828e-09",
+    "relative_error": "1.4988987828701283e-08",
+    "benchmark_time": "0.10780690157937901",
+    "speedup": "1.1789028644561768"
+  },
+  {
+    "op_name": "min.default",
+    "args": "((T([2], i64),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.007692057982420072",
+    "speedup": "0.8285046219825745"
+  },
+  {
+    "op_name": "minimum.default",
+    "args": "((T([2, 1, 1, 448], f16), T([2, 12, 64, 448], f32),), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "2.9445247491821647e-05",
+    "relative_error": "8.849286678014323e-05",
+    "benchmark_time": "0.011012926090995006",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "mm.default",
+    "args": "((T([8192, 50265], f16), T([50265, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "3.252565383911133",
+    "relative_error": "0.0002590605872683227",
+    "benchmark_time": "1.8199792570537991",
+    "speedup": "2.026824712753296"
+  },
+  {
+    "op_name": "mse_loss.default",
+    "args": "((T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.02366281795195036",
+    "speedup": "1.4061870574951172"
+  },
+  {
+    "op_name": "mul.Tensor",
+    "args": "((T([256, 1024, 1024], f16), 0.1767766952966369,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.500509234306253",
+    "speedup": "0.9838533401489258"
+  },
+  {
+    "op_name": "mul_.Tensor",
+    "args": "((T([128, 256, 48, 48], f16), T([], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.5140492068896504",
+    "speedup": "0.4182380437850952"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f16), True, 0.1, 0.001,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "0.00016743422068543623",
+    "relative_error": "8.605037673229769e-05",
+    "benchmark_time": "2.804625861784991",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "native_batch_norm_backward.default",
+    "args": "((T([128, 64, 147, 147], f16), T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f32), T([64], f32), True, 0.001, [True, True, True],), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "5.205624898274739",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "native_group_norm.default",
+    "args": "((T([64, 96, 56, 56], f16), T([96], f16), T([96], f16), 64, 96, 3136, 1, 1e-05,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "4.6125283309568964e-05",
+    "relative_error": "0.0006845962877074877",
+    "benchmark_time": "0.7451511739656843",
+    "speedup": "0.4509240388870239"
+  },
+  {
+    "op_name": "native_group_norm_backward.default",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16), T([64, 1], f16), T([64, 1], f16), T([96], f16), 64, 96, 3136, 1, [True, True, True],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.3919897089951002",
+    "speedup": "0.4849255681037903"
+  },
+  {
+    "op_name": "native_layer_norm.default",
+    "args": "((T([64, 56, 56, 256], f16), [256], T([256], f16), T([256], f16), 1e-06,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "0.00020745179911803766",
+    "relative_error": "0.0007588568842038512",
+    "benchmark_time": "0.25295100736357",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "ne.Scalar",
+    "args": "((T([256, 33], i64, [1, 256]), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.005525864773426616",
+    "speedup": "1.0144764184951782"
+  },
+  {
+    "op_name": "neg.default",
+    "args": "((T([64, 96, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0412070811262631",
+    "speedup": "1.0073070526123047"
+  },
+  {
+    "op_name": "nonzero.default",
+    "args": "((T([5000], b8),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.09118001643738312",
+    "speedup": "0.3749244511127472"
+  },
+  {
+    "op_name": "pow.Scalar",
+    "args": "((10000, T([512], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "4.656612873077393e-10",
+    "relative_error": "1.1927599186112303e-10",
+    "benchmark_time": "0.005651643194210116",
+    "speedup": "2.0018234252929688"
+  },
+  {
+    "op_name": "pow.Tensor_Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "4.0252722101286054e-05",
+    "relative_error": "0.0010580376256257296",
+    "benchmark_time": "0.06275686422855126",
+    "speedup": "0.5880019068717957"
+  },
+  {
+    "op_name": "reciprocal.default",
+    "args": "((T([512], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "5.471520125865936e-08",
+    "relative_error": "1.3481992411357169e-08",
+    "benchmark_time": "0.005276796252777179",
+    "speedup": "1.1473143100738525"
+  },
+  {
+    "op_name": "relu.default",
+    "args": "((T([16, 96, 165, 165], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.08221430013402861",
+    "speedup": "0.996283769607544"
+  },
+  {
+    "op_name": "relu_.default",
+    "args": "((T([64, 64, 224, 224], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.386636060086926",
+    "speedup": "0.9874128103256226"
+  },
+  {
+    "op_name": "remainder.Scalar",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.006101067626488661",
+    "speedup": "1.3714063167572021"
+  },
+  {
+    "op_name": "repeat.default",
+    "args": "((T([10, 204, 204], b8, [204, 0, 1]), [8, 1, 1],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.026627967087936796",
+    "speedup": "0.5408698916435242"
+  },
+  {
+    "op_name": "rsqrt.default",
+    "args": "((T([32, 1, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.005670014158965707",
+    "speedup": "1.0090140104293823"
+  },
+  {
+    "op_name": "sigmoid.default",
+    "args": "((T([6, 1, 352, 352], f16, [619520, 123904, 352, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.3136010057479552e-09",
+    "relative_error": "2.616979521974372e-09",
+    "benchmark_time": "0.007996765340237948",
+    "speedup": "1.1467723846435547"
+  },
+  {
+    "op_name": "sigmoid_.default",
+    "args": "((T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.07804551346679077",
+    "speedup": "0.41204124689102173"
+  },
+  {
+    "op_name": "sigmoid_backward.default",
+    "args": "((T([8, 3, 48, 64, 81], f16), T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.8409698895993643e-05",
+    "relative_error": "0.00021312535682227463",
+    "benchmark_time": "0.08161863276210309",
+    "speedup": "0.39885202050209045"
+  },
+  {
+    "op_name": "silu.default",
+    "args": "((T([128, 256, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.19575861790849838",
+    "speedup": "0.992865800857544"
+  },
+  {
+    "op_name": "silu_.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.29093415486185176",
+    "speedup": "1.1414488554000854"
+  },
+  {
+    "op_name": "silu_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "4.083578364344476e-09",
+    "relative_error": "1.1199574601050699e-08",
+    "benchmark_time": "0.4187109788998644",
+    "speedup": "0.9966669678688049"
+  },
+  {
+    "op_name": "sin.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0077639136662175185",
+    "speedup": "1.0168315172195435"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([64, 4, 16, 196, 32], f16), T([64, 4, 16, 196, 32], f16, [401408, 100352, 6272, 1, 196]), T([64, 4, 16, 196, 32], f16)],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.6677927472628653",
+    "speedup": "0.2848336398601532"
+  },
+  {
+    "op_name": "sub.Tensor",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.05895258396459152",
+    "speedup": "0.9978640675544739"
+  },
+  {
+    "op_name": "sum.dim_IntList",
+    "args": "((T([256, 32, 32, 32, 32], f16, [1048576, 32768, 32, 1024, 1]), [2], True,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.862645149230957e-09",
+    "relative_error": "1.1584964931810049e-10",
+    "benchmark_time": "3.2444490893133757",
+    "speedup": "0.0851019024848938"
+  },
+  {
+    "op_name": "sum.default",
+    "args": "((T([8, 512, 30522], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.13000223216717408",
+    "speedup": "1.0693775415420532"
+  },
+  {
+    "op_name": "tanh.default",
+    "args": "((T([2, 512, 16384], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0370519643853963",
+    "speedup": "1.0057026147842407"
+  },
+  {
+    "op_name": "tanh_backward.default",
+    "args": "((T([2, 512, 16384], f16), T([2, 512, 16384], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "6.360027327900752e-05",
+    "relative_error": "0.0003690736193675548",
+    "benchmark_time": "0.05230345186848819",
+    "speedup": "0.9980307817459106"
+  },
+  {
+    "op_name": "threshold_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.5563094751946878",
+    "speedup": "0.9951483607292175"
+  },
+  {
+    "op_name": "topk.default",
+    "args": "((T([1, 6905250], f16), 5000, 1,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "at 18:11:\n    k: tl.constexpr,\n    N: tl.constexpr,\n    BLOCK_SIZE: tl.constexpr,\n    DESCENDING: tl.constexpr,\n):\n    cur_batch = tle.program_id(0)\n    chunk_x += cur_batch * N\n    chunk_index += cur_batch * N\n    y_ptr += cur_batch * k\n    index_ptr += cur_batch * k\n\n    cols = tl.arange(0, BLOCK_SIZE)\n           ^",
+    "absolute_error": "",
+    "relative_error": "",
+    "benchmark_time": "0.2512892264954365",
+    "speedup": "1.0"
+  },
+  {
+    "op_name": "triu.default",
+    "args": "((T([1, 31, 31], f32), 1,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0052984484022843385",
+    "speedup": "1.2204493284225464"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([32, 128, 56, 56], f16, [401408, 1, 7168, 128]), [1],), {'correction': 0, 'keepdim': True})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.0035475561664953e-08",
+    "relative_error": "1.2176326436019735e-07",
+    "benchmark_time": "0.20680935844872733",
+    "speedup": "0.28274038434028625"
+  },
+  {
+    "op_name": "where.self",
+    "args": "((T([1, 1, 1024, 1024], b8), T([4, 12, 1024, 1024], f16), T([], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.38079132998518167",
+    "speedup": "0.3852795362472534"
+  }
+]

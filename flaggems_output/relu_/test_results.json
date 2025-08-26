@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "relu_.default",
+    "args": "((T([64, 64, 224, 224], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.386636060086926",
+    "speedup": "0.9874128103256226"
+  }
+]

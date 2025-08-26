@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "div.Tensor",
+    "args": "((T([64, 4, 512, 512], f16), 8.0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.129990647452465",
+    "speedup": "0.9953066110610962"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "sigmoid_backward.default",
+    "args": "((T([8, 3, 48, 64, 81], f16), T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "1.8409698895993643e-05",
+    "relative_error": "0.00021312535682227463",
+    "benchmark_time": "0.08161863276210309",
+    "speedup": "0.39885202050209045"
+  }
+]

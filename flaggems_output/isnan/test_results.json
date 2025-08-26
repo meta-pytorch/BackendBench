@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "isnan.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.012149725497389833",
+    "speedup": "1.0097568035125732"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "topk.default",
+    "args": "((T([1, 6905250], f16), 5000, 1,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "at 18:11:\n    k: tl.constexpr,\n    N: tl.constexpr,\n    BLOCK_SIZE: tl.constexpr,\n    DESCENDING: tl.constexpr,\n):\n    cur_batch = tle.program_id(0)\n    chunk_x += cur_batch * N\n    chunk_index += cur_batch * N\n    y_ptr += cur_batch * k\n    index_ptr += cur_batch * k\n\n    cols = tl.arange(0, BLOCK_SIZE)\n           ^",
+    "absolute_error": "",
+    "relative_error": "",
+    "benchmark_time": "0.2512892264954365",
+    "speedup": "1.0"
+  }
+]

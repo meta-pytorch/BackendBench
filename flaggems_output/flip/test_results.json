@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "flip.default",
+    "args": "((T([256, 257], f16), [0],), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.00561501185914099",
+    "speedup": "1.3410199880599976"
+  }
+]

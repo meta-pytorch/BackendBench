@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "elu.default",
+    "args": "((T([256, 197951], f16), 1.6732632423543772, 1.0507009873554805,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.09886282075392573",
+    "speedup": "0.998369574546814"
+  }
+]

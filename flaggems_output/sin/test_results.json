@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "sin.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0077639136662175185",
+    "speedup": "1.0168315172195435"
+  }
+]

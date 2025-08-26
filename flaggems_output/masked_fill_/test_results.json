@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "masked_fill_.Scalar",
+    "args": "((T([4, 12, 512, 512], f16), T([4, 1, 512, 512], b8), 0,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.05615729717160198",
+    "speedup": "0.8994936943054199"
+  }
+]

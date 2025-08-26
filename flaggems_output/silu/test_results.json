@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "silu.default",
+    "args": "((T([128, 256, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.19575861790849838",
+    "speedup": "0.992865800857544"
+  }
+]

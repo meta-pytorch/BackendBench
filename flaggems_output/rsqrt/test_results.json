@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "rsqrt.default",
+    "args": "((T([32, 1, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.005670014158965707",
+    "speedup": "1.0090140104293823"
+  }
+]

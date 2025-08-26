@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "cumsum.default",
+    "args": "((T([64, 128], i32), 1,), {})",
+    "correctness_score": 0,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.011948064914887094",
+    "speedup": "1.0"
+  }
+]

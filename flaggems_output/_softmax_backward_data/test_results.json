@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([256, 1024, 1024], f16), T([256, 1024, 1024], f16), -1, torch.float16,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0008692158735357225",
+    "relative_error": "6.814712833147496e-06",
+    "benchmark_time": "0.71967946489652",
+    "speedup": "2.133909225463867"
+  }
+]

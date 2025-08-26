@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "sum.default",
+    "args": "((T([8, 512, 30522], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "nan",
+    "relative_error": "nan",
+    "benchmark_time": "0.13000223216717408",
+    "speedup": "1.0693775415420532"
+  }
+]

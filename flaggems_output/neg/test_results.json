@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "neg.default",
+    "args": "((T([64, 96, 56, 56], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.0412070811262631",
+    "speedup": "1.0073070526123047"
+  }
+]

@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "silu_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "4.083578364344476e-09",
+    "relative_error": "1.1199574601050699e-08",
+    "benchmark_time": "0.4187109788998644",
+    "speedup": "0.9966669678688049"
+  }
+]

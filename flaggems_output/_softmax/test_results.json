@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "_softmax.default",
+    "args": "((T([256, 1024, 1024], f16), -1, False,), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "6.02931038429233e-11",
+    "relative_error": "6.240163230586404e-08",
+    "benchmark_time": "0.4928800971219034",
+    "speedup": "1.114104151725769"
+  }
+]

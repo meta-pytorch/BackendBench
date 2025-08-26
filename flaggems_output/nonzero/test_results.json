@@ -1,0 +1,12 @@
+[
+  {
+    "op_name": "nonzero.default",
+    "args": "((T([5000], b8),), {})",
+    "correctness_score": 1,
+    "correctness_errors": "",
+    "absolute_error": "0.0",
+    "relative_error": "0.0",
+    "benchmark_time": "0.09118001643738312",
+    "speedup": "0.3749244511127472"
+  }
+]
