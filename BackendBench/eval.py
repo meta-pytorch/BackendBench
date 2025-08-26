@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
+from BackendBench.utils import clean_op_name_for_directory
 
 
 try:
@@ -24,7 +25,7 @@ try:
 except ImportError:
     TRITON_AVAILABLE = False
 
-from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
+from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 logger = logging.getLogger(__name__)
 
@@ -197,38 +198,6 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     return correctness_score, performance_score, test_data
 
 
-def clean_op_name_for_directory(op_name: str) -> str:
-    """Convert operator name to valid directory name.
-
-    This follows the same logic as in setup_operator_directories.py
-    """
-    # Remove aten:: prefix
-    if op_name.startswith("aten::"):
-        op_name = op_name[6:]
-
-    # Remove torch.ops.aten. prefix
-    if op_name.startswith("torch.ops.aten."):
-        op_name = op_name[15:]
-
-    # Handle .default, .Tensor, .out suffixes
-    if "." in op_name:
-        parts = op_name.split(".")
-        base = parts[0]
-        suffix = parts[1] if len(parts) > 1 else ""
-
-        # For common suffixes, keep them to distinguish overloads
-        if suffix in ["out", "inplace", "scalar"]:
-            op_name = f"{base}_{suffix}"
-        else:
-            # For .default, .Tensor, etc., just use the base name
-            op_name = base
-
-    # Replace any remaining invalid characters
-    op_name = op_name.replace(":", "_").replace("/", "_").replace("\\", "_")
-
-    return op_name
-
-
 def save_verbose_results(
     results: List[Dict[str, Any]],
     output_path: Union[str, Path] = "generated_kernels",
@@ -252,6 +221,7 @@ def save_verbose_results(
 
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
+    failed_ops_path = base_dir / "failed_ops.json"
     with open(full_log_path, "w") as f:
         json.dump(results, f, indent=2)
     logger.info(f"Full results saved to {full_log_path}")
@@ -262,7 +232,7 @@ def save_verbose_results(
     failed_ops = []
 
     for result in results:
-        op_name = result.get("op_name", "unknown")
+        op_name = result["op_name"]
         op_results[op_name].append(result)
 
     # Process each operator
@@ -305,37 +275,20 @@ def save_verbose_results(
                 )
 
             # Collect metrics
-            if test.get("speedup"):
-                try:
-                    speedups.append(float(test["speedup"]))
-                except (ValueError, TypeError):
-                    pass
+            if test.get("speedup") and test.get("benchmark_time"):
+                speedups.append(float(test["speedup"]))
+                benchmark_times.append(float(test["benchmark_time"]))
 
-            if test.get("benchmark_time"):
-                try:
-                    benchmark_times.append(float(test["benchmark_time"]))
-                except (ValueError, TypeError):
-                    pass
-
-            if test.get("absolute_error"):
-                try:
-                    abs_errors.append(float(test["absolute_error"]))
-                except (ValueError, TypeError):
-                    pass
-
-            if test.get("relative_error"):
-                try:
-                    rel_errors.append(float(test["relative_error"]))
-                except (ValueError, TypeError):
-                    pass
+            if test.get("absolute_error") and test.get("relative_error"):
+                abs_errors.append(float(test["absolute_error"]))
+                rel_errors.append(float(test["relative_error"]))
 
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
         geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        avg_benchmark_time = sum(benchmark_times) / len(benchmark_times) if benchmark_times else 0.0
-        max_abs_error = max(abs_errors) if abs_errors else 0.0
-        max_rel_error = max(rel_errors) if rel_errors else 0.0
+        mean_abs_error = max(abs_errors) if abs_errors else 0.0
+        mean_rel_error = max(rel_errors) if rel_errors else 0.0
 
         op_summaries[op_name] = {
             "operator": op_name,
@@ -346,9 +299,8 @@ def save_verbose_results(
             "correctness_rate": correctness_rate,
             "avg_speedup": avg_speedup,
             "geomean_speedup": geomean_speedup,
-            "avg_benchmark_time": avg_benchmark_time,
-            "max_absolute_error": max_abs_error,
-            "max_relative_error": max_rel_error,
+            "mean_absolute_error": mean_abs_error,
+            "mean_relative_error": mean_rel_error,
         }
 
         # Add to failed ops list if there were failures
@@ -382,15 +334,14 @@ def save_verbose_results(
 
     # 4. Save failed operations log
     if failed_ops:
-        failed_ops_path = base_dir / "failed_ops.json"
         with open(failed_ops_path, "w") as f:
             json.dump(failed_ops, f, indent=2)
         logger.info(f"Failed operations log saved to {failed_ops_path}")
 
     # Log summary of where everything was saved
     logger.info(f"Verbose results saved to directory: {base_dir.absolute()}")
-    logger.info(f"  - Full results: {full_log_path.name}")
-    logger.info(f"  - Operator summary: {summary_csv_path.name}")
+    logger.info(f"  - Full results: {full_log_path}")
+    logger.info(f"  - Operator summary: {summary_csv_path}")
     if failed_ops:
-        logger.info("  - Failed operations: failed_ops.json")
+        logger.info(f"  - Failed operations: {failed_ops_path}")
     logger.info(f"  - Per-operator results in: {len(op_summaries)} subdirectories")

@@ -11,49 +11,13 @@ Setup script to create directory structure for all PyTorch operators.
 This creates empty directories that LLM researchers can fill with generated kernels.
 """
 
-import os
-import csv
 import argparse
+import csv
+import os
 from pathlib import Path
 
-# Import the generate_coverage_csv functionality
 from .generate_operator_coverage_csv import generate_coverage_csv
-
-
-def clean_op_name_for_directory(op_name: str) -> str:
-    """Convert operator name to valid directory name.
-
-    Examples:
-    - aten::add.Tensor -> add
-    - aten::add.out -> add_out
-    - aten::native_batch_norm -> native_batch_norm
-    - torch.ops.aten.add.default -> add
-    """
-    # Remove aten:: prefix
-    if op_name.startswith("aten::"):
-        op_name = op_name[6:]
-
-    # Remove torch.ops.aten. prefix
-    if op_name.startswith("torch.ops.aten."):
-        op_name = op_name[15:]
-
-    # Handle .default, .Tensor, .out suffixes
-    if "." in op_name:
-        parts = op_name.split(".")
-        base = parts[0]
-        suffix = parts[1] if len(parts) > 1 else ""
-
-        # For common suffixes, we might want to keep them to distinguish overloads
-        if suffix in ["out", "inplace", "scalar"]:
-            op_name = f"{base}_{suffix}"
-        else:
-            # For .default, .Tensor, etc., just use the base name
-            op_name = base
-
-    # Replace any remaining invalid characters
-    op_name = op_name.replace(":", "_").replace("/", "_").replace("\\", "_")
-
-    return op_name
+from .utils import clean_op_name_for_directory
 
 
 def create_readme_for_op(
@@ -161,7 +125,8 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
 
     # Create a main README
     main_readme = base_path / "README.md"
-    main_readme.write_text("""# Generated Kernels Directory
+    main_readme.write_text(
+        """# Generated Kernels Directory
 
 This directory contains subdirectories for PyTorch operators that need kernel implementations.
 
@@ -186,7 +151,8 @@ The DirectoryBackend maps directory names to PyTorch operations as follows:
 
 For operators with multiple overloads (e.g., add.out), use suffixes:
 - Directory `add_out` → `torch.ops.aten.add.out`
-""")
+"""
+    )
 
 
 def main():
