@@ -17,11 +17,11 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    SmokeTestSuite,
-    OpInfoTestSuite,
     DEFAULT_HUGGINGFACE_URL,
-    TorchBenchTestSuite,
     FactoTestSuite,
+    OpInfoTestSuite,
+    SmokeTestSuite,
+    TorchBenchTestSuite,
 )
 
 logger = logging.getLogger(__name__)
@@ -121,6 +121,12 @@ def setup_logging(log_level):
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
 )
 @click.option(
+    "--check-overhead-dominated-ops",
+    default=False,
+    is_flag=True,
+    help="Run tests for ops that are dominated by overhead ONLY",
+)
+@click.option(
     "--p",
     default=1.0,
     type=float,
@@ -144,8 +150,15 @@ def cli(
     ops_directory,
     output_path,
     num_workers,
+    check_overhead_dominated_ops,
     p,
 ):
+    if suite != "torchbench":
+        if topn_inputs is not None:
+            raise ValueError("topn-inputs is only supported for torchbench suite")
+        if check_overhead_dominated_ops:
+            raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
+
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
@@ -174,6 +187,7 @@ def cli(
             torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
+            check_overhead_dominated_ops=check_overhead_dominated_ops,
         ),
         "facto": lambda: FactoTestSuite(
             "facto_cuda_bfloat16",
@@ -249,7 +263,10 @@ def cli(
                 logger.debug(test.op)
 
                 task_id = evaluator.submit_task(
-                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                    test.op,
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
                 )
                 op_name = getattr(test.op, "__name__", str(test.op))
                 task_to_op_name[task_id] = op_name

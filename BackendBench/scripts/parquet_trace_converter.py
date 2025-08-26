@@ -9,16 +9,22 @@
 import hashlib
 import logging
 import os
+from collections import defaultdict
 from pathlib import Path
-from typing import List
 
 import click
+import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from BackendBench.data_loaders import _load_from_trace
-from BackendBench.scripts.dataset_filters import apply_skip_ops_filter
-from BackendBench.torchbench_suite import DEFAULT_HUGGINGFACE_URL
+from BackendBench.scripts.dataset_filters import (
+    apply_runtime_filter,
+    apply_skip_ops_filter,
+)
 from huggingface_hub import HfApi
+
+DEFAULT_TRACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/augmented_hf_op_traces.txt"
+DEFAULT_PARQUET_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/backend_bench_problems.parquet"
 
 
 """
@@ -64,35 +70,70 @@ def setup_logging(log_level):
         level=numeric_level,
         format="[%(asctime)s][%(levelname)s][%(filename)s] %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
+        handlers=[
+            logging.FileHandler("logs/parquet_trace_converter.log"),
+            logging.StreamHandler(),  # Also print to console
+        ],
     )
 
 
-def _load_trace_for_parquet_conversion(source: str) -> List[dict]:
-    """
-    Load operations from trace file(s) with detailed metadata for parquet conversion.
-    """
-    # Use the shared _load_from_trace for parquet conversion
-    return _load_from_trace(source, filter=None)
-
-
-def convert_trace_to_parquet(trace_file, parquet_file):
+def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     """
     Convert a trace file to a parquet file
     """
 
     # Load operations using local trace parsing function
-    ops = _load_trace_for_parquet_conversion(trace_file)
+    ops = _load_from_trace(trace_file, filter=None, limit=limit)
 
     # Add additional metadata fields required for the parquet format
     for op in ops:
         op["uuid"] = hashlib.sha256(op["args"].encode() + op["op_name"].encode()).hexdigest()
         op["included_in_benchmark"] = True
         op["why_excluded"] = []
-        op["runtime_ms"] = ""
+        op["runtime_ms"] = np.nan
+        op["relative_runtime_to_kernel_launch"] = np.nan
         op["runnable"] = True
+        op["is_overhead_dominated_op"] = False
 
     # apply filters
     ops = apply_skip_ops_filter(ops)
+    ops = apply_runtime_filter(ops)
+
+    exclusion_dict = defaultdict(lambda: 0)
+    exclusion_mapping = defaultdict(lambda: set())
+    testable_ops = set()
+    all_ops = set()
+    for op in ops:
+        for reason in op["why_excluded"]:
+            exclusion_dict[reason] += 1
+            exclusion_mapping[reason].add(op["op_name"])
+        if op["included_in_benchmark"]:
+            testable_ops.add(op["op_name"])
+        all_ops.add(op["op_name"])
+    non_testable_ops = all_ops - testable_ops
+
+    for reason, count in exclusion_dict.items():
+        logger.info(f"Excluded tests from {count} / {len(ops)} ops due to {reason}")
+    for reason in exclusion_mapping.keys():
+        no_op_set = exclusion_mapping[reason].intersection(non_testable_ops)
+        list_str = "\n".join(no_op_set)
+        logger.info(
+            f"Excluded the following {len(no_op_set)}/{len(all_ops)} ops and input combinations at least partially due to the reason: {reason}:\n {list_str}"
+        )
+    list_str = "\n".join(non_testable_ops)
+    logger.info(
+        f"Excluded {len(non_testable_ops)} / {len(all_ops)} ops due to not having tests. They are as follows: {list_str}"
+    )
+
+    # Some logging about performance canaries
+    overhead_dominated_ops = [op for op in ops if op["is_overhead_dominated_op"]]
+    overhead_dominated_op_names = {op["op_name"] for op in overhead_dominated_ops}
+    logger.info(
+        f"Found {len(overhead_dominated_ops)} / {len(ops)} tests that are dominated by overhead"
+    )
+    logger.info(
+        f"Found {len(overhead_dominated_op_names)} / {len(all_ops)} unique ops that are dominated by overhead"
+    )
 
     # Create parquet table with all metadata (formerly "dev" version)
     table = pa.Table.from_pylist(ops)
@@ -106,7 +147,7 @@ def convert_trace_to_parquet(trace_file, parquet_file):
     logger.debug(f"Parquet columns: {table.column_names}")
 
 
-def convert_parquet_to_trace(parquet_file, trace_file):
+def convert_parquet_to_trace(parquet_file, trace_file, limit: int = None):
     """
     Convert a parquet file to a trace file
     """
@@ -119,6 +160,8 @@ def convert_parquet_to_trace(parquet_file, trace_file):
         if row["op_name"] not in op_inputs:
             op_inputs[row["op_name"]] = []
         op_inputs[row["op_name"]].append(formatted_entry)
+        if limit:
+            op_inputs = op_inputs[:limit]
 
     # write to trace file
     with open(trace_file, "w") as f:
@@ -180,7 +223,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 )
 @click.option(
     "--trace-file",
-    default=DEFAULT_HUGGINGFACE_URL,
+    default=DEFAULT_TRACE_URL,
     type=str,
     help="Input trace file: URL (for downloads), local .txt file, or directory. Output trace files cannot be URLs",
 )
@@ -196,7 +239,13 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
     default=False,
     help="Upload generated parquet files to Hugging Face (GPUMODE/huggingface_op_trace) in trace-to-parquet mode",
 )
-def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
+@click.option(
+    "--limit",
+    default=None,
+    type=int,
+    help="Limit the number of operators to convert. (Useful for testing)",
+)
+def main(log_level, mode, trace_file, parquet_name, upload_to_hf, limit):
     """Convert trace files to parquet format or vice versa."""
     setup_logging(log_level)
 
@@ -210,7 +259,7 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
 
         logger.info(f"Converting trace file {trace_file} to parquet file {parquet_name}")
 
-        convert_trace_to_parquet(trace_file, parquet_name)
+        convert_trace_to_parquet(trace_file, parquet_name, limit=limit)
         logger.info("Conversion completed successfully")
 
         if upload_to_hf:
@@ -224,7 +273,7 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf):
         trace_output = _validate_trace_file(trace_file, is_input=False)  # Output: URLs not allowed
 
         logger.info(f"Converting parquet file {parquet_input} to trace file {trace_output}")
-        convert_parquet_to_trace(parquet_input, trace_output)
+        convert_parquet_to_trace(parquet_input, trace_output, limit=limit)
         logger.info("Conversion completed successfully")
 
 
