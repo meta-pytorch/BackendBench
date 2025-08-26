@@ -93,7 +93,7 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
         op["runtime_ms"] = np.nan
         op["relative_runtime_to_kernel_launch"] = np.nan
         op["runnable"] = True
-        op["performance_canary"] = False
+        op["mostly_overhead_ops"] = False
 
     # apply filters
     ops = apply_skip_ops_filter(ops)
@@ -126,10 +126,14 @@ def convert_trace_to_parquet(trace_file, parquet_file, limit: int = None):
     )
 
     # Some logging about performance canaries
-    canary_ops = [op for op in ops if op["performance_canary"]]
-    canary_op_names = {op["op_name"] for op in canary_ops}
-    logger.info(f"Found {len(canary_ops)} / {len(ops)} tests with performance canary")
-    logger.info(f"Found {len(canary_op_names)} / {len(all_ops)} unique ops with performance canary")
+    mostly_overhead_ops = [op for op in ops if op["mostly_overhead_ops"]]
+    mostly_overhead_op_names = {op["op_name"] for op in mostly_overhead_ops}
+    logger.info(
+        f"Found {len(mostly_overhead_ops)} / {len(ops)} tests that are dominated by overhead"
+    )
+    logger.info(
+        f"Found {len(mostly_overhead_op_names)} / {len(all_ops)} unique ops that are dominated by overhead"
+    )
 
     # Create parquet table with all metadata (formerly "dev" version)
     table = pa.Table.from_pylist(ops)
