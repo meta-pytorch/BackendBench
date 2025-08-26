@@ -14,7 +14,7 @@ from BackendBench.data_loaders import (
     load_ops_from_source,
     op_list_to_benchmark_dict,
 )
-from BackendBench.op_categories import UNSUPPORTED_OPERATORS
+from BackendBench.op_categories import UNSUPPORTED_OPERATORS, _clean_op_name
 from BackendBench.utils import deserialize_args
 
 # for details on the dataset read this:
@@ -63,6 +63,9 @@ class TorchBenchTestSuite:
         self.name = name
         self.topn = topn
 
+        if filename is None:
+            filename = DEFAULT_HUGGINGFACE_URL
+
         # Load operations using the shared data loader
         ops_list = load_ops_from_source(
             source=filename,
@@ -82,6 +85,6 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(s in op for s in UNSUPPORTED_OPERATORS):
+            if _clean_op_name(op) in UNSUPPORTED_OPERATORS:
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)
