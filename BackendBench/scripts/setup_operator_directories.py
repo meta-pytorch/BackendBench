@@ -11,9 +11,9 @@ Setup script to create directory structure for all PyTorch operators.
 This creates empty directories that LLM researchers can fill with generated kernels.
 """
 
-import os
-import csv
 import argparse
+import csv
+import os
 from pathlib import Path
 
 # Import the generate_coverage_csv functionality

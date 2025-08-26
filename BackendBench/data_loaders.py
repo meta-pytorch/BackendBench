@@ -16,11 +16,11 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import pyarrow.parquet as pq
-
 import requests
 import torch
-from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from tqdm import tqdm
+
+from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 
 
 def _args_size(args):

@@ -22,6 +22,7 @@ except ImportError:
 
 from BackendBench.eval import allclose
 from BackendBench.opregistry import get_operator
+
 from .base import OpTest, TestSuite
 
 logger = logging.getLogger(__name__)

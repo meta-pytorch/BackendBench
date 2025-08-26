@@ -16,9 +16,9 @@ Tests:
 4. eval.py integration works properly
 """
 
+import subprocess
 import sys
 import unittest
-import subprocess
 from pathlib import Path
 
 import torch

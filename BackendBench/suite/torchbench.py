@@ -9,6 +9,7 @@ Load aten inputs from serialized txt files and parquet files.
 """
 
 import torch  # noqa: F401
+
 from BackendBench.data_loaders import (
     _args_size,
     load_ops_from_source,

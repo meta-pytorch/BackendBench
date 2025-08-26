@@ -9,19 +9,19 @@ import os
 import sys
 from typing import Dict
 
-import BackendBench.backends as backends
-import BackendBench.eval as eval
-import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
 
+import BackendBench.backends as backends
+import BackendBench.eval as eval
+import BackendBench.multiprocessing_eval as multiprocessing_eval
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    SmokeTestSuite,
-    OpInfoTestSuite,
     DEFAULT_HUGGINGFACE_URL,
-    TorchBenchTestSuite,
     FactoTestSuite,
+    OpInfoTestSuite,
+    SmokeTestSuite,
+    TorchBenchTestSuite,
 )
 
 logger = logging.getLogger(__name__)

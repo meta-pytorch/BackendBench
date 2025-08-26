@@ -11,8 +11,9 @@ This is a helper script to analyze the test suite and provide statistics about t
 import statistics
 
 import torch
-from BackendBench.suite import OpInfoTestSuite, TorchBenchTestSuite, FactoTestSuite
+
 from BackendBench.scripts.pytorch_operators import extract_operator_name
+from BackendBench.suite import FactoTestSuite, OpInfoTestSuite, TorchBenchTestSuite
 
 
 def analyze_test_suite(suite):

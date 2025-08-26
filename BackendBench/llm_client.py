@@ -5,7 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Dict, Optional, Callable
+from typing import Callable, Dict, Optional
+
 import anthropic
 import requests
 

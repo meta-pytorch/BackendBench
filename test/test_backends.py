@@ -6,6 +6,7 @@
 
 import pytest
 import torch
+
 from BackendBench.backends import (
     AtenBackend,
     FlagGemsBackend,
