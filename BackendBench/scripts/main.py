@@ -125,6 +125,8 @@ def setup_logging(log_level):
     default=False,
     is_flag=True,
     help="Run tests for ops that are dominated by overhead ONLY",
+)
+@click.option(
     "--p",
     default=1.0,
     type=float,
