@@ -9,7 +9,25 @@ import torch
 
 import tqdm
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
-from triton.testing import do_bench
+
+# Try to import triton, fallback to cpu_bench if not available
+try:
+    if torch.cuda.is_available():
+        from triton.testing import do_bench
+    else:
+        # CPU fallback using cpu_bench from eval module
+        from BackendBench.eval import cpu_bench
+        # Wrap cpu_bench to match do_bench interface
+        def do_bench(fn, warmup=None, rep=None, **kwargs):
+            # cpu_bench returns time in seconds, convert to ms to match triton
+            return cpu_bench(fn, num_runs=rep if rep else 100) * 1000
+except ImportError:
+    # Fallback if triton is not installed at all
+    from BackendBench.eval import cpu_bench
+    # Wrap cpu_bench to match do_bench interface
+    def do_bench(fn, warmup=None, rep=None, **kwargs):
+        # cpu_bench returns time in seconds, convert to ms to match triton
+        return cpu_bench(fn, num_runs=rep if rep else 100) * 1000
 
 # Operators to skip for indexing ops that need valid indices
 SKIP_OPERATORS = [
@@ -62,7 +80,8 @@ def apply_skip_ops_filter(ops):
 
 def apply_runtime_filter(ops):
     def _overhead_benchmark():
-        return torch.randn(1, device="cuda")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        return torch.randn(1, device=device)
 
     runtime_threshold_ms = do_bench(_overhead_benchmark, warmup=25, rep=100)
 
