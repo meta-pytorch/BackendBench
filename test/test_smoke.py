@@ -33,20 +33,25 @@ class TestSmoke:
             if test.op not in aten_backend:
                 pytest.skip(f"Operation {test.op} not in backend")
 
-            correctness, perf, _ = eval_one_op(
+            correctness, perf, op_test_data = eval_one_op(
                 test.op,
                 aten_backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
             )
 
-            overall_correctness.append(correctness)
+            is_correct = all(
+                data["correctness_score"]
+                for data in op_test_data.values()
+                if "correctness_score" in data.keys()
+            )
+            overall_correctness.append(is_correct)
             overall_performance.append(perf)
 
             assert correctness > 0, f"Operation {test.op} failed all correctness tests"
             assert perf > 0.1, f"Operation {test.op} is more than 10x slower than reference"
 
-        mean_correctness = torch.tensor(overall_correctness).mean().item()
+        mean_correctness = torch.tensor(overall_correctness).float().mean().item()
         geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
 
         assert mean_correctness >= 0.8, (

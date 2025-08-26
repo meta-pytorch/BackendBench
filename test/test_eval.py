@@ -6,6 +6,7 @@
 
 import pytest
 import torch
+import numpy as np
 
 import importlib.util
 from BackendBench.eval import (
@@ -15,6 +16,7 @@ from BackendBench.eval import (
     eval_correctness,
     eval_one_op,
     cpu_bench,
+    perf_at_p,
 )
 
 HAS_TRITON = importlib.util.find_spec("triton") is not None
@@ -221,3 +223,46 @@ class TestEvalOneOp:
         assert performance.item() > 0
         # Verbose data should be populated
         assert len(test_data) > 0
+
+
+def fastp_kernel_bench(
+    is_correct: np.ndarray, baseline_speed: np.ndarray, actual_speed: np.ndarray, n: int, p: float
+) -> float:
+    """
+    Original fastp implementation from kernelBench
+    """
+    filtered_baseline_speed = np.array([x for i, x in enumerate(baseline_speed) if is_correct[i]])
+    filtered_actual_speed = np.array([x for i, x in enumerate(actual_speed) if is_correct[i]])
+    speed_up = filtered_baseline_speed / filtered_actual_speed
+    fast_p_score = np.sum(speed_up > p)
+    return fast_p_score / n if n > 0 else 0
+
+
+class TestPerfAtP:
+    def get_results(self, num_tests=100):
+        overall_correctness = np.random.randint(0, 2, size=num_tests)
+        overall_performance = np.random.uniform(0.5, 2, size=num_tests)
+        return overall_correctness, overall_performance
+
+    def test_perf_at_p(self):
+        for num_tests in [5, 10, 50, 100]:
+            for p in [0, 1, 1.5, 2]:
+                overall_correctness, overall_performance = self.get_results(num_tests)
+
+                actual_speed = np.random.randint(1, 101, size=num_tests)
+                baseline_speed = actual_speed * overall_performance
+                fastp_score_orig = fastp_kernel_bench(
+                    overall_correctness, baseline_speed, actual_speed, num_tests, p
+                )
+
+                # Note: The perf@p score calculation here differs subtly from the original fastp score in
+                # kernel bench. The original fastp score filters correct samples first, then averages.
+                # Here, perf@p averages first, then filters correct samples. Despite this difference,
+                # both methods produce equivalent results, so the test remains valid.
+                perf_at_p_score = perf_at_p(
+                    overall_correctness.tolist(), overall_performance.tolist(), p
+                )
+
+                assert torch.allclose(
+                    perf_at_p_score, torch.tensor(fastp_score_orig, dtype=torch.float32)
+                )
