@@ -125,6 +125,14 @@ def setup_logging(log_level):
     default=False,
     is_flag=True,
     help="Run tests for ops that are dominated by overhead ONLY",
+    "--p",
+    default=1.0,
+    type=float,
+    help=(
+        "Performance score threshold for perf@p score calculation"
+        "Note: Increasing this value makes the threshold more stringent, "
+        "requiring a higher speedup to meet the performance criteria."
+    ),
 )
 def cli(
     log_level,
@@ -141,6 +149,7 @@ def cli(
     output_path,
     num_workers,
     check_overhead_dominated_ops,
+    p,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
@@ -223,7 +232,14 @@ def cli(
                 test.correctness_tests,
                 test.performance_tests,
             )
-            overall_correctness.append(correctness)
+
+            overall_correctness.append(
+                all(
+                    data["correctness_score"]
+                    for data in op_test_data.values()
+                    if "correctness_score" in data.keys()
+                )
+            )
             overall_performance.append(perf)
 
             # Convert dict to list entries with op_name
@@ -260,7 +276,11 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-            correctness_score = result.correctness_score
+            correctness_score = all(
+                data["correctness_score"]
+                for data in result.test_data.values()
+                if "correctness_score" in data.keys()
+            )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
@@ -273,10 +293,14 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
+    mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+    perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    print(
+        f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
+    )
 
     # Save verbose results if output path is specified
     if output_path and verbose_results:
