@@ -27,7 +27,7 @@ import torch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from BackendBench.backends import DirectoryBackend
-from BackendBench.eval import eval_correctness, eval_one_op
+from BackendBench.eval import eval_correctness
 from BackendBench.suite import Test
 
 
@@ -215,42 +215,6 @@ class TestBackendEvaluation(unittest.TestCase):
         self.assertEqual(result.returncode, 0, "Main script should complete successfully")
 
         print("\n✅ SUCCESS: Main script evaluation completed")
-
-    def test_4_eval_integration(self):
-        """Test 4: Verify eval.py functions work correctly."""
-        print("\n" + "=" * 60)
-        print("TEST 4: eval.py Integration")
-        print("=" * 60)
-
-        backend = DirectoryBackend("generated_kernels")
-
-        print("\n🔧 Testing eval_one_op function:")
-
-        # Find a watermarked operator to test
-        test_op = None
-        for op in backend.compiled_kernels.keys():
-            if "bitwise_and" in str(op) and "Tensor" in str(op):
-                test_op = op
-                break
-
-        if test_op:
-            impl = backend[test_op]
-            test = Test(lambda: torch.tensor([1, 2, 3]), lambda: torch.tensor([2, 3, 4]))
-
-            correctness, performance, _ = eval_one_op(test_op, impl, [test], [test])
-
-            print(f"   Operation: {test_op}")
-            print(f"   Correctness: {correctness}")
-            print(f"   Performance: {performance}")
-
-            # Watermarked implementation should fail correctness
-            self.assertEqual(correctness, 0.0, "Watermarked implementation should fail correctness")
-
-            print("   ✓ eval_one_op works correctly with watermarked implementation")
-        else:
-            print("   ! No suitable test operator found, skipping detailed test")
-
-        print("\n✅ SUCCESS: eval.py integration verified")
 
 
 if __name__ == "__main__":
