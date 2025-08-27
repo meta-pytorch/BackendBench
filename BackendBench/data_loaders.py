@@ -18,7 +18,7 @@ import pyarrow.parquet as pq
 
 import requests
 import torch
-from BackendBench.constants import HUGGINGFACE_REPO, TEST_SET_FILE, TEST_SET_REVISON
+from BackendBench.constants import HUGGINGFACE_REPO, TEST_SET_FILE, TEST_SET_REVISION
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from datasets import load_dataset
 from tqdm import tqdm
