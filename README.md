@@ -135,18 +135,15 @@ generated_kernels/
 
 ### Operation Name Mapping
 
-Use these exact directory names for common operations:
-- `relu` → `torch.ops.aten.relu.default`  
-- `add` → `torch.ops.aten.add.Tensor`
-- `mul` → `torch.ops.aten.mul.Tensor` 
-- `div` → `torch.ops.aten.div.Tensor`
+BackendBench automatically consolidates operator variants. One folder handles all variants:
+- `add/` → `add.Tensor`, `add_.Tensor`, `add.out`, etc.
+- `relu/` → `relu`, `relu_`, `relu.out`
+- `mul/` → `mul.Tensor`, `mul_.Tensor`, `mul.out`, etc.
 
-To find the correct name for other operations:
-```python
-# Find operation name
-import torch
-op = torch.ops.aten.some_op.some_variant
-print(str(op).split('aten.')[-1].split('.')[0])  # Use this as directory name
+Query mappings:
+```bash
+python generate_op_mappings.py --query "add_.Tensor"  # Shows: folder=add
+python generate_op_mappings.py --generate             # Full CSV of all mappings
 ```
 
 ### Example Implementation
