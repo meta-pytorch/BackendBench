@@ -222,7 +222,7 @@ def cli(
 
             logger.debug(test.op)
 
-            correctness, perf, op_test_data = eval.eval_one_op(
+            _, perf, op_test_data = eval.eval_one_op(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
@@ -304,127 +304,11 @@ def cli(
         print(f"Detailed results saved to: {output_path}")
 
 
-def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
-    """Setup LLM backend by generating kernels for all operations in the suite."""
-    try:
-        successful_ops = 0
-        total_ops = 0
-
-        for op_test in suite:
-            op = op_test.op
-            total_ops += 1
-
-            # Extract op name more carefully - e.g., torch.ops.aten.relu.default -> relu
-            op_str = str(op)
-            if "aten." in op_str:
-                # Extract the operation name before any variant (like .default)
-                op_name = op_str.split("aten.")[-1].split(".")[0]
-            else:
-                op_name = op_str.split(".")[-1]
-
-            op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
-            op_description = f"PyTorch operation: {op_name}"
-
-            print(
-                f"\n[{total_ops}] Generating kernel for {op_name} (full op: {op_str}) with up to {max_attempts} attempts"
-            )
-
-            # Create feedback callback
-            def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
-                return llm_backend.test_kernel_correctness(
-                    op, kernel_code, op_test.correctness_tests, attempt
-                )
-
-            # Generate kernel with iterative refinement
-            kernel_code, attempts_used, success = llm_client.generate_kernel_with_retry(
-                op_name,
-                op_signature,
-                op_description,
-                framework="triton",
-                max_attempts=max_attempts,
-                feedback_callback=feedback_callback,
-            )
-
-            if success:
-                try:
-                    # Add the successful kernel to the backend
-                    llm_backend.add_kernel(op, kernel_code, op_name)
-                    print(
-                        f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
-                    )
-                    successful_ops += 1
-
-                    # Save summary of this operation
-                    summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
-                    with open(summary_file, "w") as f:
-                        f.write(f"Operation: {op_name}\n")
-                        f.write(f"Full op: {op_str}\n")
-                        f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                        f.write("Final status: Success\n")
-                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
-
-                except Exception as e:
-                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
-                    success = False
-
-            if not success:
-                print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
-
-                # Save summary of this operation
-                summary_file = os.path.join(llm_backend.kernels_dir, f"{op_name}_summary.txt")
-                with open(summary_file, "w") as f:
-                    f.write(f"Operation: {op_name}\n")
-                    f.write(f"Full op: {op_str}\n")
-                    f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                    f.write("Final status: Failed - All attempts failed correctness tests\n")
-                    f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
-                # Continue with other operations
-
-        # Print summary
-        print(f"\n{'=' * 60}")
-        print("LLM BACKEND SETUP SUMMARY")
-        print(f"{'=' * 60}")
-        print(f"Total operations: {total_ops}")
-        print(f"Successful: {successful_ops}")
-        print(f"Failed: {total_ops - successful_ops}")
-        print(
-            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
-            if total_ops > 0
-            else "Success rate: 0.0%"
-        )
-        print(f"Generated kernels saved to: {llm_backend.kernels_dir}")
-        print(f"{'=' * 60}\n")
-
-        # Save overall summary
-        overall_summary_file = os.path.join(llm_backend.kernels_dir, "OVERALL_SUMMARY.txt")
-        with open(overall_summary_file, "w") as f:
-            f.write("LLM Backend Generation Summary\n")
-            f.write(f"{'=' * 40}\n")
-            f.write(f"Total operations: {total_ops}\n")
-            f.write(f"Successful: {successful_ops}\n")
-            f.write(f"Failed: {total_ops - successful_ops}\n")
-            f.write(
-                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
-                if total_ops > 0
-                else "Success rate: 0.0%\n"
-            )
-            f.write(f"Max attempts per operation: {max_attempts}\n")
-
-        return llm_backend
-
-    except Exception as e:
-        print(f"Error setting up LLM backend: {e}")
-        if "ANTHROPIC_API_KEY" in str(e):
-            print("Please set ANTHROPIC_API_KEY environment variable")
-        sys.exit(1)
-
-
 def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5):
     """Setup LLM Relay backend by generating kernels using the local plugboard server."""
     try:
         successful_ops = 0
         total_ops = 0
-
         for op_test in suite:
             op = op_test.op
             total_ops += 1
@@ -460,36 +344,25 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                 max_attempts=max_attempts,
                 feedback_callback=feedback_callback,
             )
-
+            llm_relay_backend.add_kernel(op, kernel_code, op_name)
             if success:
-                try:
-                    # Add the successful kernel to the backend
-                    llm_relay_backend.add_kernel(op, kernel_code, op_name)
-                    print(
-                        f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
-                    )
-                    successful_ops += 1
+                print(
+                    f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
+                )
+                successful_ops += 1
 
-                    # Save summary of this operation
-                    summary_file = os.path.join(
-                        llm_relay_backend.kernels_dir, f"{op_name}_summary.txt"
-                    )
-                    with open(summary_file, "w") as f:
-                        f.write(f"Operation: {op_name}\n")
-                        f.write(f"Full op: {op_str}\n")
-                        f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                        f.write("Final status: Success\n")
-                        f.write(f"Model: {llm_client.model}\n")
-                        f.write(f"Server: {llm_client.server_url}\n")
-                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
-
-                except Exception as e:
-                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
-                    success = False
+                # Save summary of this operation
+                summary_file = os.path.join(llm_relay_backend.kernels_dir, f"{op_name}_summary.txt")
+                with open(summary_file, "w") as f:
+                    f.write(f"Operation: {op_name}\n")
+                    f.write(f"Full op: {op_str}\n")
+                    f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+                    f.write("Final status: Success\n")
+                    f.write(f"Model: {llm_client.model}\n")
+                    f.write(f"Server: {llm_client.server_url}\n")
+                    f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
 
             if not success:
-                print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
-
                 # Save summary of this operation
                 summary_file = os.path.join(llm_relay_backend.kernels_dir, f"{op_name}_summary.txt")
                 with open(summary_file, "w") as f:
@@ -502,40 +375,32 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                     f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                 # Continue with other operations
 
+        failed_ops = total_ops - successful_ops
+        success_rate = f"{successful_ops / total_ops * 100:.1f}%" if total_ops > 0 else "0.0%"
+        separator_line = "=" * 60
+        # Console output format
+        output_lines = [
+            f"\n{separator_line}",
+            "LLM RELAY BACKEND SETUP SUMMARY",
+            separator_line,
+            f"Total operations attempted: {total_ops}",
+            f"Successfully created kernels for: {successful_ops} ops",
+            f"Failed to create kernels for: {failed_ops} ops",
+            f"Success rate in op creation: {success_rate}",
+            f"Model used: {llm_client.model}",
+            f"Server: {llm_client.server_url}",
+            f"Generated kernels saved to: {llm_relay_backend.kernels_dir}",
+            f"Backend: LLM Relay (using local plugboard server)\n{separator_line}\n",
+        ]
+
         # Print summary
-        print(f"\n{'=' * 60}")
-        print("LLM RELAY BACKEND SETUP SUMMARY")
-        print(f"{'=' * 60}")
-        print(f"Total operations: {total_ops}")
-        print(f"Successful: {successful_ops}")
-        print(f"Failed: {total_ops - successful_ops}")
-        print(
-            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
-            if total_ops > 0
-            else "Success rate: 0.0%"
-        )
-        print(f"Model used: {llm_client.model}")
-        print(f"Server: {llm_client.server_url}")
-        print(f"Generated kernels saved to: {llm_relay_backend.kernels_dir}")
-        print(f"{'=' * 60}\n")
+        for line in output_lines:
+            print(line)
 
         # Save overall summary
         overall_summary_file = os.path.join(llm_relay_backend.kernels_dir, "OVERALL_SUMMARY.txt")
         with open(overall_summary_file, "w") as f:
-            f.write("LLM Relay Backend Generation Summary\n")
-            f.write(f"{'=' * 40}\n")
-            f.write(f"Total operations: {total_ops}\n")
-            f.write(f"Successful: {successful_ops}\n")
-            f.write(f"Failed: {total_ops - successful_ops}\n")
-            f.write(
-                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
-                if total_ops > 0
-                else "Success rate: 0.0%\n"
-            )
-            f.write(f"Max attempts per operation: {max_attempts}\n")
-            f.write(f"Model: {llm_client.model}\n")
-            f.write(f"Server: {llm_client.server_url}\n")
-            f.write("Backend: LLM Relay (using local plugboard server)\n")
+            f.writelines(output_lines)
 
         return llm_relay_backend
 
