@@ -9,9 +9,9 @@ import logging
 import os
 from typing import Callable, Dict
 
-import torch
 
 from .base import Backend
+from ..op_mapper import PyTorchOpMapper
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,7 @@ class DirectoryBackend(Backend):
         super().__init__("directory")
         self.ops_dir = ops_dir
         self.compiled_kernels: Dict[str, Callable] = {}
+        self._op_mapper = PyTorchOpMapper()
         self._load_kernels()
 
     def _load_kernels(self):
@@ -50,7 +51,7 @@ class DirectoryBackend(Backend):
             try:
                 # Load the implementation and map to PyTorch operation
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                pytorch_ops = self._find_pytorch_ops(op_name)
+                pytorch_ops = self._op_mapper.find_pytorch_ops(op_name)
 
                 if pytorch_ops:
                     for pytorch_op in pytorch_ops:
@@ -75,43 +76,6 @@ class DirectoryBackend(Backend):
             return getattr(module, kernel_func_name)
         else:
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
-
-    def _find_pytorch_ops(self, op_name: str):
-        """Map operation name to PyTorch operations.
-
-        Returns a list of PyTorch operations that match the directory name.
-        This handles the common case where a directory name like 'add' should map
-        to multiple overloads like add.default, add.Tensor, etc.
-        """
-        matched_ops = []
-
-        # Handle suffixed directory names (e.g., add_out -> add.out)
-        base_name = op_name
-        suffix = None
-        if "_" in op_name:
-            parts = op_name.rsplit("_", 1)
-            if parts[1] in ["out", "inplace", "scalar"]:
-                base_name = parts[0]
-                suffix = parts[1]
-
-        # Try to find the operation in torch.ops.aten
-        if hasattr(torch.ops.aten, base_name):
-            aten_op = getattr(torch.ops.aten, base_name)
-
-            # If we have a specific suffix, try to get that overload
-            if suffix and hasattr(aten_op, suffix):
-                matched_ops.append(getattr(aten_op, suffix))
-            else:
-                # Otherwise, try common overloads
-                for overload in ["default", "Tensor", "Scalar", "int", "float"]:
-                    if hasattr(aten_op, overload):
-                        op = getattr(aten_op, overload)
-                        matched_ops.append(op)
-
-        # Also check for operations that might be in other namespaces
-        # This could be extended based on actual usage patterns
-
-        return matched_ops
 
     def __getitem__(self, key):
         if key in self.compiled_kernels:

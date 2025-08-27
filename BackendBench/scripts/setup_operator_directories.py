@@ -16,12 +16,22 @@ import csv
 import argparse
 from pathlib import Path
 
-# Import the generate_coverage_csv functionality
-from .generate_operator_coverage_csv import generate_coverage_csv
+from ..op_mapper import PyTorchOpMapper
 
 
-def clean_op_name_for_directory(op_name: str) -> str:
-    """Convert operator name to valid directory name.
+def get_folder_name_for_operator(op_name: str, mapper: PyTorchOpMapper) -> str:
+    """Get the proper folder name for an operator using our improved mapping system."""
+    clean_name = op_name[6:] if op_name.startswith("aten::") else op_name
+
+    schema = mapper.get_operator_schema(clean_name)
+    if schema and schema.folder_name:
+        return schema.folder_name
+
+    return clean_op_name_for_directory_old(op_name)
+
+
+def clean_op_name_for_directory_old(op_name: str) -> str:
+    """Convert operator name to valid directory name (old method for fallback).
 
     Examples:
     - aten::add.Tensor -> add
@@ -57,7 +67,12 @@ def clean_op_name_for_directory(op_name: str) -> str:
 
 
 def create_readme_for_op(
-    op_dir: Path, op_name: str, is_core: bool, is_opinfo: bool, is_torchbench: bool
+    op_dir: Path,
+    op_name: str,
+    is_core: bool,
+    is_opinfo: bool,
+    is_torchbench: bool,
+    all_ops_in_folder: list = None,
 ):
     """Create a README.md file for each operator directory."""
     readme_path = op_dir / "README.md"
@@ -70,20 +85,37 @@ def create_readme_for_op(
     if is_torchbench:
         status.append("Used in TorchBench")
 
-    content = f"""# {op_name}
+    folder_name = op_dir.name
 
+    # Show all operators that map to this folder
+    if all_ops_in_folder and len(all_ops_in_folder) > 1:
+        ops_list = "\n".join(f"- {op}" for op in all_ops_in_folder)
+        ops_section = f"""
+## Operators in this folder
+
+This folder handles the following PyTorch operators:
+{ops_list}
+
+All these operators will use the same kernel implementation.
+"""
+    else:
+        ops_section = ""
+
+    content = f"""# {folder_name}
+
+Primary operator: {op_name}
 Status: {", ".join(status) if status else "Regular operator"}
-
+{ops_section}
 ## Implementation
 
 Place your generated kernel implementation in this directory as:
-- `{clean_op_name_for_directory(op_name)}_implementation_v1.py`
-- `{clean_op_name_for_directory(op_name)}_implementation_v2.py`
+- `{folder_name}_implementation_v1.py`
+- `{folder_name}_implementation_v2.py`
 - etc.
 
 Each implementation file should contain a function named:
 ```python
-def {clean_op_name_for_directory(op_name)}_kernel_impl(*args, **kwargs):
+def {folder_name}_kernel_impl(*args, **kwargs):
     # Your implementation here
     pass
 ```
@@ -91,6 +123,7 @@ def {clean_op_name_for_directory(op_name)}_kernel_impl(*args, **kwargs):
 ## Testing
 
 The DirectoryBackend will automatically load the first implementation file found in this directory.
+All operators listed above will use this same implementation.
 """
 
     readme_path.write_text(content)
@@ -99,11 +132,14 @@ The DirectoryBackend will automatically load the first implementation file found
 def setup_operator_directories(base_dir: str = "generated_kernels", include_all: bool = False):
     """Set up directory structure for PyTorch operators."""
 
-    # First, generate the coverage CSV if it doesn't exist
+    print("Initializing PyTorchOpMapper...")
+    mapper = PyTorchOpMapper()
+
     csv_path = "pytorch_operator_coverage.csv"
     if not os.path.exists(csv_path):
-        print("Generating operator coverage CSV...")
-        csv_path = generate_coverage_csv()
+        print(f"Error: {csv_path} not found. Please generate it first.")
+        print("Run: python -m BackendBench.scripts.generate_operator_coverage_csv")
+        return
 
     # Create base directory
     base_path = Path(base_dir)
@@ -134,10 +170,11 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
     # Create directories
     created_count = 0
     skipped_count = 0
+    folder_to_ops = {}  # Track which operators go into each folder
 
     for op in operators:
         op_name = op["name"]
-        dir_name = clean_op_name_for_directory(op_name)
+        dir_name = get_folder_name_for_operator(op_name, mapper)
 
         if not dir_name:  # Skip if we couldn't clean the name
             print(f"Skipping operator with invalid name: {op_name}")
@@ -146,18 +183,39 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
 
         op_dir = base_path / dir_name
 
+        # Track which operators map to this folder
+        if dir_name not in folder_to_ops:
+            folder_to_ops[dir_name] = []
+        folder_to_ops[dir_name].append(op_name)
+
         if op_dir.exists():
             skipped_count += 1
             continue
 
         op_dir.mkdir(exist_ok=True)
-        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"])
+        create_readme_for_op(
+            op_dir,
+            op_name,
+            op["is_core"],
+            op["is_opinfo"],
+            op["is_torchbench"],
+            folder_to_ops[dir_name],
+        )
         created_count += 1
 
     print("\nDirectory setup complete:")
     print(f"- Created {created_count} new directories")
     print(f"- Skipped {skipped_count} existing directories")
+    print(f"- Total operators processed: {len(operators)}")
+    print(f"- Unique folders created: {len(folder_to_ops)}")
     print(f"- Base directory: {base_path.absolute()}")
+
+    # Show some mapping statistics
+    if folder_to_ops:
+        max_ops_per_folder = max(len(ops) for ops in folder_to_ops.values())
+        folders_with_multiple_ops = sum(1 for ops in folder_to_ops.values() if len(ops) > 1)
+        print(f"- Max operators per folder: {max_ops_per_folder}")
+        print(f"- Folders handling multiple operators: {folders_with_multiple_ops}")
 
     # Create a main README
     main_readme = base_path / "README.md"

@@ -21,64 +21,54 @@ Output:
 import csv
 from pathlib import Path
 from BackendBench.backends.directory import DirectoryBackend
+from BackendBench.op_mapper import PyTorchOpMapper
 
 
 def get_operator_mapping():
-    """Get the mapping from TorchBench operators to folder names."""
+    """Get the mapping from all PyTorch operators to folder names using the improved mapper."""
+    print("Initializing PyTorchOpMapper...")
+    mapper = PyTorchOpMapper()
+
     mappings = []
 
-    # Create a DirectoryBackend to see what operators it loads
-    backend = DirectoryBackend("generated_kernels")
+    # Get all operators and their mappings
+    for folder in mapper.get_all_folders():
+        folder_operators = mapper.get_folder_operators(folder)
 
-    print(f"DirectoryBackend loaded {len(backend.compiled_kernels)} operators")
+        for schema in folder_operators:
+            # Extract components from the operator
+            op_str = schema.full_name
+            base_name = schema.name
+            overload = schema.overload
+            canonical_op = schema.canonical_op or schema.full_name
 
-    # Get all the folder names that exist
+            mappings.append(
+                {
+                    "pytorch_operator": op_str,
+                    "base_name": base_name,
+                    "overload": overload,
+                    "folder_name": schema.folder_name,
+                    "canonical_operator": canonical_op,
+                    "is_functional": schema.is_functional,
+                    "is_inplace": schema.is_inplace,
+                    "is_out_variant": schema.is_out_variant,
+                    "is_mapped": True,  # All operators from our mapper are mapped
+                }
+            )
+
+    print(f"Found {len(mappings)} total operator mappings")
+
+    # Also check what DirectoryBackend actually loads (if generated_kernels exists)
     generated_kernels = Path("generated_kernels")
     if generated_kernels.exists():
+        backend = DirectoryBackend("generated_kernels")
+        print(
+            f"DirectoryBackend loaded {len(backend.compiled_kernels)} operators from existing folders"
+        )
         folder_names = [d.name for d in generated_kernels.iterdir() if d.is_dir()]
         print(f"Found {len(folder_names)} folders in generated_kernels/")
     else:
-        print("No generated_kernels directory found")
-        return []
-
-    # For each loaded operator, find its folder
-    for pytorch_op in sorted(backend.compiled_kernels.keys(), key=str):
-        op_str = str(pytorch_op)
-
-        # Extract the base name (e.g., "add" from "aten.add.Tensor")
-        if "aten." in op_str:
-            base_name = op_str.split("aten.")[1].split(".")[0]
-        else:
-            base_name = "unknown"
-
-        # Find the folder that maps to this operator by checking which folder
-        # the DirectoryBackend actually uses for this operator
-        folder_name = None
-
-        # Check each folder to see which one would produce this operator
-        for folder in folder_names:
-            test_backend = DirectoryBackend.__new__(DirectoryBackend)
-            test_ops = test_backend._find_pytorch_ops(folder)
-            if pytorch_op in test_ops:
-                folder_name = folder
-                break
-
-        # Get overload info
-        overload = "unknown"
-        if "." in op_str and "aten." in op_str:
-            parts = op_str.split(".")
-            if len(parts) >= 3:
-                overload = parts[2]
-
-        mappings.append(
-            {
-                "pytorch_operator": op_str,
-                "base_name": base_name,
-                "overload": overload,
-                "folder_name": folder_name or "NOT_FOUND",
-                "is_mapped": folder_name is not None,
-            }
-        )
+        print("No generated_kernels directory found - showing theoretical mappings")
 
     return mappings
 
@@ -99,12 +89,26 @@ def create_mapping_csv():
 
     # Print some statistics
     mapped_count = sum(1 for m in mappings if m["is_mapped"])
+    functional_count = sum(1 for m in mappings if m["is_functional"])
+    inplace_count = sum(1 for m in mappings if m["is_inplace"])
+    out_count = sum(1 for m in mappings if m["is_out_variant"])
+    unique_folders = len(set(m["folder_name"] for m in mappings))
+
     print(f"Successfully mapped: {mapped_count}/{len(mappings)} operators")
+    print(f"Functional operators: {functional_count}")
+    print(f"In-place operators: {inplace_count}")
+    print(f"Out variant operators: {out_count}")
+    print(f"Unique folders: {unique_folders}")
 
     # Show some examples
     print("\nExample mappings:")
     for i, mapping in enumerate(mappings[:10]):
-        print(f"  {mapping['pytorch_operator']} -> {mapping['folder_name']}")
+        canonical = (
+            f" (canonical: {mapping['canonical_operator']})"
+            if mapping["canonical_operator"] != mapping["pytorch_operator"]
+            else ""
+        )
+        print(f"  {mapping['pytorch_operator']} -> {mapping['folder_name']}{canonical}")
 
     if len(mappings) > 10:
         print(f"  ... and {len(mappings) - 10} more (see CSV file)")
