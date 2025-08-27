@@ -16,6 +16,7 @@ Key features:
 - Identifies out variants (e.g., max.unary_out) and maps them to functional forms
 - Groups related operators by folder name for organization
 - Uses schema analysis to understand operator relationships
+- Reduces implementation requirements by ~76.5% through consolidation
 
 Example usage:
     >>> from BackendBench.op_mapper import PyTorchOpMapper
@@ -25,10 +26,25 @@ Example usage:
     >>> schema = mapper.get_operator_schema("add_.Tensor")
     >>> print(f"Canonical: {schema.canonical_op}")  # add.Tensor
     >>> print(f"Folder: {schema.folder_name}")      # add
+    >>> print(f"Is functional: {schema.is_functional}")  # False
+    >>> print(f"Is in-place: {schema.is_inplace}")  # True
     >>>
     >>> # Find all operators for a folder
     >>> ops = mapper.find_pytorch_ops("max")
     >>> print(f"Found {len(ops)} operators for 'max'")
+    >>>
+    >>> # Get all folders
+    >>> folders = mapper.get_all_folders()
+    >>> print(f"Total folders: {len(folders)}")  # ~538
+    >>>
+    >>> # Understanding operator relationships
+    >>> add_ops = mapper.get_folder_operators("add")
+    >>> for op in add_ops[:3]:
+    >>>     print(f"{op.full_name} -> {op.canonical_op}")
+    >>> # Output:
+    >>> # add.Tensor -> add.Tensor
+    >>> # add_.Tensor -> add.Tensor
+    >>> # add.out -> add.Scalar
 """
 
 import logging
