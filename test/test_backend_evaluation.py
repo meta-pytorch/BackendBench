@@ -6,16 +6,6 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""
-Comprehensive test for BackendBench evaluation system.
-
-Tests:
-1. DirectoryBackend loads operators correctly
-2. Watermarked implementations fail correctness (proving monkey patching works)
-3. Main script evaluation works end-to-end
-4. eval.py integration works properly
-"""
-
 import sys
 import unittest
 import subprocess
@@ -42,57 +32,8 @@ class TestBackendEvaluation(unittest.TestCase):
 
         base_dir = Path("generated_kernels")
 
-        # Create test operators that the tests expect
-        # Need > 100 operators for test 1 to pass
-        test_ops = [
-            "bitwise_and",
-            "fmod",
-            "relu",
-            "add",
-            "mul",
-            "max",
-            "min",
-            "sub",
-            "div",
-            "pow",
-            "exp",
-            "log",
-            "sqrt",
-            "abs",
-            "neg",
-            "sin",
-            "cos",
-            "tan",
-            "asin",
-            "acos",
-            "atan",
-            "sinh",
-            "cosh",
-            "tanh",
-            "sigmoid",
-            "ceil",
-            "floor",
-            "round",
-            "trunc",
-            "sign",
-            "clamp",
-            "clip",
-            "where",
-            "eq",
-            "ne",
-            "lt",
-            "le",
-            "gt",
-            "ge",
-            "logical_and",
-            "logical_or",
-            "logical_not",
-            "logical_xor",
-        ]
-
-        # Create additional numbered ops to reach > 100
-        for i in range(70):
-            test_ops.append(f"test_op_{i}")
+        # Create a minimal set of test operators that the tests actually use
+        test_ops = ["bitwise_and", "fmod", "relu", "add", "mul"]
 
         for op_name in test_ops:
             op_dir = base_dir / op_name
@@ -119,18 +60,19 @@ class TestBackendEvaluation(unittest.TestCase):
         backend = DirectoryBackend("generated_kernels")
         operator_count = len(backend.compiled_kernels)
 
-        print(f"\n📊 Loaded {operator_count} operators")
+        print(f"\nLoaded {operator_count} operators")
 
         # List some examples
-        print("\n📋 Sample operators:")
+        print("\nSample operators:")
         for i, op in enumerate(list(backend.compiled_kernels.keys())[:5]):
             print(f"   {i + 1}. {op}")
-        print(f"   ... and {operator_count - 5} more")
+        if operator_count > 5:
+            print(f"   ... and {operator_count - 5} more")
 
-        # Verify we loaded a substantial number
-        self.assertGreater(operator_count, 100, "Should load many operators from generated_kernels")
+        # Verify we loaded some operators
+        self.assertGreater(operator_count, 0, "Should load operators from generated_kernels")
 
-        print(f"\n✅ SUCCESS: DirectoryBackend loaded {operator_count} total operators")
+        print(f"\nSUCCESS: DirectoryBackend loaded {operator_count} total operators")
 
     def test_2_watermarked_implementations_fail_correctness(self):
         """Test 2: Verify watermarked operators fail eval_correctness (proving monkey patching)."""
@@ -140,7 +82,7 @@ class TestBackendEvaluation(unittest.TestCase):
 
         backend = DirectoryBackend("generated_kernels")
 
-        print("\n🧪 Testing watermarked operators with eval_correctness:")
+        print("\nTesting watermarked operators with eval_correctness:")
 
         failed_count = 0
         total_tested = 0
@@ -169,14 +111,16 @@ class TestBackendEvaluation(unittest.TestCase):
                     total_tested += 1
                     if correctness == 0.0:
                         failed_count += 1
-                        print(f"  ✓ {str(op).split('.')[-2]}: Failed correctness (watermarked)")
+                        print(
+                            f"  [PASS] {str(op).split('.')[-2]}: Failed correctness (watermarked)"
+                        )
                     else:
-                        print(f"  ✗ {str(op).split('.')[-2]}: Passed correctness unexpectedly")
+                        print(f"  [FAIL] {str(op).split('.')[-2]}: Passed correctness unexpectedly")
 
                 except Exception as e:
                     print(f"  ? {str(op).split('.')[-2]}: Error testing - {e}")
 
-        print(f"\n📊 Results: {failed_count}/{total_tested} operators failed correctness")
+        print(f"\nResults: {failed_count}/{total_tested} operators failed correctness")
         print("   This proves our watermarked implementations are being used!")
 
         self.assertGreater(failed_count, 0, "At least some watermarked ops should fail")
@@ -204,7 +148,7 @@ class TestBackendEvaluation(unittest.TestCase):
 
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
-        print("\n📊 Evaluation Results:")
+        print("\nEvaluation Results:")
         if result.stdout:
             lines = result.stdout.strip().split("\n")
             for line in lines:
@@ -214,7 +158,7 @@ class TestBackendEvaluation(unittest.TestCase):
         # Should complete without crashing
         self.assertEqual(result.returncode, 0, "Main script should complete successfully")
 
-        print("\n✅ SUCCESS: Main script evaluation completed")
+        print("\nSUCCESS: Main script evaluation completed")
 
 
 if __name__ == "__main__":
