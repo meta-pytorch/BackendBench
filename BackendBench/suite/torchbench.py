@@ -64,9 +64,6 @@ class TorchBenchTestSuite:
         self.name = name
         self.topn = topn
 
-        if filename is None:
-            filename = DEFAULT_HUGGINGFACE_URL
-
         # Load operations using the shared data loader
         ops_list = load_ops_from_source(
             source=filename,
