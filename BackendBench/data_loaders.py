@@ -225,7 +225,7 @@ def _load_from_parquet(
         table = load_dataset(
             HUGGINGFACE_REPO,
             data_files=TEST_SET_FILE,
-            revision=TEST_SET_REVISON,
+            revision=TEST_SET_REVISION,
         )["train"]
     else:
         # read parquet file directly
