@@ -14,21 +14,20 @@ import os
 import sys
 import shutil
 import subprocess
-from pathlib import Path
+import pytest
 
 import torch
 
 # Add BackendBench to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import BackendBench
-from BackendBench.scripts.create_watermarked_operators import WATERMARK_BASE
+from BackendBench.scripts.create_watermarked_operators import get_operator_watermark_value
 
 
 class TestMonkeyPatch:
     """Comprehensive test for backend evaluation system."""
 
-    def setUpDir(self):
+    def setUpDirReLU(self):
         """Generate required directory structure and operators."""
         # Generate the directory structure
         subprocess.run(
@@ -48,23 +47,27 @@ class TestMonkeyPatch:
 
         kernel_dir = "generated_kernels"
         for directory in os.listdir(kernel_dir):
-            if directory != "add" and os.path.isdir(os.path.join(kernel_dir, directory)):
+            if directory != "relu" and os.path.isdir(os.path.join(kernel_dir, directory)):
                 shutil.rmtree(os.path.join(kernel_dir, directory))
 
-    def test_monkey_patch_add(self):
-        self.setUpDir()
+    def test_monkey_patch_relu(self):
+        self.setUpDirReLU()
 
-        a = torch.zeros(3, 3)
-        b = torch.ones(3, 3)
+        relu = torch.ops.aten.relu.default
+        x = torch.tensor([-1.0, 0.0, 1.0])
+        expected = torch.tensor([0.0, 0.0, 1.0])
+        watermarked = torch.full_like(x, get_operator_watermark_value("relu"))
 
-        torch.testing.assert_close(a + b, torch.ones_like(a))
+        torch.testing.assert_close(relu(x), expected)
 
         # Enable monkey patching
         BackendBench.enable()
-
-        torch.testing.assert_close(a + b, torch.full_like(a, WATERMARK_BASE))
+        torch.testing.assert_close(relu(x), watermarked)
 
         # Disable monkey patching
         BackendBench.disable()
+        torch.testing.assert_close(relu(x), expected)
 
-        torch.testing.assert_close(a + b, torch.ones_like(a))
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v", "-s"])
