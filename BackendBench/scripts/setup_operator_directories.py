@@ -118,15 +118,15 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
                 {
                     "name": row["op_name"],
                     "is_core": row["is_core"] == "True",
-                    "is_opinfo": row["is_in_opinfo"] == "True",
-                    "is_torchbench": row["is_in_torchbench"] == "True",
+                    "is_in_opinfo": row["is_in_opinfo"] == "True",
+                    "is_in_torchbench": row["is_in_torchbench"] == "True",
                 }
             )
 
     # Filter operators based on criteria
     if not include_all:
         # By default, only include operators that are in TorchBench
-        operators = [op for op in operators if op["is_torchbench"]]
+        operators = [op for op in operators if op["is_in_torchbench"]]
         print(f"Setting up directories for {len(operators)} TorchBench operators")
     else:
         print(f"Setting up directories for all {len(operators)} operators")
@@ -151,7 +151,9 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
             continue
 
         op_dir.mkdir(exist_ok=True)
-        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"])
+        create_readme_for_op(
+            op_dir, op_name, op["is_core"], op["is_in_opinfo"], op["is_in_torchbench"]
+        )
         created_count += 1
 
     print("\nDirectory setup complete:")
