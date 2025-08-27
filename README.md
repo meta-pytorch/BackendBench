@@ -1,14 +1,13 @@
 ## BackendBench
 
-A lot of people are now interested in optimizing existing kernels in PyTorch. This audience includes both systems researchers experimenting with new DSLs and LLM researchers looking to automate kernel authoring completely. But many existing efforts have been plagued by how to ensure correctness.
+BackendBench is an evaluation suite for testing how well LLMs and humans can write PyTorch backends. It lets developers add custom kernels in an organized directory structure and dynamically override PyTorch's core operators at runtime—resulting in a fully functional PyTorch backend you can pip install and use with existing models, no changes required.
 
-Our take is that if a kernel can replace an existing PyTorch operator and be merged into PyTorch's official codebase then it's far more likely to be correct but hacking on PyTorch's kernels has historically been challenging.
+Features:
+1. Comprehensive correctness testing via PyTorch's OpInfo test suite
+2. Performance benchmarks using real tensor shapes from popular Hugging Face models
+3. Clean path to upstream your kernels to PyTorch (if it passes our tests, it's likely correct enough to merge)
 
-BackendBench is an evaluation suite that tests how good LLMs and humans are at writing a full fledged PyTorch backend. We make it possible for developers to add their custom kernels in well organized directory structure and dynamically override the core PyTorch aten operators at runtime. The outcome is a fully functional readable PyTorch backend you can pip install and run real models on with no model changes!
-
-We provide both
-1. Comprehensive operator level correctness checks using the PyTorch OpInfo test suite
-2. Performance checks using the ops that show up in the most popular Hugging Face models with realistic tensor shapes
+Why it matters: Many kernel optimization efforts struggle with correctness. Our approach ensures your kernels are production-ready by meeting PyTorch's own standards.
 
 # Installation:
 
