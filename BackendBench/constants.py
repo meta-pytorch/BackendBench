@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-# contants for downloading the test set from huggingface
+# constants for downloading the test set from huggingface
 # you can explore the dataset here
 # https://huggingface.co/datasets/GPUMODE/backendbench_tests
 HUGGINGFACE_REPO = "GPUMODE/backendbench_tests"
