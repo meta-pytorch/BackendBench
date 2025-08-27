@@ -15,14 +15,16 @@ Why it matters: Many kernel optimization efforts struggle with correctness. Our 
 pip install .
 ```
 
-## LLM-Based Kernel Generation and Evaluation
+## Directory Backend Evaluation
 
-Generate and evaluate PyTorch kernels using Claude API:
+Test your custom kernel implementations:
 
-Run LLM evaluation on smoke test (relu operation):
 ```bash
-export ANTHROPIC_API_KEY=your_api_key_here
-uv run python BackendBench/scripts/main.py --suite opinfo --backend llm
+# OpInfo correctness tests
+python BackendBench/scripts/main.py --suite opinfo --backend directory
+
+# TorchBench performance tests  
+python BackendBench/scripts/main.py --suite torchbench --backend directory
 ```
 
 ## License
