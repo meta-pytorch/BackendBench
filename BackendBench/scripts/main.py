@@ -15,7 +15,7 @@ import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
 
-from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
+from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.suite import (
     DEFAULT_HUGGINGFACE_URL,
     FactoTestSuite,
@@ -56,7 +56,7 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(["aten", "flag_gems", "llm-relay", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
@@ -169,7 +169,6 @@ def cli(
         backend = {
             "aten": backends.AtenBackend,
             "flag_gems": backends.FlagGemsBackend,
-            "llm": backends.LLMBackend,
             "kernel_agent": backends.KernelAgentBackend,
             "directory": backends.DirectoryBackend,
         }[backend]()
@@ -197,13 +196,8 @@ def cli(
         ),
     }[suite]()
 
-    # For LLM backend, we need to generate kernels first
-    if backend.name == "llm":
-        llm_client = ClaudeKernelGenerator()
-        backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts)
-
     # For LLM Relay backend, we need to generate kernels using the local server
-    elif backend.name == "llm-relay":
+    if backend.name == "llm-relay":
         llm_client = LLMKernelGenerator(model=llm_relay_model)
         backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts)
 
@@ -237,9 +231,9 @@ def cli(
 
             overall_correctness.append(
                 all(
-                    data["correctness_score"]
+                    data["is_correct"]
                     for data in op_test_data.values()
-                    if "correctness_score" in data.keys()
+                    if "is_correct" in data.keys()
                 )
             )
             overall_performance.append(perf)
@@ -279,9 +273,9 @@ def cli(
 
         for result in results:
             correctness_score = all(
-                data["correctness_score"]
+                data["is_correct"]
                 for data in result.test_data.values()
-                if "correctness_score" in data.keys()
+                if "is_correct" in data.keys()
             )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
@@ -641,12 +635,12 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
         print("KERNEL AGENT BACKEND SETUP SUMMARY")
         print(f"{'=' * 80}")
         print(f"Total operations: {total_ops}")
-        print(f"Successful: {successful_ops}")
-        print(f"Failed: {total_ops - successful_ops}")
+        print(f"Successfully generated kernels for {successful_ops} ops")
+        print(f"Failed to generate kernels for {total_ops - successful_ops} ops")
         print(
-            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
+            f"Successful Kernel Generation rate: {successful_ops / total_ops * 100:.1f}%"
             if total_ops > 0
-            else "Success rate: 0.0%"
+            else "Successful Kernel Generation rate: 0.0%"
         )
         print(f"Generated kernels saved to: {kernel_agent_backend.kernels_dir}")
         print("Configuration used:")

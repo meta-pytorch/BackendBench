@@ -97,7 +97,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
         is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
 
         test_data[args_str] = {
-            "correctness_score": 1 if is_correct else 0,
+            "is_correct": 1 if is_correct else 0,
             "correctness_errors": error_msg or "",
             "absolute_error": str(abs_error) if abs_error is not None else "",
             "relative_error": str(rel_error) if rel_error is not None else "",
@@ -181,7 +181,7 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
         for test in correctness_tests + performance_tests:
             args_str = serialize_args(test.args, test.kwargs)
             test_data[args_str] = {
-                "correctness_score": 0,
+                "is_correct": 0,
                 "benchmark_time": "",
                 "speedup": "",
                 "correctness_errors": "Skipped: uses CUDA stream",
