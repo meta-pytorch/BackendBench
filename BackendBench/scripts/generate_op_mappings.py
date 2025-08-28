@@ -70,32 +70,12 @@ def query_operator(op_name):
         print(f"\nOperator '{op_name}' not found.")
 
 
-def search_operators(search_term):
-    """Search for operators containing the search term."""
-    mapper = PyTorchOpMapper()
-    all_schemas = mapper.get_all_schemas()
-
-    matches = [s for s in all_schemas if search_term.lower() in s.full_name.lower()]
-
-    if matches:
-        print(f"\nFound {len(matches)} operators matching '{search_term}':")
-        for match in matches[:10]:
-            print(
-                f"  - {match.full_name} (folder: {match.folder_name}, canonical: {match.canonical_op})"
-            )
-        if len(matches) > 10:
-            print(f"  ... and {len(matches) - 10} more")
-    else:
-        print(f"\nNo operators found matching '{search_term}'")
-
-
 def main():
     parser = argparse.ArgumentParser(
         description="Generate PyTorch operator mappings or query specific operators"
     )
     parser.add_argument("--generate", action="store_true", help="Generate the CSV file")
     parser.add_argument("--query", type=str, help="Query a specific operator by exact name")
-    parser.add_argument("--search", type=str, help="Search for operators containing text")
     parser.add_argument(
         "--output", type=str, default="pytorch_op_mappings.csv", help="Output CSV file name"
     )
@@ -106,8 +86,6 @@ def main():
         generate_op_mappings_csv(args.output)
     elif args.query:
         query_operator(args.query)
-    elif args.search:
-        search_operators(args.search)
     else:
         generate_op_mappings_csv(args.output)
 
