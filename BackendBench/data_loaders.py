@@ -18,10 +18,17 @@ import pyarrow.parquet as pq
 
 import requests
 import torch
-from BackendBench.constants import HUGGINGFACE_REPO, TEST_SET_FILE, TEST_SET_REVISION
 from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from datasets import load_dataset
 from tqdm import tqdm
+
+
+# constants for downloading the test set from huggingface
+# you can explore the dataset here
+# https://huggingface.co/datasets/GPUMODE/backendbench_tests
+HUGGINGFACE_REPO = "GPUMODE/backendbench_tests"
+TORCHBENCH_SUITE_HF_COMMIT = "25a7c56b0a4029b192b61e32fd403e19258487e1"
+TORCHBENCH_SUITE_FILE = "backend_bench_problems.parquet"
 
 
 def _args_size(args):
@@ -224,8 +231,8 @@ def _load_from_parquet(
         # read parquet file from huggingface
         table = load_dataset(
             HUGGINGFACE_REPO,
-            data_files=TEST_SET_FILE,
-            revision=TEST_SET_REVISION,
+            data_files=TORCHBENCH_SUITE_FILE,
+            revision=TORCHBENCH_SUITE_HF_COMMIT,
         )["train"]
     else:
         # read parquet file directly

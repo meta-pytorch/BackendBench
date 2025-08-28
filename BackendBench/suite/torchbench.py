@@ -9,17 +9,17 @@ Test suite that runs real-world PyTorch operation traces from serialized data fi
 
 Data Source:
 - Dataset: https://huggingface.co/datasets/GPUMODE/backendbench_tests
-- Configuration: Set in constants.py:
+- Configuration: Set in data_loaders.py:
   - HUGGINGFACE_REPO: HF repository name
-  - TEST_SET_FILE: Specific file name in the repo
-  - TEST_SET_REVISION: Git commit hash for reproducibility
+  - TORCHBENCH_SUITE_FILE: Specific file name in the repo
+  - TORCHBENCH_SUITE_HF_COMMIT: Git commit hash for reproducibility
 
 Updating the Test Set:
 1. Choose a test file from https://huggingface.co/datasets/GPUMODE/backendbench_tests (it will likely be the same)
-2. Update TEST_SET_FILE in constants.py with the file name (it will likely be the same)
+2. Update TORCHBENCH_SUITE_FILE in data_loaders.py with the file name (it will likely be the same)
 3. Get the current commit hash:
    python -c "from huggingface_hub import HfApi; print(HfApi().dataset_info('GPUMODE/backendbench_tests', revision='main').sha)"
-4. Update TEST_SET_REVISION in constants.py with the hash
+4. Update TORCHBENCH_SUITE_HF_COMMIT in data_loaders.py with the hash
 
 Creating New Test Sets:
 Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFace.
