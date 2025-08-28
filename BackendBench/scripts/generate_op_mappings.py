@@ -87,7 +87,7 @@ def main():
     elif args.query:
         query_operator(args.query)
     else:
-        generate_op_mappings_csv(args.output)
+        parser.print_help()
 
 
 if __name__ == "__main__":
