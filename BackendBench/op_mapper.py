@@ -14,9 +14,8 @@ and out variants of operations.
 Key features:
 - Maps operators like add_.Tensor to their canonical form (add.Tensor)
 - Identifies out variants (e.g., max.unary_out) and maps them to functional forms
-- Groups related operators by folder name for organization
+- Groups related operators by folder name
 - Uses schema analysis to understand operator relationships
-- Reduces implementation requirements by ~76.5% through consolidation
 
 Example usage:
     >>> from BackendBench.op_mapper import PyTorchOpMapper
@@ -293,44 +292,3 @@ class PyTorchOpMapper:
         all_schemas = list(self._op_schema_cache.values())
         all_schemas.sort(key=lambda x: x.full_name)
         return all_schemas
-
-
-# Convenience function for backward compatibility
-def find_pytorch_ops(op_name: str) -> List[object]:
-    """
-    Find all PyTorch operations that map to a folder name.
-
-    This is a convenience function that creates a mapper instance
-    and returns the operators for the given folder name.
-
-    Args:
-        op_name: The folder/operation name to search for
-
-    Returns:
-        List of PyTorch operator objects
-    """
-    mapper = PyTorchOpMapper()
-    return mapper.find_pytorch_ops(op_name)
-
-
-if __name__ == "__main__":
-    # Example usage and testing
-    print("Initializing PyTorchOpMapper...")
-    mapper = PyTorchOpMapper()
-
-    # Show some example mappings
-    examples = ["add_.Tensor", "max.unary_out", "relu_", "add.out"]
-    print("\nExample operator mappings:")
-    for op in examples:
-        schema = mapper.get_operator_schema(op)
-        if schema:
-            print(f"{op:20} -> folder: {schema.folder_name:10} canonical: {schema.canonical_op}")
-
-    # Show folders with most operators
-    print("\nFolders with most operators:")
-    folder_counts = [
-        (folder, len(mapper.get_folder_operators(folder))) for folder in mapper.get_all_folders()
-    ]
-    folder_counts.sort(key=lambda x: x[1], reverse=True)
-    for folder, count in folder_counts[:10]:
-        print(f"  {folder:20} {count:4} operators")
