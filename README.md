@@ -18,9 +18,7 @@ pip install .
 ## Test Suites
 
 ### TorchBench Suite
-The torchbench suite evaluates kernels using real-world tensor operations captured from popular PyTorch models. It uses serialized operation traces with actual tensor shapes and argument combinations from production workloads. We maintain this testset as a dataset at https://huggingface.co/datasets/GPUMODE/backendbench_tests. 
-
-> **Note:** BackendBench releases are tied to a specific commit in https://huggingface.co/datasets/GPUMODE/backendbench_tests which can be found in BackendBench/constants.py.
+The torchbench suite evaluates kernels using real-world tensor operations and inputs captured from popular PyTorch models.
 
 Run torchbench suite:
 ```bash
