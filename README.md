@@ -18,7 +18,9 @@ pip install .
 ## Test Suites
 
 ### TorchBench Suite
-The torchbench suite evaluates kernels using real-world tensor operations captured from popular PyTorch models. It uses serialized operation traces with actual tensor shapes and argument combinations from production workloads.
+The torchbench suite evaluates kernels using real-world tensor operations captured from popular PyTorch models. It uses serialized operation traces with actual tensor shapes and argument combinations from production workloads. We maintain this testset as a dataset at https://huggingface.co/datasets/GPUMODE/backendbench_tests. 
+
+> **Note:** BackendBench releases are tied to a specific commit in https://huggingface.co/datasets/GPUMODE/backendbench_tests which can be found in BackendBench/constants.py.
 
 Run torchbench suite:
 ```bash
@@ -26,11 +28,9 @@ python BackendBench/scripts/main.py --suite torchbench --backend llm
 ```
 
 Options:
-- `--topn-inputs N`: Test only the N largest inputs per operation (by tensor size)
-- `--ops op1,op2`: Filter to specific operations (ie. `pow, add, div`)
-- `--check-overhead-dominated-ops`: Test only overhead-dominated operations (useful as performance canary)
-
-Example data: https://huggingface.co/datasets/GPUMODE/backendbench_tests
+- `--topn-inputs N`: Test only the N largest inputs per op (by tensor size)
+- `--ops op1,op2`: Filter to specific ops (ie. `pow, add, div`)
+- `--check-overhead-dominated-ops`: Test only overhead-dominated ops
 
 ## LLM-Based Kernel Generation and Evaluation
 
