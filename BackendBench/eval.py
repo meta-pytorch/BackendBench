@@ -351,3 +351,15 @@ def save_verbose_results(
     if failed_ops:
         logger.info(f"  - Failed operations: {failed_ops_path}")
     logger.info(f"  - Per-operator results in: {len(op_summaries)} subdirectories")
+    logger.info(f"Verbose results saved to {output_path}")
+
+
+def perf_at_p(correctness, performance, p=1.0):
+    assert len(correctness) == len(performance), (
+        "correctness and performance must have the same length"
+    )
+    return (
+        torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0)
+        .float()
+        .mean()
+    )

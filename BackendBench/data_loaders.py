@@ -35,7 +35,9 @@ def _args_size(args):
     return size
 
 
-def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List[Dict]:
+def _parse_trace_file(
+    filename: str, filter: Optional[List[str]] = None, limit: Optional[int] = None
+) -> List[Dict]:
     """
     Parse a single trace file and return a list of operation dictionaries.
 
@@ -45,12 +47,18 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
     """
     op_inputs = []
     op = None
+    num_ops = 0
 
     with open(filename, "r") as f:
         lines = list(f)
+        print(f"parsing {len(lines)} lines from {filename}")
         iterator = tqdm(lines, desc=f"Parsing {Path(filename).name}")
         for line in iterator:
             if m := re.match("Operator: (.*)", line):
+                num_ops += 1
+                if limit:
+                    if num_ops > limit:
+                        break
                 op = m.group(1)
                 # this is due to a version skew error of the pytorch version we're
                 # using for developing BackendBench and what was used in tritonbench where
@@ -67,6 +75,8 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
                     args, kwargs = deserialize_args(args_str)
                     size = _args_size(args) + _args_size(list(kwargs.values()))
                     size = size / (1024 * 1024)  # Convert to MB
+                    del args, kwargs
+                    cleanup_memory_and_gpu()
                     is_synthetic = cnt == 0
 
                     op_inputs.append(
@@ -83,7 +93,10 @@ def _parse_trace_file(filename: str, filter: Optional[List[str]] = None) -> List
 
 
 def _parse_trace_stream(
-    stream, filter: Optional[List[str]] = None, desc: str = "Parsing stream"
+    stream,
+    filter: Optional[List[str]] = None,
+    desc: str = "Parsing stream",
+    limit: Optional[int] = None,
 ) -> List[Dict]:
     """
     Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
@@ -95,8 +108,9 @@ def _parse_trace_stream(
     """
     op_inputs = []
     op = None
+    num_ops = 0
 
-    iterator = tqdm(stream, desc=desc)
+    iterator = tqdm(stream, desc=desc, total=len(stream))
 
     for line in iterator:
         # Handle bytes from response stream
@@ -104,6 +118,10 @@ def _parse_trace_stream(
             line = line.decode("utf-8")
 
         if m := re.match("Operator: (.*)", line):
+            num_ops += 1
+            if limit:
+                if num_ops > limit:
+                    break
             op = m.group(1)
             if op == "aten.sum.SymInt":
                 op = "aten.sum.dim_IntList"
@@ -240,20 +258,29 @@ def op_list_to_benchmark_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
     return result
 
 
-def _load_from_trace(source: Union[str, Path], filter: Optional[List[str]]) -> List[Dict]:
+def _load_from_trace(
+    source: Union[str, Path], filter: Optional[List[str]], limit: Optional[int] = None
+) -> List[Dict]:
     """Load operations from trace file(s) and return list of dicts."""
     op_inputs = []
 
     # Handle URLs - stream directly without saving to disk
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
         logging.info(f"Downloading trace from {source}")
-        with requests.get(source, stream=True) as response:
+        with requests.get(source) as response:
             response.raise_for_status()
-            desc = "Parsing"
-            op_inputs = _parse_trace_stream(response.iter_lines(), filter, desc)
+
+            # Download entire content
+            content = response.text
+
+            # Create an iterator from the lines for the progress bar
+            lines = content.splitlines()
+
+            # Now parse with accurate progress (tqdm will know total lines)
+            op_inputs = _parse_trace_stream(lines, filter, "Parsing", limit=limit)
 
     # Handle single files
     else:
-        op_inputs = _parse_trace_file(source, filter)
+        op_inputs = _parse_trace_file(source, filter, limit=limit)
 
     return op_inputs
