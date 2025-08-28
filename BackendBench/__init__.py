@@ -9,7 +9,3 @@ BackendBench: A PyTorch backend evaluation framework.
 """
 
 __version__ = "0.1.0"
-
-from .op_mapper import PyTorchOpMapper, find_pytorch_ops, OperatorSchema
-
-__all__ = ["PyTorchOpMapper", "find_pytorch_ops", "OperatorSchema"]

@@ -15,10 +15,21 @@ Why it matters: Many kernel optimization efforts struggle with correctness. Our 
 pip install .
 ```
 
-## Directory Backend Evaluation
+## LLM Kernel Development Workflow
 
-Test your custom kernel implementations:
+1. **Generate operator mappings**:
+```bash
+python -m BackendBench.scripts.generate_operator_coverage_csv
+```
 
+2. **Create operator directories**:
+```bash
+python -m BackendBench.scripts.setup_operator_directories
+```
+
+3. **Implement kernels** in each directory following the required format
+
+4. **Test your implementations**:
 ```bash
 # OpInfo correctness tests
 python BackendBench/scripts/main.py --suite opinfo --backend directory

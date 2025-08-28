@@ -6,7 +6,7 @@
 
 import csv
 import argparse
-from BackendBench import PyTorchOpMapper
+from ..op_mapper import PyTorchOpMapper
 
 
 def generate_op_mappings_csv(output_file="pytorch_op_mappings.csv"):
