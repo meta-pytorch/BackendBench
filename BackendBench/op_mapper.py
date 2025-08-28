@@ -70,6 +70,36 @@ class OperatorSchema:
     is_inplace: bool = False
     signature: Optional[str] = None
 
+    def __str__(self) -> str:
+        """Pretty print operator information"""
+        lines = [
+            f"Operator: {self.full_name}",
+            f"  Base name: {self.name}",
+            f"  Overload: {self.overload}",
+            f"  Folder: {self.folder_name}",
+            f"  Canonical: {self.canonical_op}",
+            f"  Is functional: {self.is_functional}",
+            f"  Is in-place: {self.is_inplace}",
+            f"  Is out variant: {self.is_out_variant}",
+        ]
+        if self.signature:
+            lines.append(f"  Signature: {self.signature}")
+        return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for CSV export"""
+        return {
+            "operator": self.full_name,
+            "base_name": self.name,
+            "overload": self.overload,
+            "folder": self.folder_name,
+            "canonical_op": self.canonical_op or self.full_name,
+            "is_functional": "Yes" if self.is_functional else "No",
+            "is_inplace": "Yes" if self.is_inplace else "No",
+            "is_out_variant": "Yes" if self.is_out_variant else "No",
+            "signature": self.signature or "",
+        }
+
 
 class PyTorchOpMapper:
     """Maps PyTorch operators to folder names using schema analysis"""
@@ -257,6 +287,12 @@ class PyTorchOpMapper:
             for op_name in op_names
             if op_name in self._op_schema_cache
         ]
+
+    def get_all_schemas(self) -> List[OperatorSchema]:
+        """Get all operator schemas sorted by full name"""
+        all_schemas = list(self._op_schema_cache.values())
+        all_schemas.sort(key=lambda x: x.full_name)
+        return all_schemas
 
 
 # Convenience function for backward compatibility

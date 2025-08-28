@@ -26,37 +26,10 @@ def generate_op_mappings_csv(output_file="pytorch_op_mappings.csv"):
     print("Initializing PyTorchOpMapper...")
     mapper = PyTorchOpMapper()
 
-    # Prepare CSV data
-    csv_data = []
+    all_schemas = mapper.get_all_schemas()
+    print(f"Found {len(all_schemas)} operators")
 
-    # Get all operators
-    all_ops = []
-    for folder in mapper.get_all_folders():
-        for schema in mapper.get_folder_operators(folder):
-            all_ops.append(schema)
-
-    # Sort by full name for better organization
-    all_ops.sort(key=lambda x: x.full_name)
-
-    print(f"Found {len(all_ops)} operators")
-
-    # Generate CSV rows
-    for schema in all_ops:
-        csv_data.append(
-            {
-                "operator": schema.full_name,
-                "base_name": schema.name,
-                "overload": schema.overload,
-                "folder": schema.folder_name,
-                "canonical_op": schema.canonical_op or schema.full_name,
-                "is_functional": "Yes" if schema.is_functional else "No",
-                "is_inplace": "Yes" if schema.is_inplace else "No",
-                "is_out_variant": "Yes" if schema.is_out_variant else "No",
-                "signature": schema.signature or "",
-            }
-        )
-
-    # Write to CSV
+    csv_data = [schema.to_dict() for schema in all_schemas]
     print(f"Writing to {output_file}...")
     with open(output_file, "w", newline="") as f:
         fieldnames = [
@@ -92,38 +65,28 @@ def query_operator(op_name):
     # Try exact match first
     schema = mapper.get_operator_schema(op_name)
     if schema:
-        print(f"\nOperator: {op_name}")
-        print(f"  Base name: {schema.name}")
-        print(f"  Overload: {schema.overload}")
-        print(f"  Folder: {schema.folder_name}")
-        print(f"  Canonical: {schema.canonical_op}")
-        print(f"  Is functional: {schema.is_functional}")
-        print(f"  Is in-place: {schema.is_inplace}")
-        print(f"  Is out variant: {schema.is_out_variant}")
-        if schema.signature:
-            print(f"  Signature: {schema.signature}")
+        print(f"\n{schema}")
     else:
         print(f"\nOperator '{op_name}' not found.")
 
-        # Try to find similar operators
-        print("\nSearching for similar operators...")
-        all_schemas = []
-        for folder in mapper.get_all_folders():
-            all_schemas.extend(mapper.get_folder_operators(folder))
 
-        # Find operators containing the search term
-        matches = [s for s in all_schemas if op_name.lower() in s.full_name.lower()]
+def search_operators(search_term):
+    """Search for operators containing the search term."""
+    mapper = PyTorchOpMapper()
+    all_schemas = mapper.get_all_schemas()
 
-        if matches:
-            print(f"Found {len(matches)} similar operators:")
-            for match in matches[:10]:  # Show first 10
-                print(
-                    f"  - {match.full_name} (folder: {match.folder_name}, canonical: {match.canonical_op})"
-                )
-            if len(matches) > 10:
-                print(f"  ... and {len(matches) - 10} more")
-        else:
-            print("No similar operators found.")
+    matches = [s for s in all_schemas if search_term.lower() in s.full_name.lower()]
+
+    if matches:
+        print(f"\nFound {len(matches)} operators matching '{search_term}':")
+        for match in matches[:10]:
+            print(
+                f"  - {match.full_name} (folder: {match.folder_name}, canonical: {match.canonical_op})"
+            )
+        if len(matches) > 10:
+            print(f"  ... and {len(matches) - 10} more")
+    else:
+        print(f"\nNo operators found matching '{search_term}'")
 
 
 def main():
@@ -131,7 +94,8 @@ def main():
         description="Generate PyTorch operator mappings or query specific operators"
     )
     parser.add_argument("--generate", action="store_true", help="Generate the CSV file")
-    parser.add_argument("--query", type=str, help="Query a specific operator")
+    parser.add_argument("--query", type=str, help="Query a specific operator by exact name")
+    parser.add_argument("--search", type=str, help="Search for operators containing text")
     parser.add_argument(
         "--output", type=str, default="pytorch_op_mappings.csv", help="Output CSV file name"
     )
@@ -142,8 +106,9 @@ def main():
         generate_op_mappings_csv(args.output)
     elif args.query:
         query_operator(args.query)
+    elif args.search:
+        search_operators(args.search)
     else:
-        # If no arguments, generate by default
         generate_op_mappings_csv(args.output)
 
 
