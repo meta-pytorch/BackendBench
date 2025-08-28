@@ -15,6 +15,23 @@ Why it matters: Many kernel optimization efforts struggle with correctness. Our 
 pip install .
 ```
 
+## Test Suites
+
+### TorchBench Suite
+The torchbench suite evaluates kernels using real-world tensor operations captured from popular PyTorch models. It uses serialized operation traces with actual tensor shapes and argument combinations from production workloads.
+
+Run torchbench suite:
+```bash
+python BackendBench/scripts/main.py --suite torchbench --backend llm
+```
+
+Options:
+- `--topn-inputs N`: Test only the N largest inputs per operation (by tensor size)
+- `--ops op1,op2`: Filter to specific operations (ie. `pow, add, div`)
+- `--check-overhead-dominated-ops`: Test only overhead-dominated operations (useful as performance canary)
+
+Example data: https://huggingface.co/datasets/GPUMODE/backendbench_tests
+
 ## LLM-Based Kernel Generation and Evaluation
 
 Generate and evaluate PyTorch kernels using Claude API:

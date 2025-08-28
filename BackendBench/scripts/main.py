@@ -96,10 +96,10 @@ def setup_logging(log_level):
     help="Maximum refinement rounds per worker for KernelAgent backend",
 )
 @click.option(
-    "--torchbench-data-path",
+    "--alternative-torchbench-data-path",
     default=None,
     type=str,
-    help="Path to TorchBench operator data",
+    help="Internal testing flag for BackendBench development. Users should not use this.",
 )
 @click.option(
     "--ops-directory",
@@ -145,7 +145,7 @@ def cli(
     llm_relay_model,
     kernel_agent_workers,
     kernel_agent_max_rounds,
-    torchbench_data_path,
+    alternative_torchbench_data_path,
     ops_directory,
     output_path,
     num_workers,
@@ -183,7 +183,7 @@ def cli(
         ),
         "torchbench": lambda: TorchBenchTestSuite(
             "torchbench",
-            torchbench_data_path,
+            alternative_torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
             check_overhead_dominated_ops=check_overhead_dominated_ops,
