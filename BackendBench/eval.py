@@ -48,9 +48,7 @@ def _allclose(a, b, atol=1e-2, rtol=1e-2):
         curr_a, curr_b = stack.pop()
 
         if isinstance(curr_a, torch.Tensor):
-            torch.testing.assert_close(
-                curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol
-            )
+            torch.testing.assert_close(curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol)
         elif isinstance(curr_a, (list, tuple)):
             assert len(curr_a) == len(curr_b)
             # Add pairs to stack in reverse order to maintain left-to-right checking
@@ -97,9 +95,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
-            op, impl, test
-        )
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
 
         test_data[args_str] = {
             "is_correct": 1 if is_correct else 0,
@@ -136,9 +132,7 @@ def cpu_bench(fn, num_runs=100):
 def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
     """Evaluate performance of impl against tests."""
     bench_fn = (
-        triton.testing.do_bench
-        if TRITON_AVAILABLE and torch.cuda.is_available()
-        else cpu_bench
+        triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
     )
     base_times = []
     test_times = []
@@ -158,9 +152,7 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
                 ref,
                 res,
             ):
-                raise ValueError(
-                    f"Reference and result tensors are not close: {ref} vs {res}"
-                )
+                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
             pass
@@ -283,9 +275,7 @@ def save_results(
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
-        geomean_speedup = (
-            torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        )
+        geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
         mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
         mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
         max_rel_error = max(rel_errors) if rel_errors else 0.0
@@ -329,10 +319,7 @@ def save_results(
         logger.info(f"Failed operations log saved to {failed_ops_path}")
 
     # Save README if metrics are provided
-    if all(
-        x is not None
-        for x in [command, mean_correctness, geomean_perf, perf_at_p_score]
-    ):
+    if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):
         save_readme(
             output_path=base_dir,
             command=command,
@@ -388,9 +375,7 @@ def save_readme(
         f.write("### Metric Descriptions\n\n")
         f.write("- **Correctness Score**: Mean pass rate over all operators\n")
         f.write("- **Performance Score**: Geometric mean speedup over all operators\n")
-        f.write(
-            f"- **Perf@{p} Score**: Rate of correct samples with a speedup greater than {p}\n"
-        )
+        f.write(f"- **Perf@{p} Score**: Rate of correct samples with a speedup greater than {p}\n")
         f.write("\n")
 
         f.write("## Output Files\n\n")
@@ -404,9 +389,9 @@ def save_readme(
 
 
 def perf_at_p(correctness, performance, p=1.0):
-    assert len(correctness) == len(
-        performance
-    ), "correctness and performance must have the same length"
+    assert len(correctness) == len(performance), (
+        "correctness and performance must have the same length"
+    )
     return (
         torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0)
         .float()
