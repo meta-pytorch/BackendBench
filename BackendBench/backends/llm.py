@@ -102,19 +102,21 @@ import torch.nn.functional as F
         return kernel_code
 
     def _find_kernel_function(self, module, op_name: str) -> Callable:
-        """Find the kernel implementation function in the module."""
-        # Look for a function named like the op (e.g., "add_kernel_impl")
+        """Find the main kernel function in the compiled module."""
         expected_name = f"{op_name}_kernel_impl"
+
         if hasattr(module, expected_name):
             return getattr(module, expected_name)
 
-        # Fallback: look for any function with "kernel" in the name
-        for attr_name in dir(module):
-            if "kernel" in attr_name.lower() and callable(getattr(module, attr_name)):
-                return getattr(module, attr_name)
+        available_functions = [
+            name
+            for name in dir(module)
+            if callable(getattr(module, name)) and not name.startswith("_")
+        ]
 
         raise ValueError(
-            f"Could not find kernel implementation function in generated code. "
+            f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
+            f"Available functions: {available_functions}. "
             f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
         )
 
@@ -126,13 +128,65 @@ import torch.nn.functional as F
     def test_kernel_correctness(
         self, op, kernel_code: str, test_cases: List, attempt: int = 1
     ) -> tuple[bool, Dict]:
-        """Test kernel against reference implementation and provide feedback."""
-        feedback_info = {"test_errors": [], "compilation_error": None, "summary": ""}
+        """Test kernel correctness and return detailed feedback."""
+        op_str = str(op)
+        if "aten." in op_str:
+            op_name = op_str.split("aten.")[-1].split(".")[0]
+        else:
+            op_name = op_str.split(".")[-1]
+
+        feedback_info = {
+            "compilation_error": None,
+            "test_errors": [],
+            "summary": None,
+        }
 
         try:
-            compiled_kernel = self.compile_kernel_from_string(
-                kernel_code, op.name, attempt=attempt
+            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+
+            if not os.path.exists(kernel_file):
+                is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+                if is_triton:
+                    full_code = self._prepare_triton_code(kernel_code)
+                else:
+                    full_code = self._prepare_torch_code(kernel_code)
+
+                with open(kernel_file, "w") as f:
+                    f.write(full_code)
+                print(f"Saved kernel to: {kernel_file}")
+
+            import importlib.util
+            import sys
+
+            spec = importlib.util.spec_from_file_location(
+                f"test_kernel_{op_name}_{attempt}", kernel_file
             )
+            module = importlib.util.module_from_spec(spec)
+
+            # Add to sys.modules so triton can find it
+            sys.modules[f"test_kernel_{op_name}_{attempt}"] = module
+
+            try:
+                spec.loader.exec_module(module)
+
+                expected_name = f"{op_name}_kernel_impl"
+                if hasattr(module, expected_name):
+                    compiled_kernel = getattr(module, expected_name)
+                else:
+                    available_functions = [
+                        name
+                        for name in dir(module)
+                        if callable(getattr(module, name)) and not name.startswith("_")
+                    ]
+                    raise ValueError(
+                        f"Expected function '{expected_name}' not found. Available: {available_functions}"
+                    )
+
+            finally:
+                if f"test_kernel_{op_name}_{attempt}" in sys.modules:
+                    del sys.modules[f"test_kernel_{op_name}_{attempt}"]
+
+            import torch
 
             correct_count = 0
             total_count = 0

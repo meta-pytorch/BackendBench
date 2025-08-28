@@ -12,6 +12,7 @@ import requests
 from .kernel_templates import KernelTemplateManager
 
 
+# This is where a KernelAgent would be plugged in, this is a toy one that 1 shots the problem
 class ClaudeKernelGenerator:
     def __init__(self, api_key: Optional[str] = None):
         self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
@@ -19,6 +20,7 @@ class ClaudeKernelGenerator:
             raise ValueError(
                 "ANTHROPIC_API_KEY must be set in environment or passed to constructor"
             )
+
         self.client = anthropic.Anthropic(api_key=self.api_key)
         self.template_manager = KernelTemplateManager()
 
@@ -39,13 +41,13 @@ class ClaudeKernelGenerator:
                 op_name, op_signature, op_description, framework
             )
 
-        print("\n=== DEBUG: PROMPT SENT TO ANTHROPIC ===")
+        print("\n=== DEBUG: PROMPT SENT TO LLM ===")
         print(prompt)
         print("=== END PROMPT ===\n")
 
         try:
             response = self.client.messages.create(
-                model="claude-3-5-sonnet-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=8000,
                 temperature=0.2,
                 timeout=120.0,
@@ -146,7 +148,8 @@ class ClaudeKernelGenerator:
 
 class LLMKernelGenerator:
     """
-    LLM Kernel Generator that uses local plugboard server
+    LLM Kernel Generator that uses local plugboard server instead of direct Anthropic API.
+    This can eventually replace ClaudeKernelGenerator.
     """
 
     def __init__(
