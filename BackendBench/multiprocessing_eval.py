@@ -18,17 +18,17 @@
 #     results = evaluator.get_results()
 
 import logging
-from dataclasses import dataclass
 import multiprocessing as mp
-import time
 import queue
+import time
 import traceback
+from dataclasses import dataclass
 from typing import Any, List, Optional
 
 import torch
 
 from BackendBench.eval import eval_one_op
-from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
+from BackendBench.opregistry import _extract_spec_name_from_op, get_operator
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,8 @@ class ProcessDeathSignal:
 
 
 def is_pickleable(obj):
-    import pickle
     import io
+    import pickle
 
     try:
         with io.BytesIO() as stream:
@@ -107,8 +107,12 @@ def _worker_process(worker_id, task_queue, result_queue):
                         for test in tests:
                             yield test_to_device(test, device)
 
-                    correctness_tests = test_to_device_iterator(task.correctness_tests, device)
-                    performance_tests = test_to_device_iterator(task.performance_tests, device)
+                    correctness_tests = test_to_device_iterator(
+                        task.correctness_tests, device
+                    )
+                    performance_tests = test_to_device_iterator(
+                        task.performance_tests, device
+                    )
 
                     correctness_score, performance_score, test_data = eval_one_op(
                         op, impl, correctness_tests, performance_tests
@@ -120,12 +124,14 @@ def _worker_process(worker_id, task_queue, result_queue):
                         test_data=test_data,
                     )
                 except Exception as e:
-                    error_msg = f"Error in eval_one_op: {str(e)}\n{traceback.format_exc()}"
-                    logger.warning(f"Worker {worker_id} task {task.task_id} failed: {error_msg}")
+                    error_msg = (
+                        f"Error in eval_one_op: {str(e)}\n{traceback.format_exc()}"
+                    )
+                    logger.warning(
+                        f"Worker {worker_id} task {task.task_id} failed: {error_msg}"
+                    )
                     if "cuda" in str(e).lower():  # CUDA error
-                        error_msg = (
-                            f"Worker {worker_id} CUDA error: {str(e)}\n{traceback.format_exc()}"
-                        )
+                        error_msg = f"Worker {worker_id} CUDA error: {str(e)}\n{traceback.format_exc()}"
                         logger.error(error_msg)
                         result_queue.put(ProcessDeathSignal(worker_id, error_msg))
                         torch.cuda.synchronize()
@@ -136,7 +142,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         correctness_score=0.0,
                         performance_score=1.0,
                         test_data={
-                            "correctness_score": 0.0,
+                            "is_correct": 0,
                             "benchmark_time": "",
                             "speedup": "",
                             "correctness_errors": f"{error_msg}",
@@ -154,13 +160,17 @@ def _worker_process(worker_id, task_queue, result_queue):
                 continue
             except Exception as e:
                 # Unexpected error in worker loop
-                error_msg = f"Worker {worker_id} loop error: {str(e)}\n{traceback.format_exc()}"
+                error_msg = (
+                    f"Worker {worker_id} loop error: {str(e)}\n{traceback.format_exc()}"
+                )
                 logger.error(error_msg)
                 result_queue.put(ProcessDeathSignal(worker_id, error_msg))
                 break
 
     except Exception as e:
-        error_msg = f"Worker {worker_id} fatal error: {str(e)}\n{traceback.format_exc()}"
+        error_msg = (
+            f"Worker {worker_id} fatal error: {str(e)}\n{traceback.format_exc()}"
+        )
         logger.error(error_msg)
         result_queue.put(ProcessDeathSignal(worker_id, error_msg))
     finally:
@@ -203,7 +213,9 @@ def test_to_device(test, device):
 
 class MultiprocessingEvaluator:
     def __init__(self, num_workers: int = 1):
-        assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
+        assert (
+            num_workers <= torch.cuda.device_count()
+        ), "performance will be suboptimal"
 
         self.mp_context = mp.get_context("spawn")
         self.num_workers = num_workers
@@ -272,7 +284,9 @@ class MultiprocessingEvaluator:
         process.start()
         self.workers[worker_id] = process
 
-        logger.debug(f"Started worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
+        logger.info(
+            f"Started worker {worker_id} (PID: {process.pid}, GPU: {worker_id})"
+        )
 
     def _restart_worker(self, worker_id):
         """Restart a dead worker process."""
@@ -293,7 +307,9 @@ class MultiprocessingEvaluator:
         process.start()
         self.workers[worker_id] = process
 
-        logger.debug(f"Restarted worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
+        logger.warning(
+            f"Restarted worker {worker_id} (PID: {process.pid}, GPU: {worker_id})"
+        )
 
     def start_evaluation(self) -> None:
         """Start all worker processes to begin evaluation."""
@@ -310,7 +326,7 @@ class MultiprocessingEvaluator:
             try:
                 # Get result from queue
                 result = self.result_queue.get(block=False)
-                logger.debug(f"Result obtained: {result}")
+                logger.info(f"Result obtained: {result}")
 
                 if isinstance(result, ProcessDeathSignal):
                     self.completed_tasks += 1
