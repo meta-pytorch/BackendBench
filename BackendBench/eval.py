@@ -252,7 +252,7 @@ def save_results(
     for op_name, op_tests in op_results.items():
         # Calculate operator-level summary
         total_tests = len(op_tests)
-        correct_tests = sum(1 for t in op_tests if t.get("correctness_score", 0) == 1)
+        correct_tests = sum(1 for t in op_tests if t.get("Is_correct", 0) == 1)
         failed_tests = []
 
         # Collect performance metrics
@@ -263,7 +263,7 @@ def save_results(
 
         for test in op_tests:
             # Check for failures
-            if test.get("correctness_score", 0) == 0:
+            if test.get("Is_correct", 0) == 0:
                 failed_tests.append(
                     {
                         "op_name": op_name,
@@ -369,9 +369,9 @@ def calculate_metrics(verbose_results, p=1.0):
     for op_name, tests in op_results.items():
         # Check if all tests for this operator passed correctness
         op_correctness = all(
-            test.get("correctness_score", 0) == 1
+            test.get("Is_correct", 0) == 1
             for test in tests
-            if "correctness_score" in test
+            if "Is_correct" in test
         )
         overall_correctness.append(op_correctness)
         
