@@ -4,18 +4,6 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-
-"""
-Generate a comprehensive CSV file of all PyTorch operator mappings.
-
-This script creates a detailed CSV containing:
-- All PyTorch operators
-- Their canonical forms
-- Folder mappings
-- Variant types (functional, in-place, out)
-- Schema signatures
-"""
-
 import csv
 import argparse
 from BackendBench import PyTorchOpMapper
