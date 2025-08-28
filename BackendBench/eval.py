@@ -49,7 +49,9 @@ def _allclose(a, b, atol=1e-2, rtol=1e-2):
         curr_a, curr_b = stack.pop()
 
         if isinstance(curr_a, torch.Tensor):
-            torch.testing.assert_close(curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol)
+            torch.testing.assert_close(
+                curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol
+            )
         elif isinstance(curr_a, (list, tuple)):
             assert len(curr_a) == len(curr_b)
             # Add pairs to stack in reverse order to maintain left-to-right checking
@@ -96,7 +98,9 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
+            op, impl, test
+        )
 
         test_data[args_str] = {
             "correctness_score": 1 if is_correct else 0,
@@ -133,7 +137,9 @@ def cpu_bench(fn, num_runs=100):
 def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
     """Evaluate performance of impl against tests."""
     bench_fn = (
-        triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
+        triton.testing.do_bench
+        if TRITON_AVAILABLE and torch.cuda.is_available()
+        else cpu_bench
     )
     base_times = []
     test_times = []
@@ -153,7 +159,9 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
                 ref,
                 res,
             ):
-                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
+                raise ValueError(
+                    f"Reference and result tensors are not close: {ref} vs {res}"
+                )
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
             pass
@@ -203,20 +211,21 @@ def save_results(
     output_path: Union[str, Path] = "backendbench_output",
 ):
     """Save results without creating per-operator directories.
-    
+
     Args:
         results: List of test results, each containing op_name, args, and test metrics
         output_path: Base directory for saving results
-        
+
     Structure created:
         output_path/
+        ├── README.md                  # Top level summary of results
         ├── full_results.json          # Complete results log
         ├── operator_summary.csv       # Operator-level summary
         └── failed_ops.json            # Log of failed operations
     """
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
     failed_ops_path = base_dir / "failed_ops.json"
@@ -224,29 +233,29 @@ def save_results(
     with open(full_log_path, "w") as f:
         json.dump(results, f, indent=2)
     logger.info(f"Full results saved to {full_log_path}")
-    
+
     # 2. Organize results by operator (without creating directories)
     op_results = defaultdict(list)
     op_summaries = {}
     failed_ops = []
-    
+
     for result in results:
         op_name = result["op_name"]
         op_results[op_name].append(result)
-    
+
     # Process each operator for summary
     for op_name, op_tests in op_results.items():
         # Calculate operator-level summary
         total_tests = len(op_tests)
         correct_tests = sum(1 for t in op_tests if t.get("correctness_score", 0) == 1)
         failed_tests = []
-        
+
         # Collect performance metrics
         speedups = []
         benchmark_times = []
         abs_errors = []
         rel_errors = []
-        
+
         for test in op_tests:
             # Check for failures
             if test.get("correctness_score", 0) == 0:
@@ -257,25 +266,27 @@ def save_results(
                         "error": test.get("correctness_errors", ""),
                     }
                 )
-            
+
             # Collect metrics
             if test.get("speedup") and test.get("benchmark_time"):
                 speedups.append(float(test["speedup"]))
                 benchmark_times.append(float(test["benchmark_time"]))
-            
+
             if test.get("absolute_error") and test.get("relative_error"):
                 abs_errors.append(float(test["absolute_error"]))
                 rel_errors.append(float(test["relative_error"]))
-        
+
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
-        geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
+        geomean_speedup = (
+            torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
+        )
         mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
         mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
         max_rel_error = max(rel_errors) if rel_errors else 0.0
         max_abs_error = max(abs_errors) if abs_errors else 0.0
-        
+
         op_summaries[op_name] = {
             "operator": op_name,
             "total_tests": total_tests,
@@ -289,39 +300,38 @@ def save_results(
             "max_relative_error": max_rel_error,
             "max_absolute_error": max_abs_error,
         }
-        
+
         # Add to failed ops list if there were failures
         if failed_tests:
             failed_ops.extend(failed_tests)
-    
+
     # 3. Create operator-level summary CSV
-    if op_summaries:
-        fieldnames = list(op_summaries[0].keys())
-        
+    if len(op_summaries) > 0:
+        op_summary_list = list(op_summaries.values())
+        fieldnames = list(op_summary_list[0].keys())
+
         with open(summary_csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for summary in op_summaries.values():
                 writer.writerow(summary)
-        
+
         logger.info(f"Operator summary CSV saved to {summary_csv_path}")
-    
+
     # 4. Save failed operations log
     if failed_ops:
         with open(failed_ops_path, "w") as f:
             json.dump(failed_ops, f, indent=2)
         logger.info(f"Failed operations log saved to {failed_ops_path}")
-    
+
     # Log summary
     logger.info(f"Results saved to directory: {base_dir.absolute()}")
 
 
-
-
 def perf_at_p(correctness, performance, p=1.0):
-    assert len(correctness) == len(performance), (
-        "correctness and performance must have the same length"
-    )
+    assert len(correctness) == len(
+        performance
+    ), "correctness and performance must have the same length"
     return (
         torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0)
         .float()
