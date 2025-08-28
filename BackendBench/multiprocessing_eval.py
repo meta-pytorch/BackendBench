@@ -136,7 +136,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         correctness_score=0.0,
                         performance_score=1.0,
                         test_data={
-                            "is_correct": 0.0,
+                            "is_correct": 0,
                             "benchmark_time": "",
                             "speedup": "",
                             "correctness_errors": f"{error_msg}",
