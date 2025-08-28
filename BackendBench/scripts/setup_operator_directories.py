@@ -11,9 +11,9 @@ Setup script to create directory structure for all PyTorch operators.
 This creates empty directories that LLM researchers can fill with generated kernels.
 """
 
-import argparse
-import csv
 import os
+import csv
+import argparse
 from pathlib import Path
 
 # Import the generate_coverage_csv functionality
@@ -161,8 +161,7 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
 
     # Create a main README
     main_readme = base_path / "README.md"
-    main_readme.write_text(
-        """# Generated Kernels Directory
+    main_readme.write_text("""# Generated Kernels Directory
 
 This directory contains subdirectories for PyTorch operators that need kernel implementations.
 
@@ -187,8 +186,7 @@ The DirectoryBackend maps directory names to PyTorch operations as follows:
 
 For operators with multiple overloads (e.g., add.out), use suffixes:
 - Directory `add_out` → `torch.ops.aten.add.out`
-"""
-    )
+""")
 
 
 def main():

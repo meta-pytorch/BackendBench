@@ -18,17 +18,17 @@
 #     results = evaluator.get_results()
 
 import logging
-import multiprocessing as mp
-import queue
-import time
-import traceback
 from dataclasses import dataclass
+import multiprocessing as mp
+import time
+import queue
+import traceback
 from typing import Any, List, Optional
 
 import torch
 
 from BackendBench.eval import eval_one_op
-from BackendBench.opregistry import _extract_spec_name_from_op, get_operator
+from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
 
 logger = logging.getLogger(__name__)
 
@@ -65,8 +65,8 @@ class ProcessDeathSignal:
 
 
 def is_pickleable(obj):
-    import io
     import pickle
+    import io
 
     try:
         with io.BytesIO() as stream:
