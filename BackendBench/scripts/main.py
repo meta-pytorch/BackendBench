@@ -521,7 +521,7 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
         # Save overall summary
         overall_summary_file = os.path.join(llm_relay_backend.kernels_dir, "OVERALL_SUMMARY.txt")
         with open(overall_summary_file, "w") as f:
-            f.writelines(output_lines)
+            f.write("\n".join(output_lines))
 
         return llm_relay_backend
 
