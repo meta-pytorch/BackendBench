@@ -207,6 +207,7 @@ def cli(
 
     # Determine log directory
     import datetime
+
     if not log_dir:
         if backend_name == "directory":
             # For directory backend, default to ops_directory
@@ -316,15 +317,13 @@ def cli(
 
     # Calculate metrics from verbose results if available, otherwise from the collected lists
     if verbose_results:
-        mean_correctness, geomean_perf, perf_at_p_score = eval.calculate_metrics(
-            verbose_results, p
-        )
+        mean_correctness, geomean_perf, perf_at_p_score = eval.calculate_metrics(verbose_results, p)
     else:
         # Fallback to original calculation if no verbose results
         mean_correctness = torch.tensor(overall_correctness).float().mean().item()
         geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
         perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
-    
+
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
     print(
@@ -333,8 +332,9 @@ def cli(
 
     # Construct the command string for the README
     import sys
+
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
-    
+
     # Save results if not disabled
     if not disable_output_logs and verbose_results:
         eval.save_results(

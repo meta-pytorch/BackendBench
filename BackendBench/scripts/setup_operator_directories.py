@@ -96,9 +96,7 @@ The DirectoryBackend will automatically load the first implementation file found
     readme_path.write_text(content)
 
 
-def setup_operator_directories(
-    base_dir: str = "generated_kernels", include_all: bool = False
-):
+def setup_operator_directories(base_dir: str = "generated_kernels", include_all: bool = False):
     """Set up directory structure for PyTorch operators."""
 
     # First, generate the coverage CSV if it doesn't exist
@@ -153,9 +151,7 @@ def setup_operator_directories(
             continue
 
         op_dir.mkdir(exist_ok=True)
-        create_readme_for_op(
-            op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"]
-        )
+        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"])
         created_count += 1
 
     print("\nDirectory setup complete:")

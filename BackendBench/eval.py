@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
-from BackendBench.utils import clean_op_name_for_directory
 
 
 try:
@@ -49,9 +48,7 @@ def _allclose(a, b, atol=1e-2, rtol=1e-2):
         curr_a, curr_b = stack.pop()
 
         if isinstance(curr_a, torch.Tensor):
-            torch.testing.assert_close(
-                curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol
-            )
+            torch.testing.assert_close(curr_a, curr_b, equal_nan=True, atol=atol, rtol=rtol)
         elif isinstance(curr_a, (list, tuple)):
             assert len(curr_a) == len(curr_b)
             # Add pairs to stack in reverse order to maintain left-to-right checking
@@ -98,9 +95,7 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
-            op, impl, test
-        )
+        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
 
         test_data[args_str] = {
             "is_correct": 1 if is_correct else 0,
@@ -137,9 +132,7 @@ def cpu_bench(fn, num_runs=100):
 def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
     """Evaluate performance of impl against tests."""
     bench_fn = (
-        triton.testing.do_bench
-        if TRITON_AVAILABLE and torch.cuda.is_available()
-        else cpu_bench
+        triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
     )
     base_times = []
     test_times = []
@@ -159,9 +152,7 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
                 ref,
                 res,
             ):
-                raise ValueError(
-                    f"Reference and result tensors are not close: {ref} vs {res}"
-                )
+                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
         except Exception:
             pass
@@ -284,9 +275,7 @@ def save_results(
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
-        geomean_speedup = (
-            torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        )
+        geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
         mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
         mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
         max_rel_error = max(rel_errors) if rel_errors else 0.0
@@ -339,49 +328,43 @@ def save_results(
             perf_at_p_score=perf_at_p_score,
             p=p,
         )
-    
+
     # Log summary
     logger.info(f"Results saved to directory: {base_dir.absolute()}")
 
 
 def calculate_metrics(verbose_results, p=1.0):
     """Calculate mean correctness, geomean performance, and perf@p score from verbose results.
-    
+
     Args:
         verbose_results: List of test result dictionaries containing op_name, args, and metrics
         p: Performance threshold for perf@p calculation
-    
+
     Returns:
         Tuple of (mean_correctness, geomean_perf, perf_at_p_score)
     """
     from collections import defaultdict
-    
+
     # Group results by operator
     op_results = defaultdict(list)
     for result in verbose_results:
         op_name = result["op_name"]
         op_results[op_name].append(result)
-    
+
     # Calculate per-operator correctness and performance
     overall_correctness = []
     overall_performance = []
-    
+
     for op_name, tests in op_results.items():
         # Check if all tests for this operator passed correctness
         op_correctness = all(
-            test.get("Is_correct", 0) == 1
-            for test in tests
-            if "Is_correct" in test
+            test.get("Is_correct", 0) == 1 for test in tests if "Is_correct" in test
         )
         overall_correctness.append(op_correctness)
-        
+
         # Collect performance scores for this operator
-        speedups = [
-            float(test["speedup"])
-            for test in tests
-            if test.get("speedup") is not None
-        ]
-        
+        speedups = [float(test["speedup"]) for test in tests if test.get("speedup") is not None]
+
         if speedups:
             # Calculate geometric mean of speedups for this operator
             op_perf = torch.tensor(speedups).log().mean().exp().item()
@@ -389,12 +372,12 @@ def calculate_metrics(verbose_results, p=1.0):
         else:
             # Default to 1.0 if no performance data
             overall_performance.append(1.0)
-    
+
     # Calculate overall metrics
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     perf_at_p_score = perf_at_p(overall_correctness, overall_performance, p)
-    
+
     return mean_correctness, geomean_perf, perf_at_p_score
 
 
@@ -407,7 +390,7 @@ def save_readme(
     p: float = 1.0,
 ):
     """Save a README file with run summary and results.
-    
+
     Args:
         output_path: Directory to save the README in
         command: The command used to run the benchmark
@@ -418,17 +401,17 @@ def save_readme(
     """
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
-    
+
     readme_path = base_dir / "README.md"
-    
+
     with open(readme_path, "w") as f:
         f.write("# BackendBench Run Summary\n\n")
-        
+
         f.write("## Command\n")
         f.write("```bash\n")
         f.write(f"{command}\n")
         f.write("```\n\n")
-        
+
         f.write("## Results\n\n")
         f.write("| Metric | Value |\n")
         f.write("|--------|-------|\n")
@@ -436,27 +419,27 @@ def save_readme(
         f.write(f"| Performance Score (geomean speedup) | {geomean_perf:.2f} |\n")
         f.write(f"| Perf@{p} Score | {perf_at_p_score:.2f} |\n")
         f.write("\n")
-        
+
         f.write("### Metric Descriptions\n\n")
         f.write("- **Correctness Score**: Mean pass rate over all operators\n")
         f.write("- **Performance Score**: Geometric mean speedup over all operators\n")
         f.write(f"- **Perf@{p} Score**: Rate of correct samples with a speedup greater than {p}\n")
         f.write("\n")
-        
+
         f.write("## Output Files\n\n")
         f.write("The following files are saved in this directory:\n\n")
         f.write("- `full_results.json`: Complete test results for all operators\n")
         f.write("- `operator_summary.csv`: Operator-level summary statistics\n")
         f.write("- `failed_ops.json`: Log of failed operations (if any)\n")
         f.write("- `README.md`: This file\n")
-        
+
     logger.info(f"README saved to {readme_path}")
 
 
 def perf_at_p(correctness, performance, p=1.0):
-    assert len(correctness) == len(
-        performance
-    ), "correctness and performance must have the same length"
+    assert len(correctness) == len(performance), (
+        "correctness and performance must have the same length"
+    )
     return (
         torch.where(torch.tensor(correctness).bool(), torch.tensor(performance) > p, 0)
         .float()
