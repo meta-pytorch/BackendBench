@@ -15,6 +15,7 @@ import os
 import csv
 import argparse
 from pathlib import Path
+from collections import defaultdict
 
 from ..op_mapper import PyTorchOpMapper
 
@@ -74,7 +75,7 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
     # Create directories
     created_count = 0
     skipped_count = 0
-    folder_to_ops = {}  # Track which operators go into each folder
+    folder_to_ops = defaultdict(list)  # Track which operators go into each folder
 
     for op in operators:
         op_name = op["name"]
@@ -88,8 +89,6 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
         op_dir = base_path / dir_name
 
         # Track which operators map to this folder
-        if dir_name not in folder_to_ops:
-            folder_to_ops[dir_name] = []
         folder_to_ops[dir_name].append(op_name)
 
         if op_dir.exists():
