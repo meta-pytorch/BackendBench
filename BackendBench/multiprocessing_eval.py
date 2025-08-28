@@ -272,7 +272,7 @@ class MultiprocessingEvaluator:
         process.start()
         self.workers[worker_id] = process
 
-        logger.info(f"Started worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
+        logger.debug(f"Started worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
 
     def _restart_worker(self, worker_id):
         """Restart a dead worker process."""
@@ -293,7 +293,7 @@ class MultiprocessingEvaluator:
         process.start()
         self.workers[worker_id] = process
 
-        logger.warning(f"Restarted worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
+        logger.debug(f"Restarted worker {worker_id} (PID: {process.pid}, GPU: {worker_id})")
 
     def start_evaluation(self) -> None:
         """Start all worker processes to begin evaluation."""
@@ -310,7 +310,7 @@ class MultiprocessingEvaluator:
             try:
                 # Get result from queue
                 result = self.result_queue.get(block=False)
-                logger.info(f"Result obtained: {result}")
+                logger.debug(f"Result obtained: {result}")
 
                 if isinstance(result, ProcessDeathSignal):
                     self.completed_tasks += 1

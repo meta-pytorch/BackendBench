@@ -198,71 +198,55 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     return correctness_score, performance_score, test_data
 
 
-def save_verbose_results(
+def save_results(
     results: List[Dict[str, Any]],
-    output_path: Union[str, Path] = "generated_kernels",
+    output_path: Union[str, Path] = "backendbench_output",
 ):
-    """Save verbose results following DirectoryBench structure.
-
+    """Save results without creating per-operator directories.
+    
     Args:
         results: List of test results, each containing op_name, args, and test metrics
-        output_path: Base directory for saving results (default: "generated_kernels")
-
+        output_path: Base directory for saving results
+        
     Structure created:
         output_path/
         ├── full_results.json          # Complete results log
         ├── operator_summary.csv       # Operator-level summary
-        ├── failed_ops.json            # Log of failed operations
-        └── <op_name>/                 # Per-operator directories
-            └── test_results.json      # Test results for this operator
+        └── failed_ops.json            # Log of failed operations
     """
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
-
+    
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
     failed_ops_path = base_dir / "failed_ops.json"
+    summary_csv_path = base_dir / "operator_summary.csv"
     with open(full_log_path, "w") as f:
         json.dump(results, f, indent=2)
     logger.info(f"Full results saved to {full_log_path}")
-
-    # 2. Organize results by operator and create directory structure
+    
+    # 2. Organize results by operator (without creating directories)
     op_results = defaultdict(list)
     op_summaries = {}
     failed_ops = []
-
+    
     for result in results:
         op_name = result["op_name"]
         op_results[op_name].append(result)
-
-    # Process each operator
+    
+    # Process each operator for summary
     for op_name, op_tests in op_results.items():
-        # Clean the operator name for directory
-        clean_name = clean_op_name_for_directory(op_name)
-        if not clean_name:
-            logger.warning(f"Could not clean operator name: {op_name}")
-            continue
-
-        # Create operator directory
-        op_dir = base_dir / clean_name
-        op_dir.mkdir(exist_ok=True)
-
-        # Save operator-specific results
-        op_results_path = op_dir / "test_results.json"
-        with open(op_results_path, "w") as f:
-            json.dump(op_tests, f, indent=2)
-
         # Calculate operator-level summary
         total_tests = len(op_tests)
         correct_tests = sum(1 for t in op_tests if t.get("correctness_score", 0) == 1)
         failed_tests = []
-
+        
         # Collect performance metrics
         speedups = []
         benchmark_times = []
         abs_errors = []
         rel_errors = []
-
+        
         for test in op_tests:
             # Check for failures
             if test.get("correctness_score", 0) == 0:
@@ -273,16 +257,16 @@ def save_verbose_results(
                         "error": test.get("correctness_errors", ""),
                     }
                 )
-
+            
             # Collect metrics
             if test.get("speedup") and test.get("benchmark_time"):
                 speedups.append(float(test["speedup"]))
                 benchmark_times.append(float(test["benchmark_time"]))
-
+            
             if test.get("absolute_error") and test.get("relative_error"):
                 abs_errors.append(float(test["absolute_error"]))
                 rel_errors.append(float(test["relative_error"]))
-
+        
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
@@ -291,10 +275,9 @@ def save_verbose_results(
         mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
         max_rel_error = max(rel_errors) if rel_errors else 0.0
         max_abs_error = max(abs_errors) if abs_errors else 0.0
-
+        
         op_summaries[op_name] = {
             "operator": op_name,
-            "directory": clean_name,
             "total_tests": total_tests,
             "passed_tests": correct_tests,
             "failed_tests": total_tests - correct_tests,
@@ -306,52 +289,33 @@ def save_verbose_results(
             "max_relative_error": max_rel_error,
             "max_absolute_error": max_abs_error,
         }
-
+        
         # Add to failed ops list if there were failures
         if failed_tests:
             failed_ops.extend(failed_tests)
-
+    
     # 3. Create operator-level summary CSV
-    summary_csv_path = base_dir / "operator_summary.csv"
     if op_summaries:
-        fieldnames = [
-            "operator",
-            "directory",
-            "total_tests",
-            "passed_tests",
-            "failed_tests",
-            "correctness_rate",
-            "avg_speedup",
-            "geomean_speedup",
-            "avg_benchmark_time",
-            "mean_absolute_error",
-            "mean_relative_error",
-            "max_relative_error",
-            "max_absolute_error",
-        ]
-
+        fieldnames = list(op_summaries[0].keys())
+        
         with open(summary_csv_path, "w", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
             for summary in op_summaries.values():
                 writer.writerow(summary)
-
+        
         logger.info(f"Operator summary CSV saved to {summary_csv_path}")
-
+    
     # 4. Save failed operations log
     if failed_ops:
         with open(failed_ops_path, "w") as f:
             json.dump(failed_ops, f, indent=2)
         logger.info(f"Failed operations log saved to {failed_ops_path}")
+    
+    # Log summary
+    logger.info(f"Results saved to directory: {base_dir.absolute()}")
 
-    # Log summary of where everything was saved
-    logger.info(f"Verbose results saved to directory: {base_dir.absolute()}")
-    logger.info(f"  - Full results: {full_log_path}")
-    logger.info(f"  - Operator summary: {summary_csv_path}")
-    if failed_ops:
-        logger.info(f"  - Failed operations: {failed_ops_path}")
-    logger.info(f"  - Per-operator results in: {len(op_summaries)} subdirectories")
-    logger.info(f"Verbose results saved to {output_path}")
+
 
 
 def perf_at_p(correctness, performance, p=1.0):

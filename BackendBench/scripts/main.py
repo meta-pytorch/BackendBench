@@ -109,10 +109,16 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
-    "--output-dir",
+    "--log-dir",
     default=None,
     type=str,
-    help="Path for outputing logs. If None it will be the same as op-directory (recommended)",
+    help="Directory for output logs. Default: backendbench_output_{timestamp} (or ops-directory for directory backend)",
+)
+@click.option(
+    "--disable-output-logs",
+    default=False,
+    is_flag=True,
+    help="Disable verbose logging of individual test results",
 )
 @click.option(
     "--num-workers",
@@ -148,7 +154,8 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
-    output_dir,
+    log_dir,
+    disable_output_logs,
     num_workers,
     check_overhead_dominated_ops,
     p,
@@ -163,6 +170,7 @@ def cli(
     if ops:
         ops = ops.split(",")
 
+    backend_name = backend
     if backend == "llm-relay":
         backend = backends.LLMRelayBackend(model=llm_relay_model)
     else:
@@ -197,8 +205,16 @@ def cli(
         ),
     }[suite]()
 
-    if not output_dir:
-        output_dir = ops_directory
+    # Determine log directory
+    import datetime
+    if not log_dir:
+        if backend_name == "directory":
+            # For directory backend, default to ops_directory
+            log_dir = ops_directory
+        else:
+            # For other backends, create timestamped directory
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_dir = f"backendbench_output_{timestamp}"
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
@@ -307,10 +323,10 @@ def cli(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
 
-    # Save verbose results if output path is specified
-    if output_dir and verbose_results:
-        eval.save_verbose_results(verbose_results, output_dir)
-        print(f"Detailed results saved to: {output_dir}")
+    # Save results if not disabled
+    if not disable_output_logs and verbose_results:
+        eval.save_results(verbose_results, log_dir)
+        print(f"Results saved to: {log_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):

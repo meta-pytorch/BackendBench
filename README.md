@@ -15,6 +15,19 @@ Why it matters: Many kernel optimization efforts struggle with correctness. Our 
 pip install .
 ```
 
+## Logging
+
+BackendBench saves evaluation results using the `save_results` function, which creates:
+- `full_results.json` - Complete test results with all metrics
+- `operator_summary.csv` - Per-operator performance summary  
+- `failed_ops.json` - Details of any failed operations (if failures occur)
+
+CLI logging options:
+- `--log-dir PATH` - Specify output directory 
+  - Default: `backendbench_output_YYYYMMDD_HHMMSS/` for most backends
+  - For directory backend: defaults to the ops directory path
+- `--disable-output-logs` - Skip saving results to disk entirely
+
 ## LLM-Based Kernel Generation and Evaluation
 
 Generate and evaluate PyTorch kernels using Claude API:
