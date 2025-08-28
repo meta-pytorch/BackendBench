@@ -41,9 +41,7 @@ class TestSmoke:
             )
 
             is_correct = all(
-                data["correctness_score"]
-                for data in op_test_data.values()
-                if "correctness_score" in data.keys()
+                data["is_correct"] for data in op_test_data.values() if "is_correct" in data.keys()
             )
             overall_correctness.append(is_correct)
             overall_performance.append(perf)

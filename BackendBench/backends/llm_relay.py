@@ -9,9 +9,11 @@ import importlib.util
 import logging
 import os
 import sys
-import torch
 import traceback
 from typing import Callable, Dict, List
+from BackendBench.eval import _allclose
+
+import torch
 
 from .base import Backend
 
@@ -136,10 +138,20 @@ import torch.nn.functional as F
             f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
         )
 
+    def _make_error_func(error_msg):
+        def error_func(*args, **kwargs):
+            raise RuntimeError(f"Compilation of kernel failed: {error_msg}")
+
+        return error_func
+
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
-        compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
-        self.compiled_kernels[op] = compiled_kernel
+
+        try:
+            compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+            self.compiled_kernels[op] = compiled_kernel
+        except Exception as e:
+            self.compiled_kernels[op] = self._make_error_func(str(e))
 
     def test_kernel_correctness(
         self, op, kernel_code: str, test_cases: List, attempt: int = 1
@@ -208,6 +220,7 @@ import torch.nn.functional as F
             total_count = 0
 
             for test in test_cases:
+                total_count += 1
                 try:
                     args = test.args
                     kwargs = test.kwargs
@@ -220,7 +233,7 @@ import torch.nn.functional as F
 
                     kernel_result = compiled_kernel(*args, **kwargs)
 
-                    torch.testing.assert_close(ref_result, kernel_result, equal_nan=True)
+                    _allclose(ref_result, kernel_result)
                     correct_count += 1
                     logger.debug(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
 
@@ -243,11 +256,8 @@ import torch.nn.functional as F
                     if "kwargs" in locals():
                         del kwargs
 
-                total_count += 1
-
             is_correct = correct_count == total_count and total_count > 0
-            if not is_correct:
-                feedback_info["summary"] = f"{correct_count}/{total_count} tests passed"
+            feedback_info["summary"] = f"{correct_count}/{total_count} tests passed"
 
             return is_correct, feedback_info
 
