@@ -68,6 +68,7 @@ class OperatorSchema:
     is_functional: bool = False
     is_out_variant: bool = False
     is_inplace: bool = False
+    signature: Optional[str] = None
 
 
 class PyTorchOpMapper:
@@ -126,6 +127,7 @@ class PyTorchOpMapper:
         info = OperatorSchema(name=base_name, overload=overload, full_name=op_name)
 
         schema_str = str(op_obj._schema)
+        info.signature = schema_str
 
         info.is_inplace = base_name.endswith("_") or "!" in schema_str
         info.is_out_variant = "out=" in schema_str or "!" in schema_str

@@ -19,7 +19,6 @@ This script creates a detailed CSV containing:
 import csv
 import argparse
 from BackendBench import PyTorchOpMapper
-import torch
 
 
 def generate_op_mappings_csv(output_file="pytorch_op_mappings.csv"):
@@ -43,21 +42,6 @@ def generate_op_mappings_csv(output_file="pytorch_op_mappings.csv"):
 
     # Generate CSV rows
     for schema in all_ops:
-        signature = ""
-        if "." in schema.full_name:
-            base_name, overload = schema.full_name.split(".", 1)
-            if hasattr(torch.ops.aten, base_name):
-                base_op = getattr(torch.ops.aten, base_name)
-                if hasattr(base_op, overload):
-                    op = getattr(base_op, overload)
-                    if hasattr(op, "_schema"):
-                        signature = str(op._schema)
-        else:
-            if hasattr(torch.ops.aten, schema.full_name):
-                op = getattr(torch.ops.aten, schema.full_name)
-                if hasattr(op, "_schema"):
-                    signature = str(op._schema)
-
         csv_data.append(
             {
                 "operator": schema.full_name,
@@ -68,7 +52,7 @@ def generate_op_mappings_csv(output_file="pytorch_op_mappings.csv"):
                 "is_functional": "Yes" if schema.is_functional else "No",
                 "is_inplace": "Yes" if schema.is_inplace else "No",
                 "is_out_variant": "Yes" if schema.is_out_variant else "No",
-                "signature": signature,
+                "signature": schema.signature or "",
             }
         )
 
@@ -116,20 +100,8 @@ def query_operator(op_name):
         print(f"  Is functional: {schema.is_functional}")
         print(f"  Is in-place: {schema.is_inplace}")
         print(f"  Is out variant: {schema.is_out_variant}")
-
-        if "." in schema.full_name:
-            base_name, overload = schema.full_name.split(".", 1)
-            if hasattr(torch.ops.aten, base_name):
-                base_op = getattr(torch.ops.aten, base_name)
-                if hasattr(base_op, overload):
-                    op = getattr(base_op, overload)
-                    if hasattr(op, "_schema"):
-                        print(f"  Signature: {op._schema}")
-        else:
-            if hasattr(torch.ops.aten, schema.full_name):
-                op = getattr(torch.ops.aten, schema.full_name)
-                if hasattr(op, "_schema"):
-                    print(f"  Signature: {op._schema}")
+        if schema.signature:
+            print(f"  Signature: {schema.signature}")
     else:
         print(f"\nOperator '{op_name}' not found.")
 
