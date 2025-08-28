@@ -23,6 +23,7 @@ from BackendBench.suite import (
     SmokeTestSuite,
     TorchBenchTestSuite,
 )
+import sys
 
 logger = logging.getLogger(__name__)
 
@@ -315,14 +316,10 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
-    # Calculate metrics from verbose results if available, otherwise from the collected lists
-    if verbose_results:
-        mean_correctness, geomean_perf, perf_at_p_score = eval.calculate_metrics(verbose_results, p)
-    else:
-        # Fallback to original calculation if no verbose results
-        mean_correctness = torch.tensor(overall_correctness).float().mean().item()
-        geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
-        perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
+    # @todo: We should just calculate these in a seperate function from verbose_results
+    mean_correctness = torch.tensor(overall_correctness).float().mean().item()
+    geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+    perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
 
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
@@ -330,13 +327,10 @@ def cli(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
 
-    # Construct the command string for the README
-    import sys
-
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
     # Save results if not disabled
-    if not disable_output_logs and verbose_results:
+    if not disable_output_logs:
         eval.save_results(
             verbose_results,
             log_dir,
@@ -347,17 +341,6 @@ def cli(
             p=p,
         )
         print(f"Results saved to: {log_dir}")
-    else:
-        # Even if output logs are disabled, save the README with summary
-        eval.save_readme(
-            output_path=log_dir,
-            command=command,
-            mean_correctness=mean_correctness,
-            geomean_perf=geomean_perf,
-            perf_at_p_score=perf_at_p_score,
-            p=p,
-        )
-        print(f"README saved to: {log_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
