@@ -109,21 +109,24 @@ class PyTorchOpMapper:
         self._initialize_mappings()
 
     def _get_all_aten_ops(self) -> List[Tuple[str, object]]:
-        """Get all operations from torch.ops.aten"""
+        """Get all operations from torch.ops.aten
+
+        TODO: Fix edge cases not discovered: _to_sparse, allclose, equal, geqrf, histogram, put
+        """
         all_ops = []
 
         for attr_name in dir(torch.ops.aten):
-            if attr_name.startswith("_"):
-                continue
-
+            # Don't skip private operators - they're used in evaluation suites
             attr = getattr(torch.ops.aten, attr_name, None)
             if not attr:
                 continue
 
             if hasattr(attr, "_qualified_op_name"):
+                # Add base operator if it has a default overload
                 if hasattr(attr, "default") and hasattr(attr.default, "_schema"):
                     all_ops.append((attr_name, attr.default))
 
+                # Add all valid overloads
                 for overload_name in dir(attr):
                     if overload_name.startswith("_") or overload_name in ["op", "overloads"]:
                         continue
@@ -131,7 +134,21 @@ class PyTorchOpMapper:
                     if overload and hasattr(overload, "_schema"):
                         full_name = f"{attr_name}.{overload_name}"
                         all_ops.append((full_name, overload))
+
+                # If no default overload was found, try to add the base operator
+                # by finding the first valid overload to represent it
+                if not hasattr(attr, "default") or not hasattr(attr.default, "_schema"):
+                    for overload_name in dir(attr):
+                        if overload_name.startswith("_") or overload_name in ["op", "overloads"]:
+                            continue
+                        overload = getattr(attr, overload_name, None)
+                        if overload and hasattr(overload, "_schema"):
+                            # Add base name mapped to first valid overload
+                            all_ops.append((attr_name, overload))
+                            break
+
             elif hasattr(attr, "_schema"):
+                # Direct schema operators (rare case)
                 all_ops.append((attr_name, attr))
 
         return all_ops
