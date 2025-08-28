@@ -14,7 +14,7 @@ from BackendBench.data_loaders import (
     load_ops_from_source,
     op_list_to_benchmark_dict,
 )
-from BackendBench.scripts.dataset_filters import SKIP_OPERATORS
+from BackendBench.op_categories import UNSUPPORTED_OPERATORS
 from BackendBench.utils import deserialize_args
 
 # for details on the dataset read this:
@@ -57,11 +57,12 @@ class TorchBenchOpTest:
 
 
 class TorchBenchTestSuite:
-    def __init__(self, name, filename=None, filter=None, topn=None):
+    def __init__(
+        self, name, filename=None, filter=None, topn=None, check_overhead_dominated_ops=False
+    ):
         self.name = name
         self.topn = topn
 
-        # Use default URL if no filename provided
         if filename is None:
             filename = DEFAULT_HUGGINGFACE_URL
 
@@ -71,6 +72,9 @@ class TorchBenchTestSuite:
             format="auto",  # Auto-detect based on file extension
             filter=filter,
         )
+        if check_overhead_dominated_ops:
+            # Only include ops which are overhead dominated (this is useful as a performance canary)
+            ops_list = [op for op in ops_list if op.get("is_overhead_dominated_op", False)]
 
         # Convert to dictionary format using utility function
         self.optests = op_list_to_benchmark_dict(ops_list)
@@ -81,6 +85,6 @@ class TorchBenchTestSuite:
 
     def __iter__(self):
         for op, inputs in self.optests.items():
-            if any(s in op for s in SKIP_OPERATORS):
+            if any(s in op for s in UNSUPPORTED_OPERATORS):
                 continue
             yield TorchBenchOpTest(op, inputs, self.topn)

@@ -17,11 +17,11 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    SmokeTestSuite,
-    OpInfoTestSuite,
     DEFAULT_HUGGINGFACE_URL,
-    TorchBenchTestSuite,
     FactoTestSuite,
+    OpInfoTestSuite,
+    SmokeTestSuite,
+    TorchBenchTestSuite,
 )
 
 logger = logging.getLogger(__name__)
@@ -109,16 +109,38 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
-    "--output-dir",
+    "--log-dir",
     default=None,
     type=str,
-    help="Path for outputing logs. If None it will be the same as op-directory (recommended)",
+    help="Directory for output logs. Default: backendbench_output_{timestamp} (or ops-directory for directory backend)",
+)
+@click.option(
+    "--disable-output-logs",
+    default=False,
+    is_flag=True,
+    help="Disable verbose logging of individual test results",
 )
 @click.option(
     "--num-workers",
     default=None,
     type=int,
     help="Number of workers to use for multiprocessing, default to None to disable multiprocessing",
+)
+@click.option(
+    "--check-overhead-dominated-ops",
+    default=False,
+    is_flag=True,
+    help="Run tests for ops that are dominated by overhead ONLY",
+)
+@click.option(
+    "--p",
+    default=1.0,
+    type=float,
+    help=(
+        "Performance score threshold for perf@p score calculation"
+        "Note: Increasing this value makes the threshold more stringent, "
+        "requiring a higher speedup to meet the performance criteria."
+    ),
 )
 def cli(
     log_level,
@@ -132,13 +154,23 @@ def cli(
     kernel_agent_max_rounds,
     torchbench_data_path,
     ops_directory,
-    output_dir,
+    log_dir,
+    disable_output_logs,
     num_workers,
+    check_overhead_dominated_ops,
+    p,
 ):
+    if suite != "torchbench":
+        if topn_inputs is not None:
+            raise ValueError("topn-inputs is only supported for torchbench suite")
+        if check_overhead_dominated_ops:
+            raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
+
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
 
+    backend_name = backend
     if backend == "llm-relay":
         backend = backends.LLMRelayBackend(model=llm_relay_model)
     else:
@@ -163,6 +195,7 @@ def cli(
             torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
+            check_overhead_dominated_ops=check_overhead_dominated_ops,
         ),
         "facto": lambda: FactoTestSuite(
             "facto_cuda_bfloat16",
@@ -172,8 +205,16 @@ def cli(
         ),
     }[suite]()
 
-    if not output_dir:
-        output_dir = ops_directory
+    # Determine log directory
+    import datetime
+    if not log_dir:
+        if backend_name == "directory":
+            # For directory backend, default to ops_directory
+            log_dir = ops_directory
+        else:
+            # For other backends, create timestamped directory
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_dir = f"backendbench_output_{timestamp}"
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
@@ -212,7 +253,14 @@ def cli(
                 test.correctness_tests,
                 test.performance_tests,
             )
-            overall_correctness.append(correctness)
+
+            overall_correctness.append(
+                all(
+                    data["correctness_score"]
+                    for data in op_test_data.values()
+                    if "correctness_score" in data.keys()
+                )
+            )
             overall_performance.append(perf)
 
             # Convert dict to list entries with op_name
@@ -234,7 +282,10 @@ def cli(
                 logger.debug(test.op)
 
                 task_id = evaluator.submit_task(
-                    test.op, backend[test.op], test.correctness_tests, test.performance_tests
+                    test.op,
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
                 )
                 op_name = getattr(test.op, "__name__", str(test.op))
                 task_to_op_name[task_id] = op_name
@@ -246,7 +297,11 @@ def cli(
             results = evaluator.get_results()
 
         for result in results:
-            correctness_score = result.correctness_score
+            correctness_score = all(
+                data["correctness_score"]
+                for data in result.test_data.values()
+                if "correctness_score" in data.keys()
+            )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
@@ -259,15 +314,19 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
-    mean_correctness = torch.tensor(overall_correctness).mean().item()
+    mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
+    perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
+    print(
+        f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
+    )
 
-    # Save verbose results if output path is specified
-    if output_dir and verbose_results:
-        eval.save_verbose_results(verbose_results, output_dir)
-        print(f"Detailed results saved to: {output_dir}")
+    # Save results if not disabled
+    if not disable_output_logs and verbose_results:
+        eval.save_results(verbose_results, log_dir)
+        print(f"Results saved to: {log_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
