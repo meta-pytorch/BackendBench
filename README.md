@@ -27,7 +27,7 @@ python -m BackendBench.scripts.generate_operator_coverage_csv
 python -m BackendBench.scripts.setup_operator_directories
 ```
 
-3. **Implement kernels** in each directory following the required format
+3. **Implement kernels** in each directory you'll see an empty op implementation. Please get your LLM to fill it out!
 
 4. **Test your implementations**:
 ```bash
