@@ -222,6 +222,9 @@ def compute_errors(ref, res, eps=1e-10):
             max_abs_error = max(max_abs_error, abs_err)
             max_rel_error = max(max_rel_error, rel_err)
 
+        if max_abs_error == -math.inf:
+            return None, None
+
         return max_abs_error, max_rel_error
     else:
         return None, None
