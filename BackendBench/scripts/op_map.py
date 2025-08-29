@@ -1140,50 +1140,51 @@ canonical:zeros.names func:zeros.names out:zeros.names_out inplace: view:
 """
 
 op_map_data = op_map_data.strip()
-op_map_lines = [line.strip() for line in op_map_data.split('\n')]
+op_map_lines = [line.strip() for line in op_map_data.split("\n")]
 
 op_map = {}
 base_map = {}
 base_map_sets = {}
 for line in op_map_lines:
-    canonical, func, out, inplace, view = line.split(' ')
-    canonical = canonical.replace('canonical:', '')
-    func = func.replace('func:', '')
-    out = out.replace('out:', '')
-    inplace = inplace.replace('inplace:', '')
-    view = view.replace('view:', '')
+    canonical, func, out, inplace, view = line.split(" ")
+    canonical = canonical.replace("canonical:", "")
+    func = func.replace("func:", "")
+    out = out.replace("out:", "")
+    inplace = inplace.replace("inplace:", "")
+    view = view.replace("view:", "")
     variants = [func, out, inplace, view]
     if canonical not in variants:
         assert canonical in [
-            '_native_batch_norm_legit.default',
-            '_batch_norm_with_update.default',
+            "_native_batch_norm_legit.default",
+            "_batch_norm_with_update.default",
         ]
         variants.append(canonical)
     for variant in variants:
         if variant != "":
             assert variant not in op_map
             op_map[variant] = {
-                'op': variant,
-                'canonical': canonical,
-                'func': func,
-                'inplace': inplace,
-                'out': out,
-                'view': view,
-                'is_func': variant == func,
-                'is_inplace': variant == inplace,
-                'is_out': variant == out,
-                'is_view': variant == view,
+                "op": variant,
+                "canonical": canonical,
+                "func": func,
+                "inplace": inplace,
+                "out": out,
+                "view": view,
+                "is_func": variant == func,
+                "is_inplace": variant == inplace,
+                "is_out": variant == out,
+                "is_view": variant == view,
             }
-            base_name = variant.split('.')[0]
+            base_name = variant.split(".")[0]
             if base_name not in base_map_sets:
                 base_map_sets[base_name] = set()
             base_map_sets[base_name].add(variant)
 for base_name in base_map_sets:
     base_map[base_name] = sorted(list(base_map_sets[base_name]))
 
+
 def query(op_name):
     entries = []
-    if '.' in op_name:
+    if "." in op_name:
         if op_name in op_map:
             entry = op_map[op_name]
             entries.append(entry)
@@ -1193,6 +1194,7 @@ def query(op_name):
                 entry = op_map[variant]
                 entries.append(entry)
     return entries
+
 
 def print_entry(entry):
     print(f"Op: {entry['op']}")
@@ -1205,6 +1207,7 @@ def print_entry(entry):
     print(f"  Is out variant: {entry['is_out']}")
     print(f"  Is inplace variant: {entry['is_inplace']}")
     print(f"  Is view variant: {entry['is_view']}")
+
 
 def main():
     import sys
