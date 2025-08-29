@@ -17,16 +17,19 @@ import argparse
 from pathlib import Path
 from collections import defaultdict
 
-from ..op_mapper import PyTorchOpMapper
+from .op_map import query
 
 
-def get_folder_name_for_operator(op_name: str, mapper: PyTorchOpMapper) -> str:
-    """Get the proper folder name for an operator using our improved mapping system."""
+def get_folder_name_for_operator(op_name: str) -> str:
+    """Get the proper folder name for an operator using authoritative op_map query."""
     clean_name = op_name[6:] if op_name.startswith("aten::") else op_name
-
-    schema = mapper.get_operator_schema(clean_name)
-    if schema and schema.folder_name:
-        return schema.folder_name
+    
+    results = query(clean_name)
+    if results:
+        canonical = results[0]['canonical']
+        if '.' in canonical:
+            return canonical.split('.')[0]
+        return canonical
 
     print(
         f"WARNING: Could not map operator '{op_name}' to folder name - skipping directory creation"
@@ -37,8 +40,7 @@ def get_folder_name_for_operator(op_name: str, mapper: PyTorchOpMapper) -> str:
 def setup_operator_directories(base_dir: str = "generated_kernels", include_all: bool = False):
     """Set up directory structure for PyTorch operators."""
 
-    print("Initializing PyTorchOpMapper...")
-    mapper = PyTorchOpMapper()
+    print("Using authoritative op_map for operator mapping...")
 
     csv_path = "pytorch_operator_coverage.csv"
     if not os.path.exists(csv_path):
@@ -79,7 +81,7 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
 
     for op in operators:
         op_name = op["name"]
-        dir_name = get_folder_name_for_operator(op_name, mapper)
+        dir_name = get_folder_name_for_operator(op_name)
 
         if not dir_name:  # Skip if we couldn't clean the name
             print(f"Skipping operator with invalid name: {op_name}")
