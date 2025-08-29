@@ -17,7 +17,6 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    DEFAULT_HUGGINGFACE_URL,
     FactoTestSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
@@ -97,10 +96,10 @@ def setup_logging(log_level):
     help="Maximum refinement rounds per worker for KernelAgent backend",
 )
 @click.option(
-    "--torchbench-data-path",
-    default=DEFAULT_HUGGINGFACE_URL,
+    "--alternative-torchbench-data-path",
+    default=None,
     type=str,
-    help="Path to TorchBench operator data",
+    help="Internal testing flag for BackendBench development. Users should not use this.",
 )
 @click.option(
     "--ops-directory",
@@ -109,10 +108,16 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
-    "--output-path",
+    "--log-dir",
     default=None,
     type=str,
-    help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+    help="Directory for output logs. Default: backendbench_output_{timestamp} (or ops-directory for directory backend)",
+)
+@click.option(
+    "--disable-output-logs",
+    default=False,
+    is_flag=True,
+    help="Disable verbose logging of individual test results",
 )
 @click.option(
     "--num-workers",
@@ -146,9 +151,10 @@ def cli(
     llm_relay_model,
     kernel_agent_workers,
     kernel_agent_max_rounds,
-    torchbench_data_path,
+    alternative_torchbench_data_path,
     ops_directory,
-    output_path,
+    log_dir,
+    disable_output_logs,
     num_workers,
     check_overhead_dominated_ops,
     p,
@@ -163,6 +169,7 @@ def cli(
     if ops:
         ops = ops.split(",")
 
+    backend_name = backend
     if backend == "llm-relay":
         backend = backends.LLMRelayBackend(model=llm_relay_model)
     else:
@@ -184,7 +191,7 @@ def cli(
         ),
         "torchbench": lambda: TorchBenchTestSuite(
             "torchbench",
-            torchbench_data_path,
+            alternative_torchbench_data_path,
             filter=ops,
             topn=topn_inputs,
             check_overhead_dominated_ops=check_overhead_dominated_ops,
@@ -196,6 +203,18 @@ def cli(
             filter=ops,
         ),
     }[suite]()
+
+    # Determine log directory
+    import datetime
+
+    if not log_dir:
+        if backend_name == "directory":
+            # For directory backend, default to ops_directory
+            log_dir = ops_directory
+        else:
+            # For other backends, create timestamped directory
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_dir = f"backendbench_output_{timestamp}"
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
@@ -228,7 +247,7 @@ def cli(
 
             logger.debug(test.op)
 
-            correctness, perf, op_test_data = eval.eval_one_op(
+            _, perf, op_test_data = eval.eval_one_op(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
@@ -237,9 +256,9 @@ def cli(
 
             overall_correctness.append(
                 all(
-                    data["correctness_score"]
+                    data["is_correct"]
                     for data in op_test_data.values()
-                    if "correctness_score" in data.keys()
+                    if "is_correct" in data.keys()
                 )
             )
             overall_performance.append(perf)
@@ -279,9 +298,9 @@ def cli(
 
         for result in results:
             correctness_score = all(
-                data["correctness_score"]
+                data["is_correct"]
                 for data in result.test_data.values()
-                if "correctness_score" in data.keys()
+                if "is_correct" in data.keys()
             )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
@@ -295,19 +314,31 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
+    # @todo: We should just calculate these in a seperate function from verbose_results
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
+
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
 
-    # Save verbose results if output path is specified
-    if output_path and verbose_results:
-        eval.save_verbose_results(verbose_results, output_path)
-        print(f"Detailed results saved to: {output_path}")
+    command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
+
+    # Save results if not disabled
+    if not disable_output_logs:
+        eval.save_results(
+            verbose_results,
+            log_dir,
+            command=command,
+            mean_correctness=mean_correctness,
+            geomean_perf=geomean_perf,
+            perf_at_p_score=perf_at_p_score,
+            p=p,
+        )
+        print(f"Results saved to: {log_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
@@ -430,7 +461,6 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
     try:
         successful_ops = 0
         total_ops = 0
-
         for op_test in suite:
             op = op_test.op
             total_ops += 1
@@ -466,36 +496,25 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                 max_attempts=max_attempts,
                 feedback_callback=feedback_callback,
             )
-
+            llm_relay_backend.add_kernel(op, kernel_code, op_name)
             if success:
-                try:
-                    # Add the successful kernel to the backend
-                    llm_relay_backend.add_kernel(op, kernel_code, op_name)
-                    print(
-                        f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
-                    )
-                    successful_ops += 1
+                print(
+                    f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
+                )
+                successful_ops += 1
 
-                    # Save summary of this operation
-                    summary_file = os.path.join(
-                        llm_relay_backend.kernels_dir, f"{op_name}_summary.txt"
-                    )
-                    with open(summary_file, "w") as f:
-                        f.write(f"Operation: {op_name}\n")
-                        f.write(f"Full op: {op_str}\n")
-                        f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
-                        f.write("Final status: Success\n")
-                        f.write(f"Model: {llm_client.model}\n")
-                        f.write(f"Server: {llm_client.server_url}\n")
-                        f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
-
-                except Exception as e:
-                    print(f"✗ Kernel passed tests but failed final compilation for {op_name}: {e}")
-                    success = False
+                # Save summary of this operation
+                summary_file = os.path.join(llm_relay_backend.kernels_dir, f"{op_name}_summary.txt")
+                with open(summary_file, "w") as f:
+                    f.write(f"Operation: {op_name}\n")
+                    f.write(f"Full op: {op_str}\n")
+                    f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+                    f.write("Final status: Success\n")
+                    f.write(f"Model: {llm_client.model}\n")
+                    f.write(f"Server: {llm_client.server_url}\n")
+                    f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
 
             if not success:
-                print(f"✗ Skipping {op_name} - failed all {attempts_used} attempts")
-
                 # Save summary of this operation
                 summary_file = os.path.join(llm_relay_backend.kernels_dir, f"{op_name}_summary.txt")
                 with open(summary_file, "w") as f:
@@ -508,40 +527,32 @@ def setup_llm_relay_backend(llm_relay_backend, llm_client, suite, max_attempts=5
                     f.write(f"Last kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
                 # Continue with other operations
 
+        failed_ops = total_ops - successful_ops
+        success_rate = f"{successful_ops / total_ops * 100:.1f}%" if total_ops > 0 else "0.0%"
+        separator_line = "=" * 60
+        # Console output format
+        output_lines = [
+            f"\n{separator_line}",
+            "LLM RELAY BACKEND SETUP SUMMARY",
+            separator_line,
+            f"Total operations attempted: {total_ops}",
+            f"Successfully created correct kernels for: {successful_ops} ops",
+            f"Failed to create correct kernels for: {failed_ops} ops",
+            f"Success rate: {success_rate}",
+            f"Model used: {llm_client.model}",
+            f"Server: {llm_client.server_url}",
+            f"Generated kernels saved to: {llm_relay_backend.kernels_dir}",
+            f"Backend: LLM Relay (using local plugboard server)\n{separator_line}\n",
+        ]
+
         # Print summary
-        print(f"\n{'=' * 60}")
-        print("LLM RELAY BACKEND SETUP SUMMARY")
-        print(f"{'=' * 60}")
-        print(f"Total operations: {total_ops}")
-        print(f"Successful: {successful_ops}")
-        print(f"Failed: {total_ops - successful_ops}")
-        print(
-            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
-            if total_ops > 0
-            else "Success rate: 0.0%"
-        )
-        print(f"Model used: {llm_client.model}")
-        print(f"Server: {llm_client.server_url}")
-        print(f"Generated kernels saved to: {llm_relay_backend.kernels_dir}")
-        print(f"{'=' * 60}\n")
+        for line in output_lines:
+            print(line)
 
         # Save overall summary
         overall_summary_file = os.path.join(llm_relay_backend.kernels_dir, "OVERALL_SUMMARY.txt")
         with open(overall_summary_file, "w") as f:
-            f.write("LLM Relay Backend Generation Summary\n")
-            f.write(f"{'=' * 40}\n")
-            f.write(f"Total operations: {total_ops}\n")
-            f.write(f"Successful: {successful_ops}\n")
-            f.write(f"Failed: {total_ops - successful_ops}\n")
-            f.write(
-                f"Success rate: {successful_ops / total_ops * 100:.1f}%\n"
-                if total_ops > 0
-                else "Success rate: 0.0%\n"
-            )
-            f.write(f"Max attempts per operation: {max_attempts}\n")
-            f.write(f"Model: {llm_client.model}\n")
-            f.write(f"Server: {llm_client.server_url}\n")
-            f.write("Backend: LLM Relay (using local plugboard server)\n")
+            f.write("\n".join(output_lines))
 
         return llm_relay_backend
 
@@ -641,12 +652,12 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
         print("KERNEL AGENT BACKEND SETUP SUMMARY")
         print(f"{'=' * 80}")
         print(f"Total operations: {total_ops}")
-        print(f"Successful: {successful_ops}")
-        print(f"Failed: {total_ops - successful_ops}")
+        print(f"Successfully generated kernels for {successful_ops} ops")
+        print(f"Failed to generate kernels for {total_ops - successful_ops} ops")
         print(
-            f"Success rate: {successful_ops / total_ops * 100:.1f}%"
+            f"Successful Kernel Generation rate: {successful_ops / total_ops * 100:.1f}%"
             if total_ops > 0
-            else "Success rate: 0.0%"
+            else "Successful Kernel Generation rate: 0.0%"
         )
         print(f"Generated kernels saved to: {kernel_agent_backend.kernels_dir}")
         print("Configuration used:")

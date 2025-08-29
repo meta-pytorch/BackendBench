@@ -59,7 +59,7 @@ class TestFactoSuite:
                 test.correctness_tests,
                 test.performance_tests,
             )
-            is_correct = all(data["correctness_score"] for data in op_test_data.values())
+            is_correct = all(data["is_correct"] for data in op_test_data.values())
             overall_correctness.append(is_correct)
 
             # Individual test assertions

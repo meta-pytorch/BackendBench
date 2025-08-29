@@ -5,7 +5,24 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Load aten inputs from serialized txt files and parquet files.
+Test suite that runs real-world PyTorch operation traces from serialized data files.
+
+Data Source:
+- Dataset: https://huggingface.co/datasets/GPUMODE/backendbench_tests
+- Configuration: Set in data_loaders.py:
+  - HUGGINGFACE_REPO: HF repository name
+  - TORCHBENCH_SUITE_FILE: Specific file name in the repo
+  - TORCHBENCH_SUITE_HF_COMMIT: Git commit hash for reproducibility
+
+Updating the Test Set:
+1. Choose a test file from https://huggingface.co/datasets/GPUMODE/backendbench_tests (it will likely be the same)
+2. Update TORCHBENCH_SUITE_FILE in data_loaders.py with the file name (it will likely be the same)
+3. Get the current commit hash:
+   python -c "from huggingface_hub import HfApi; print(HfApi().dataset_info('GPUMODE/backendbench_tests', revision='main').sha)"
+4. Update TORCHBENCH_SUITE_HF_COMMIT in data_loaders.py with the hash
+
+Creating New Test Sets:
+Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFace.
 """
 
 import torch  # noqa: F401
@@ -16,10 +33,6 @@ from BackendBench.data_loaders import (
 )
 from BackendBench.op_categories import UNSUPPORTED_OPERATORS
 from BackendBench.utils import deserialize_args
-
-# for details on the dataset read this:
-# https://huggingface.co/datasets/GPUMODE/huggingface_op_trace
-DEFAULT_HUGGINGFACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/backend_bench_problems.parquet"
 
 
 class TorchBenchTest:
@@ -58,14 +71,15 @@ class TorchBenchOpTest:
 
 class TorchBenchTestSuite:
     def __init__(
-        self, name, filename=None, filter=None, topn=None, check_overhead_dominated_ops=False
+        self,
+        name,
+        filename=None,
+        filter=None,
+        topn=None,
+        check_overhead_dominated_ops=False,
     ):
         self.name = name
         self.topn = topn
-
-        if filename is None:
-            filename = DEFAULT_HUGGINGFACE_URL
-
         # Load operations using the shared data loader
         ops_list = load_ops_from_source(
             source=filename,

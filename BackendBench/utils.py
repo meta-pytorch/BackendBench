@@ -47,9 +47,11 @@ def uses_cuda_stream(func) -> bool:
     """
     try:
         source = inspect.getsource(func)
-    except (TypeError, OSError):
+        tree = ast.parse(textwrap.dedent(source))
+    except (TypeError, OSError, IndentationError, SyntaxError):
         # Handle builtin functions, OpOverload objects, and other callables
         # without source code. These cannot create CUDA streams.
+        # Also if the code doesn't compile, then there is not a CUDA stream as the code just isn't runnable
         return False
 
     # Check for stream creation patterns
@@ -78,7 +80,6 @@ def uses_cuda_stream(func) -> bool:
                 self.found = True
             self.generic_visit(node)
 
-    tree = ast.parse(textwrap.dedent(source))
     finder = StreamCreationFinder()
     finder.visit(tree)
     return finder.found
