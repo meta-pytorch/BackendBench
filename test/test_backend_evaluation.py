@@ -107,7 +107,7 @@ class TestBackendEvaluation(unittest.TestCase):
                 try:
                     impl = backend[op]
                     test = Test(*arg_generators)
-                    correctness = eval_correctness(op, impl, [test])
+                    correctness, _ = eval_correctness(op, impl, [test])
 
                     total_tested += 1
                     if correctness == 0.0:
@@ -180,12 +180,16 @@ class TestBackendEvaluation(unittest.TestCase):
             impl = backend[test_op]
             test = Test(lambda: torch.tensor([1, 2, 3]), lambda: torch.tensor([2, 3, 4]))
 
-            correctness, performance, _ = eval_one_op(test_op, impl, [test], [test])
+            correctness, performance, correctness_results, performance_results = eval_one_op(
+                test_op, impl, [test], [test]
+            )
 
             print(f"   Operation: {test_op}")
             print(f"   Correctness: {correctness}")
             print(f"   Performance: {performance}")
 
+            assert len(correctness_results) == 1
+            assert len(performance_results) == 1
             # Watermarked implementation should fail correctness
             self.assertEqual(correctness, 0.0, "Watermarked implementation should fail correctness")
 

@@ -238,7 +238,8 @@ def cli(
 
     overall_correctness = []
     overall_performance = []
-    verbose_results = []
+    all_correctness_results = []
+    all_performance_results = []
 
     if num_workers is None:
         for test in suite:
@@ -247,28 +248,17 @@ def cli(
 
             logger.debug(test.op)
 
-            _, perf, op_test_data = eval.eval_one_op(
+            _, perf, correctness_results, performance_results = eval.eval_one_op(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
             )
 
-            overall_correctness.append(
-                all(
-                    data["is_correct"]
-                    for data in op_test_data.values()
-                    if "is_correct" in data.keys()
-                )
-            )
+            overall_correctness.append(all(result.is_correct for result in correctness_results))
             overall_performance.append(perf)
-
-            # Convert dict to list entries with op_name
-            op_name = getattr(test.op, "__name__", str(test.op))
-            for args_str, data in op_test_data.items():
-                entry = {"op_name": op_name, "args": args_str}
-                entry.update(data)
-                verbose_results.append(entry)
+            all_correctness_results.extend(correctness_results)
+            all_performance_results.extend(performance_results)
 
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
@@ -298,21 +288,13 @@ def cli(
 
         for result in results:
             correctness_score = all(
-                data["is_correct"]
-                for data in result.test_data.values()
-                if "is_correct" in data.keys()
+                correctness_result.is_correct for correctness_result in result.correctness_results
             )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
             overall_performance.append(performance_score)
-
-            # Handle verbose data if present
-            if result.test_data and result.task_id in task_to_op_name:
-                op_name = task_to_op_name[result.task_id]
-                for args_str, data in result.test_data.items():
-                    entry = {"op_name": op_name, "args": args_str}
-                    entry.update(data)
-                    verbose_results.append(entry)
+            all_correctness_results.extend(result.correctness_results)
+            all_performance_results.extend(result.performance_results)
 
     # @todo: We should just calculate these in a seperate function from verbose_results
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
@@ -330,7 +312,8 @@ def cli(
     # Save results if not disabled
     if not disable_output_logs:
         eval.save_results(
-            verbose_results,
+            all_correctness_results,
+            all_performance_results,
             log_dir,
             command=command,
             mean_correctness=mean_correctness,

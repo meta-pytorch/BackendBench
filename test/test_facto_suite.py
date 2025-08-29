@@ -53,13 +53,15 @@ class TestFactoSuite:
                         assert value.numel() > 0, f"Tensor kwarg is empty for {test.op}"
 
             # Evaluate the operation
-            correctness, _, op_test_data = eval_one_op(
+            correctness, _, correctness_results, _ = eval_one_op(
                 test.op,
                 backend[test.op],  # AtenBackend returns the original op
                 test.correctness_tests,
                 test.performance_tests,
             )
-            is_correct = all(data["is_correct"] for data in op_test_data.values())
+
+            assert len(correctness_results) == len(test.correctness_tests)
+            is_correct = all(result.is_correct for result in correctness_results)
             overall_correctness.append(is_correct)
 
             # Individual test assertions
