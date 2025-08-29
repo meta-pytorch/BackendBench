@@ -1,0 +1,2890 @@
+[
+  {
+    "op_name": "_adaptive_avg_pool2d.default",
+    "args": "((T([64, 512, 7, 7], f16), [7, 7],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_adaptive_avg_pool2d.default",
+    "args": "((T([64, 512, 7, 7], f16), [7, 7],), {})",
+    "speedup": 0.9998403399677521,
+    "benchmark_time_ms": 0.08271812374268345,
+    "reference_time_ms": 0.08273133262991905,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_adaptive_avg_pool2d_backward.default",
+    "args": "((T([64, 512, 7, 7], f16), T([64, 512, 7, 7], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_adaptive_avg_pool2d_backward.default",
+    "args": "((T([64, 512, 7, 7], f16), T([64, 512, 7, 7], f16),), {})",
+    "speedup": 1.0004360328943553,
+    "benchmark_time_ms": 0.09002423697191736,
+    "reference_time_ms": 0.08998500055167824,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_cudnn_rnn.default",
+    "args": "((T([64, 50, 256], f16), [T([3072, 256], f16), T([3072, 768], f16), T([3072], f16), T([3072], f16)], 4, None, T([1, 64, 768], f16), T([1, 64, 768], f16), 2, 768, 0, 1, True, 0.0, True, False, [], None,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_cudnn_rnn.default",
+    "args": "((T([64, 50, 256], f16), [T([3072, 256], f16), T([3072, 768], f16), T([3072], f16), T([3072], f16)], 4, None, T([1, 64, 768], f16), T([1, 64, 768], f16), 2, 768, 0, 1, True, 0.0, True, False, [], None,), {})",
+    "speedup": null,
+    "benchmark_time_ms": null,
+    "reference_time_ms": 0.380301764575384,
+    "error_msg": "\nException raised for _cudnn_rnn.default:\n    args: ((T([64, 50, 256], f16), [T([3072, 256], f16), T([3072, 768], f16), T([3072], f16), T([3072], f16)], 4, None, T([1, 64, 768], f16), T([1, 64, 768], f16), 2, 768, 0, 1, True, 0.0, True, False, [], None,), {})\n    exc: Reference and result tensors are not close: max absolute error 254.0, max relative error 1.0\n",
+    "successfully_ran": false,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_log_softmax.default",
+    "args": "((T([8192, 50265], f16), 1, False,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_log_softmax.default",
+    "args": "((T([8192, 50265], f16), 1, False,), {})",
+    "speedup": 1.002306326326162,
+    "benchmark_time_ms": 0.705829841276956,
+    "reference_time_ms": 0.7042057131017957,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_log_softmax_backward_data.default",
+    "args": "((T([8192, 50265], f16), T([8192, 50265], f16), 1, torch.float16,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": NaN,
+    "max_rel_error": NaN,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_log_softmax_backward_data.default",
+    "args": "((T([8192, 50265], f16), T([8192, 50265], f16), 1, torch.float16,), {})",
+    "speedup": 1.0006281501577559,
+    "benchmark_time_ms": 1.0716602802276611,
+    "reference_time_ms": 1.0709875392359356,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_softmax.default",
+    "args": "((T([256, 1024, 1024], f16), -1, False,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_softmax.default",
+    "args": "((T([256, 1024, 1024], f16), -1, False,), {})",
+    "speedup": 0.9968927925593369,
+    "benchmark_time_ms": 0.45024189096625133,
+    "reference_time_ms": 0.451645246436519,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([256, 1024, 1024], f16), T([256, 1024, 1024], f16), -1, torch.float16,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([256, 1024, 1024], f16), T([256, 1024, 1024], f16), -1, torch.float16,), {})",
+    "speedup": 0.9997702400487053,
+    "benchmark_time_ms": 1.1466224208290194,
+    "reference_time_ms": 1.1468859292842724,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_sparse_coo_tensor_with_dims_and_tensors.default",
+    "args": "((1, 1, [965, 192], T([1, 54862], i64), T([54862, 192], f16),), {'dtype': torch.float16, 'layout': torch.sparse_coo, 'device': 'cuda', 'pin_memory': None})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": null,
+    "max_rel_error": null,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_sparse_coo_tensor_with_dims_and_tensors.default",
+    "args": "((1, 1, [965, 192], T([1, 54862], i64), T([54862, 192], f16),), {'dtype': torch.float16, 'layout': torch.sparse_coo, 'device': 'cuda', 'pin_memory': None})",
+    "speedup": 1.0001411369240878,
+    "benchmark_time_ms": 0.0014910225119309393,
+    "reference_time_ms": 0.0014908121032962873,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_to_copy.default",
+    "args": "((T([2, 1024, 12, 513], f32),), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda'})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_to_copy.default",
+    "args": "((T([2, 1024, 12, 513], f32),), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda'})",
+    "speedup": 0.9829626537544472,
+    "benchmark_time_ms": 0.03152860975964102,
+    "reference_time_ms": 0.0320750840728453,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "_unsafe_view.default",
+    "args": "((T([8192, 50265], f16), [64, 128, 50265],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "_unsafe_view.default",
+    "args": "((T([8192, 50265], f16), [64, 128, 50265],), {})",
+    "speedup": 0.9991656354956949,
+    "benchmark_time_ms": 0.0014922629581010259,
+    "reference_time_ms": 0.0014935090890718045,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "abs.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "abs.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "speedup": 0.9341641255320022,
+    "benchmark_time_ms": 0.008444606463836376,
+    "reference_time_ms": 0.00903974605000723,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "add.Scalar",
+    "args": "((T([100, 1], i64), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "add.Scalar",
+    "args": "((T([100, 1], i64), 1,), {})",
+    "speedup": 0.901030926137226,
+    "benchmark_time_ms": 0.004922332744862158,
+    "reference_time_ms": 0.005463000882738283,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "add.Tensor",
+    "args": "((T([256, 32, 32, 32, 32], f16, [66528, 63, 2079, 1, 0]), T([256, 32, 32, 32, 32], f16, [66528, 2079, 63, 0, 1]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "add.Tensor",
+    "args": "((T([256, 32, 32, 32, 32], f16, [66528, 63, 2079, 1, 0]), T([256, 32, 32, 32, 32], f16, [66528, 2079, 63, 0, 1]),), {})",
+    "speedup": 1.0001253929371792,
+    "benchmark_time_ms": 0.9021351254812562,
+    "reference_time_ms": 0.9020220182909824,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "add_.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), T([128, 256, 56, 56], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "add_.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), T([128, 256, 56, 56], f16),), {})",
+    "speedup": 0.9978339970501555,
+    "benchmark_time_ms": 0.20391343366031703,
+    "reference_time_ms": 0.20435606950969365,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "addcmul.default",
+    "args": "((T([1, 1, 384], f16), T([1, 1, 384], f16), T([128, 196, 384], f16, [75264, 1, 196]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "addcmul.default",
+    "args": "((T([1, 1, 384], f16), T([1, 1, 384], f16), T([128, 196, 384], f16, [75264, 1, 196]),), {})",
+    "speedup": 1.0143875763075527,
+    "benchmark_time_ms": 0.035781288597576635,
+    "reference_time_ms": 0.03527378433381768,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "addmm.default",
+    "args": "((T([64], f16), T([401536, 512], f16), T([512, 64], f16, [1, 512]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "addmm.default",
+    "args": "((T([64], f16), T([401536, 512], f16), T([512, 64], f16, [1, 512]),), {})",
+    "speedup": 1.001064488793631,
+    "benchmark_time_ms": 0.1678271840141162,
+    "reference_time_ms": 0.1676487238263365,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "any.default",
+    "args": "((T([64, 128, 512], b8),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "any.default",
+    "args": "((T([64, 128, 512], b8),), {})",
+    "speedup": 0.9974320490973294,
+    "benchmark_time_ms": 0.013669255068516567,
+    "reference_time_ms": 0.013704447416630705,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "as_strided_.default",
+    "args": "((T([64, 512, 1, 1], f16), [64, 512, 1, 1], [512, 1, 512, 512],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "as_strided_.default",
+    "args": "((T([64, 512, 1, 1], f16), [64, 512, 1, 1], [512, 1, 512, 512],), {})",
+    "speedup": 0.9980988948603935,
+    "benchmark_time_ms": 0.0014903930255778782,
+    "reference_time_ms": 0.001493231816258391,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([128, 256, 56, 56], f16), [2, 2], [2, 2], [0, 0], True, False,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "avg_pool2d.default",
+    "args": "((T([128, 256, 56, 56], f16), [2, 2], [2, 2], [0, 0], True, False,), {})",
+    "speedup": 1.000222530732008,
+    "benchmark_time_ms": 0.29665367942274984,
+    "reference_time_ms": 0.29658767954931514,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "avg_pool2d_backward.default",
+    "args": "((T([128, 256, 28, 28], f16), T([128, 256, 56, 56], f16), [2, 2], [2, 2], [0, 0], True, False, None,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "avg_pool2d_backward.default",
+    "args": "((T([128, 256, 28, 28], f16), T([128, 256, 56, 56], f16), [2, 2], [2, 2], [0, 0], True, False, None,), {})",
+    "speedup": 0.9998197811401062,
+    "benchmark_time_ms": 1.7988105562497985,
+    "reference_time_ms": 1.7991347942712173,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "bitwise_and.Tensor",
+    "args": "((T([5000], b8), T([5000], b8),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "bitwise_and.Tensor",
+    "args": "((T([5000], b8), T([5000], b8),), {})",
+    "speedup": 1.0805483354226448,
+    "benchmark_time_ms": 0.005938405797401767,
+    "reference_time_ms": 0.005495733603697629,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "bitwise_not.default",
+    "args": "((T([4, 1, 512, 512], b8),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "bitwise_not.default",
+    "args": "((T([4, 1, 512, 512], b8),), {})",
+    "speedup": 0.9810830871469484,
+    "benchmark_time_ms": 0.0059536000231111596,
+    "reference_time_ms": 0.006068395328702083,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "bitwise_xor.Tensor",
+    "args": "((T([6, 1], i64, [476, 1]), T([6, 476], i64),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "bitwise_xor.Tensor",
+    "args": "((T([6, 1], i64, [476, 1]), T([6, 476], i64),), {})",
+    "speedup": 1.0728260094815372,
+    "benchmark_time_ms": 0.006520566258396946,
+    "reference_time_ms": 0.006077934539961544,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "bmm.default",
+    "args": "((T([256, 32, 1024], f16), T([256, 1024, 1024], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "bmm.default",
+    "args": "((T([256, 32, 1024], f16), T([256, 1024, 1024], f16),), {})",
+    "speedup": 1.002526801903702,
+    "benchmark_time_ms": 0.2012360910885036,
+    "reference_time_ms": 0.20072888894977733,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([128, 64, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16)], 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([128, 64, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16)], 1,), {})",
+    "speedup": 0.9990247308628519,
+    "benchmark_time_ms": 0.3891573093513742,
+    "reference_time_ms": 0.3895372129729574,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "clamp.default",
+    "args": "((T([1438452, 1], f16), None, 4.135166556742356,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "clamp.default",
+    "args": "((T([1438452, 1], f16), None, 4.135166556742356,), {})",
+    "speedup": 0.9167570660687543,
+    "benchmark_time_ms": 0.007271169869980071,
+    "reference_time_ms": 0.007931403137322263,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "clamp_min.default",
+    "args": "((T([64, 1], f16), 1e-12,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "clamp_min.default",
+    "args": "((T([64, 1], f16), 1e-12,), {})",
+    "speedup": 0.9078726105387147,
+    "benchmark_time_ms": 0.005007469025544923,
+    "reference_time_ms": 0.005515607550461935,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "clone.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "clone.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "speedup": 0.9982442306778265,
+    "benchmark_time_ms": 0.20780079541673438,
+    "reference_time_ms": 0.20816628739805865,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "col2im.default",
+    "args": "((T([64, 1728, 196], f16), [28, 28], [3, 3], [1, 1], [1, 1], [2, 2],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "col2im.default",
+    "args": "((T([64, 1728, 196], f16), [28, 28], [3, 3], [1, 1], [1, 1], [2, 2],), {})",
+    "speedup": 0.9998570573435906,
+    "benchmark_time_ms": 0.44060345150922475,
+    "reference_time_ms": 0.44066644154096907,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "constant_pad_nd.default",
+    "args": "((T([128, 96, 113, 113], f16), [0, -1, 0, -1],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "constant_pad_nd.default",
+    "args": "((T([128, 96, 113, 113], f16), [0, -1, 0, -1],), {})",
+    "speedup": 1.0014581071755386,
+    "benchmark_time_ms": 0.3940308510401603,
+    "reference_time_ms": 0.39345714834888584,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "convolution.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 3, 3], f16), T([64], f16), [1, 1], [1, 1], [1, 1], False, [0, 0], 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "convolution.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 3, 3], f16), T([64], f16), [1, 1], [1, 1], [1, 1], False, [0, 0], 1,), {})",
+    "speedup": 1.0032209050783814,
+    "benchmark_time_ms": 1.9299539546577298,
+    "reference_time_ms": 1.9237577136682005,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "convolution_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), T([64, 64, 3, 3], f16), [64], [1, 1], [1, 1], [1, 1], False, [0, 0], 1, [True, True, True],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "convolution_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), T([64, 64, 3, 3], f16), [64], [1, 1], [1, 1], [1, 1], False, [0, 0], 1, [True, True, True],), {})",
+    "speedup": 1.0017480598154067,
+    "benchmark_time_ms": 2.898518302223899,
+    "reference_time_ms": 2.893460360440341,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "copy_.default",
+    "args": "((T([256, 197951], f16), T([256, 197951], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "copy_.default",
+    "args": "((T([256, 197951], f16), T([256, 197951], f16),), {})",
+    "speedup": 1.0000362594118932,
+    "benchmark_time_ms": 0.07662101600235298,
+    "reference_time_ms": 0.0766182378701075,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "cos.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "cos.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "speedup": 0.8960747870647576,
+    "benchmark_time_ms": 0.006681763210786822,
+    "reference_time_ms": 0.007456702618175489,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "cumsum.default",
+    "args": "((T([64, 128], i32), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "cumsum.default",
+    "args": "((T([64, 128], i32), 1,), {})",
+    "speedup": 1.0001081709845978,
+    "benchmark_time_ms": 0.012394129755723743,
+    "reference_time_ms": 0.012392789215512387,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "div.Scalar",
+    "args": "((T([128, 256, 56, 56], f16, [256, 1, 0, 0]), 3136,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "div.Scalar",
+    "args": "((T([128, 256, 56, 56], f16, [256, 1, 0, 0]), 3136,), {})",
+    "speedup": 0.994424880483862,
+    "benchmark_time_ms": 0.17010751032099433,
+    "reference_time_ms": 0.17106119693850008,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "div.Tensor",
+    "args": "((T([64, 4, 512, 512], f16), 8.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "div.Tensor",
+    "args": "((T([64, 4, 512, 512], f16), 8.0,), {})",
+    "speedup": 0.9992502781540215,
+    "benchmark_time_ms": 0.09386229697674886,
+    "reference_time_ms": 0.0939327203892769,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "div_.Tensor",
+    "args": "((T([1024, 2, 768], f16), 8.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "div_.Tensor",
+    "args": "((T([1024, 2, 768], f16), 8.0,), {})",
+    "speedup": 0.9205574565987873,
+    "benchmark_time_ms": 0.0072206728230962145,
+    "reference_time_ms": 0.007843804611365229,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "elu.default",
+    "args": "((T([256, 197951], f16), 1.6732632423543772, 1.0507009873554805,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "elu.default",
+    "args": "((T([256, 197951], f16), 1.6732632423543772, 1.0507009873554805,), {})",
+    "speedup": 0.9977613440102374,
+    "benchmark_time_ms": 0.07326249022669387,
+    "reference_time_ms": 0.07342686772393356,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "elu_backward.default",
+    "args": "((T([256, 197951], f16, [0, 0]), 1.6732632423543772, 1.0507009873554805, 1, False, T([256, 197951], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "elu_backward.default",
+    "args": "((T([256, 197951], f16, [0, 0]), 1.6732632423543772, 1.0507009873554805, 1, False, T([256, 197951], f16),), {})",
+    "speedup": 0.996615183781222,
+    "benchmark_time_ms": 0.1339886010277505,
+    "reference_time_ms": 0.1344436681361698,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "eq.Scalar",
+    "args": "((T([2, 256, 12, 257], f16, [0, 257, 0, 1]), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "eq.Scalar",
+    "args": "((T([2, 256, 12, 257], f16, [0, 257, 0, 1]), 1,), {})",
+    "speedup": 0.9988480745424773,
+    "benchmark_time_ms": 0.009672686191667204,
+    "reference_time_ms": 0.009683841254935373,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "eq.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "eq.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "speedup": 0.9973278525049097,
+    "benchmark_time_ms": 0.008887705914535745,
+    "reference_time_ms": 0.008911518807193838,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "erf.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "erf.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "speedup": 0.9660978515354912,
+    "benchmark_time_ms": 0.017678476957758715,
+    "reference_time_ms": 0.01829884719199095,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "exp.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "exp.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "speedup": 1.0201482718918822,
+    "benchmark_time_ms": 0.018064393392825104,
+    "reference_time_ms": 0.01770761554036099,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "fill_.Scalar",
+    "args": "((T([476], i64), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "fill_.Scalar",
+    "args": "((T([476], i64), 1,), {})",
+    "speedup": 0.9023749355419154,
+    "benchmark_time_ms": 0.004599163588802259,
+    "reference_time_ms": 0.005096732419812017,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "fill_.Tensor",
+    "args": "((T([118], f16), T([], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "fill_.Tensor",
+    "args": "((T([118], f16), T([], f16),), {})",
+    "speedup": 0.9224225340274207,
+    "benchmark_time_ms": 0.005385775391852545,
+    "reference_time_ms": 0.00583872920833528,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "flip.default",
+    "args": "((T([256, 257], f16), [0],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "flip.default",
+    "args": "((T([256, 257], f16), [0],), {})",
+    "speedup": 1.0008824530752098,
+    "benchmark_time_ms": 0.007781254649557503,
+    "reference_time_ms": 0.007774394111565858,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "floor.default",
+    "args": "((T([0], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "floor.default",
+    "args": "((T([0], f32),), {})",
+    "speedup": 0.9985121604705356,
+    "benchmark_time_ms": 0.0014904359681652633,
+    "reference_time_ms": 0.001492656801959142,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "floor_divide.default",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "floor_divide.default",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "speedup": 1.0539786981845172,
+    "benchmark_time_ms": 0.009874634031181839,
+    "reference_time_ms": 0.009368912339680999,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "fmod.Scalar",
+    "args": "((T([6, 476], i64), 2,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "fmod.Scalar",
+    "args": "((T([6, 476], i64), 2,), {})",
+    "speedup": 1.0030350756963824,
+    "benchmark_time_ms": 0.007692235360189122,
+    "reference_time_ms": 0.00766895948763167,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "ge.Scalar",
+    "args": "((T([5000, 4], f32), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "ge.Scalar",
+    "args": "((T([5000, 4], f32), 0,), {})",
+    "speedup": 1.1021845452551609,
+    "benchmark_time_ms": 0.005695454222426032,
+    "reference_time_ms": 0.005167423411029147,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "gelu.default",
+    "args": "((T([128, 3137, 512], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "gelu.default",
+    "args": "((T([128, 3137, 512], f16),), {})",
+    "speedup": 0.9986680361967708,
+    "benchmark_time_ms": 0.28295415463922646,
+    "reference_time_ms": 0.28333154199748023,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "gelu_backward.default",
+    "args": "((T([128, 3137, 512], f16), T([128, 3137, 512], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "gelu_backward.default",
+    "args": "((T([128, 3137, 512], f16), T([128, 3137, 512], f16),), {})",
+    "speedup": 1.0021243121912156,
+    "benchmark_time_ms": 0.4044715294650957,
+    "reference_time_ms": 0.4036141270544471,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "grid_sampler_2d.default",
+    "args": "((T([6, 3, 352, 352], f16), T([6, 352, 352, 2], f16), 0, 0, False,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "grid_sampler_2d.default",
+    "args": "((T([6, 3, 352, 352], f16), T([6, 352, 352, 2], f16), 0, 0, False,), {})",
+    "speedup": 0.9979384973283464,
+    "benchmark_time_ms": 0.034131184829425475,
+    "reference_time_ms": 0.03420169170825712,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "grid_sampler_2d_backward.default",
+    "args": "((T([6, 3, 352, 352], f16), T([6, 3, 352, 352], f16), T([6, 352, 352, 2], f16), 0, 0, False, [False, True],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "grid_sampler_2d_backward.default",
+    "args": "((T([6, 3, 352, 352], f16), T([6, 3, 352, 352], f16), T([6, 352, 352, 2], f16), 0, 0, False, [False, True],), {})",
+    "speedup": 0.9925733536461546,
+    "benchmark_time_ms": 0.04557215915474082,
+    "reference_time_ms": 0.045913139807082684,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "gt.Scalar",
+    "args": "((T([16, 128], i64), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "gt.Scalar",
+    "args": "((T([16, 128], i64), 0,), {})",
+    "speedup": 0.9062359299393152,
+    "benchmark_time_ms": 0.005019116667274861,
+    "reference_time_ms": 0.005538421620086238,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "gt.Tensor",
+    "args": "((T([5000, 4], f32), T([4], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "gt.Tensor",
+    "args": "((T([5000, 4], f32), T([4], f16),), {})",
+    "speedup": 0.946808327520835,
+    "benchmark_time_ms": 0.007949216675099938,
+    "reference_time_ms": 0.008395803505356274,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardsigmoid.default",
+    "args": "((T([128, 1152, 1, 1], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardsigmoid.default",
+    "args": "((T([128, 1152, 1, 1], f16),), {})",
+    "speedup": 0.9980211746942462,
+    "benchmark_time_ms": 0.005862509454981928,
+    "reference_time_ms": 0.005874133338681884,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardsigmoid_backward.default",
+    "args": "((T([128, 1152, 1, 1], f16), T([128, 1152, 1, 1], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardsigmoid_backward.default",
+    "args": "((T([128, 1152, 1, 1], f16), T([128, 1152, 1, 1], f16),), {})",
+    "speedup": 1.0016941119581257,
+    "benchmark_time_ms": 0.005445458513973718,
+    "reference_time_ms": 0.005436248899705379,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardswish.default",
+    "args": "((T([128, 16, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardswish.default",
+    "args": "((T([128, 16, 112, 112], f16),), {})",
+    "speedup": 0.9850321323637544,
+    "benchmark_time_ms": 0.03964400500728843,
+    "reference_time_ms": 0.04024640791377618,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardswish_.default",
+    "args": "((T([128, 64, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardswish_.default",
+    "args": "((T([128, 64, 112, 112], f16),), {})",
+    "speedup": 0.9965000731182114,
+    "benchmark_time_ms": 0.14021140286420805,
+    "reference_time_ms": 0.14070385607244731,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardswish_backward.default",
+    "args": "((T([128, 64, 112, 112], f16), T([128, 64, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardswish_backward.default",
+    "args": "((T([128, 64, 112, 112], f16), T([128, 64, 112, 112], f16),), {})",
+    "speedup": 1.0031428120688182,
+    "benchmark_time_ms": 0.2054041964420374,
+    "reference_time_ms": 0.2047606721304465,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([128, 162, 56, 56], f16), 0.0, 6.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardtanh.default",
+    "args": "((T([128, 162, 56, 56], f16), 0.0, 6.0,), {})",
+    "speedup": 0.9932610617809754,
+    "benchmark_time_ms": 0.0908157757618799,
+    "reference_time_ms": 0.09143192988864567,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardtanh_.default",
+    "args": "((T([128, 96, 112, 112], f16), 0.0, 6.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardtanh_.default",
+    "args": "((T([128, 96, 112, 112], f16), 0.0, 6.0,), {})",
+    "speedup": 1.0003285409480676,
+    "benchmark_time_ms": 0.20829316125936873,
+    "reference_time_ms": 0.20822475090229617,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "hardtanh_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16), 0.0, 6.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "hardtanh_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16), 0.0, 6.0,), {})",
+    "speedup": 0.999124419162185,
+    "benchmark_time_ms": 0.3041968572928284,
+    "reference_time_ms": 0.30446343964639805,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "im2col.default",
+    "args": "((T([64, 192, 28, 28], f16, [150528, 1, 5376, 192]), [3, 3], [1, 1], [1, 1], [2, 2],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "im2col.default",
+    "args": "((T([64, 192, 28, 28], f16, [150528, 1, 5376, 192]), [3, 3], [1, 1], [1, 1], [2, 2],), {})",
+    "speedup": 1.0035345733722567,
+    "benchmark_time_ms": 0.49203107467276513,
+    "reference_time_ms": 0.49029808013425397,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "isinf.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "isinf.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "speedup": 1.0018726761196635,
+    "benchmark_time_ms": 0.01703661192574641,
+    "reference_time_ms": 0.017004767503721763,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "isnan.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "isnan.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "speedup": 0.9663590103599597,
+    "benchmark_time_ms": 0.009967729310098952,
+    "reference_time_ms": 0.010314726931956753,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "le.Scalar",
+    "args": "((T([0, 91], f16), 4.135166556742356,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "le.Scalar",
+    "args": "((T([0, 91], f16), 4.135166556742356,), {})",
+    "speedup": 0.9990048497427364,
+    "benchmark_time_ms": 0.0014915324496589117,
+    "reference_time_ms": 0.0014930182271317412,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "leaky_relu.default",
+    "args": "((T([6, 32, 352, 352], f16), 0.1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "leaky_relu.default",
+    "args": "((T([6, 32, 352, 352], f16), 0.1,), {})",
+    "speedup": 1.0117686205225291,
+    "benchmark_time_ms": 0.03788588236213899,
+    "reference_time_ms": 0.03744520396627124,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "leaky_relu_.default",
+    "args": "((T([64, 32, 256, 256], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "leaky_relu_.default",
+    "args": "((T([64, 32, 256, 256], f16),), {})",
+    "speedup": 0.9996213706674605,
+    "benchmark_time_ms": 0.1815416474233974,
+    "reference_time_ms": 0.18161041045188903,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "leaky_relu_backward.default",
+    "args": "((T([64, 32, 256, 256], f16), T([64, 32, 256, 256], f16), 0.01, True,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "leaky_relu_backward.default",
+    "args": "((T([64, 32, 256, 256], f16), T([64, 32, 256, 256], f16), 0.01, True,), {})",
+    "speedup": 1.0014003035789496,
+    "benchmark_time_ms": 0.2662081115078508,
+    "reference_time_ms": 0.2658358606008383,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "lift_fresh_copy.default",
+    "args": "((T([128], i64),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "lift_fresh_copy.default",
+    "args": "((T([128], i64),), {})",
+    "speedup": 1.0005948582687392,
+    "benchmark_time_ms": 0.004796714329859242,
+    "reference_time_ms": 0.004793862661016136,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "log2.default",
+    "args": "((T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "log2.default",
+    "args": "((T([], f32),), {})",
+    "speedup": 1.1045612835856535,
+    "benchmark_time_ms": 0.00559230161834127,
+    "reference_time_ms": 0.005062916563748645,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "logical_and_.default",
+    "args": "((T([0, 182], b8), T([0, 182], b8),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "logical_and_.default",
+    "args": "((T([0, 182], b8), T([0, 182], b8),), {})",
+    "speedup": 1.0000627915584095,
+    "benchmark_time_ms": 0.0014905583221294701,
+    "reference_time_ms": 0.0014904647335260977,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "lt.Scalar",
+    "args": "((T([2, 1024], f16), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "lt.Scalar",
+    "args": "((T([2, 1024], f16), 0,), {})",
+    "speedup": 0.904459019057349,
+    "benchmark_time_ms": 0.004937534345551514,
+    "reference_time_ms": 0.005459102337989334,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "lt.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "lt.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "speedup": 0.9961041844513718,
+    "benchmark_time_ms": 0.009377406919645137,
+    "reference_time_ms": 0.009414082448423775,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "masked_fill.Scalar",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "masked_fill.Scalar",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), 0,), {})",
+    "speedup": 0.9990388236641917,
+    "benchmark_time_ms": 0.12373233333540459,
+    "reference_time_ms": 0.1238513763475071,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), T([], f32),), {})",
+    "speedup": 0.999837481369136,
+    "benchmark_time_ms": 0.13921295908781198,
+    "reference_time_ms": 0.13923558746485432,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "masked_fill_.Scalar",
+    "args": "((T([4, 12, 512, 512], f16), T([4, 1, 512, 512], b8), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "masked_fill_.Scalar",
+    "args": "((T([4, 12, 512, 512], f16), T([4, 1, 512, 512], b8), 0,), {})",
+    "speedup": 1.0102061892364476,
+    "benchmark_time_ms": 0.0482280687385837,
+    "reference_time_ms": 0.04774081692672693,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "max.default",
+    "args": "((T([5000, 4], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "max.default",
+    "args": "((T([5000, 4], f32),), {})",
+    "speedup": 0.9594811709557874,
+    "benchmark_time_ms": 0.010320640018298513,
+    "reference_time_ms": 0.0107564799922208,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "max.dim",
+    "args": "((T([64, 196, 1000], f16), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "max.dim",
+    "args": "((T([64, 196, 1000], f16), 1,), {})",
+    "speedup": 1.0000061593206209,
+    "benchmark_time_ms": 0.03179317173170825,
+    "reference_time_ms": 0.03179297590857614,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "max_pool2d_with_indices.default",
+    "args": "((T([64, 64, 224, 224], f16), [2, 2], [2, 2],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "max_pool2d_with_indices.default",
+    "args": "((T([64, 64, 224, 224], f16), [2, 2], [2, 2],), {})",
+    "speedup": 1.0002641885246264,
+    "benchmark_time_ms": 0.604105045877654,
+    "reference_time_ms": 0.603945490409588,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "max_pool2d_with_indices_backward.default",
+    "args": "((T([64, 64, 112, 112], f16), T([64, 64, 224, 224], f16), [2, 2], [2, 2], [0, 0], [1, 1], False, T([64, 64, 112, 112], i64),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "max_pool2d_with_indices_backward.default",
+    "args": "((T([64, 64, 112, 112], f16), T([64, 64, 224, 224], f16), [2, 2], [2, 2], [0, 0], [1, 1], False, T([64, 64, 112, 112], i64),), {})",
+    "speedup": 1.0000232883834514,
+    "benchmark_time_ms": 2.205434045126272,
+    "reference_time_ms": 2.205382685328639,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "maximum.default",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "maximum.default",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "speedup": 1.042610888692886,
+    "benchmark_time_ms": 0.009489154639534283,
+    "reference_time_ms": 0.009101338517028889,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mean.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mean.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "speedup": 0.998482666806069,
+    "benchmark_time_ms": 0.012769648174423113,
+    "reference_time_ms": 0.01278905342971097,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mean.dim",
+    "args": "((T([128, 256, 56, 56], f16), [2, 3], True,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mean.dim",
+    "args": "((T([128, 256, 56, 56], f16), [2, 3], True,), {})",
+    "speedup": 1.0001288490659055,
+    "benchmark_time_ms": 0.09247757318368875,
+    "reference_time_ms": 0.09246565906988925,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "min.default",
+    "args": "((T([2], i64),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "min.default",
+    "args": "((T([2], i64),), {})",
+    "speedup": 0.9285428937201696,
+    "benchmark_time_ms": 0.006066615526993934,
+    "reference_time_ms": 0.006533479032603743,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "minimum.default",
+    "args": "((T([2, 1, 1, 448], f16), T([2, 12, 64, 448], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "minimum.default",
+    "args": "((T([2, 1, 1, 448], f16), T([2, 12, 64, 448], f32),), {})",
+    "speedup": 0.9563891354854203,
+    "benchmark_time_ms": 0.010120355735586686,
+    "reference_time_ms": 0.010581838877174244,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mm.default",
+    "args": "((T([8192, 50265], f16), T([50265, 512], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mm.default",
+    "args": "((T([8192, 50265], f16), T([50265, 512], f16),), {})",
+    "speedup": 0.9873365812145911,
+    "benchmark_time_ms": 2.925886060252334,
+    "reference_time_ms": 2.9634130001068115,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mse_loss.default",
+    "args": "((T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mse_loss.default",
+    "args": "((T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16),), {})",
+    "speedup": 1.0024612753043405,
+    "benchmark_time_ms": 0.029067685398576636,
+    "reference_time_ms": 0.028996317478450113,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mse_loss_backward.default",
+    "args": "((T([], f16), T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mse_loss_backward.default",
+    "args": "((T([], f16), T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16), 1,), {})",
+    "speedup": 1.0024536543921676,
+    "benchmark_time_ms": 0.030624838308314528,
+    "reference_time_ms": 0.030549879462391443,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mul.Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mul.Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "speedup": 0.9980848808352055,
+    "benchmark_time_ms": 0.028826365661523547,
+    "reference_time_ms": 0.028881677515645174,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mul.Tensor",
+    "args": "((T([256, 1024, 1024], f16), 0.1767766952966369,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mul.Tensor",
+    "args": "((T([256, 1024, 1024], f16), 0.1767766952966369,), {})",
+    "speedup": 0.9964989046074282,
+    "benchmark_time_ms": 0.35694456720246676,
+    "reference_time_ms": 0.35819865486263175,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "mul_.Tensor",
+    "args": "((T([128, 256, 48, 48], f16), T([], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "mul_.Tensor",
+    "args": "((T([128, 256, 48, 48], f16), T([], f16),), {})",
+    "speedup": 0.9995820952977563,
+    "benchmark_time_ms": 0.20685947562619478,
+    "reference_time_ms": 0.20694595931570314,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f16), True, 0.1, 0.001,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f16), True, 0.1, 0.001,), {})",
+    "speedup": 0.9993044525987047,
+    "benchmark_time_ms": 2.641001774205102,
+    "reference_time_ms": 2.6428399946954517,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "native_batch_norm_backward.default",
+    "args": "((T([128, 64, 147, 147], f16), T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f32), T([64], f32), True, 0.001, [True, True, True],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": -Infinity,
+    "max_rel_error": -Infinity,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "native_batch_norm_backward.default",
+    "args": "((T([128, 64, 147, 147], f16), T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f32), T([64], f32), True, 0.001, [True, True, True],), {})",
+    "speedup": 1.0005541376079405,
+    "benchmark_time_ms": 4.981131754423442,
+    "reference_time_ms": 4.978373050689697,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "native_group_norm.default",
+    "args": "((T([64, 96, 56, 56], f16), T([96], f16), T([96], f16), 64, 96, 3136, 1, 1e-05,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "native_group_norm.default",
+    "args": "((T([64, 96, 56, 56], f16), T([96], f16), T([96], f16), 64, 96, 3136, 1, 1e-05,), {})",
+    "speedup": 0.9993629206773138,
+    "benchmark_time_ms": 0.3126215344596757,
+    "reference_time_ms": 0.31282082613971496,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "native_group_norm_backward.default",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16), T([64, 1], f16), T([64, 1], f16), T([96], f16), 64, 96, 3136, 1, [True, True, True],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "native_group_norm_backward.default",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16), T([64, 1], f16), T([64, 1], f16), T([96], f16), 64, 96, 3136, 1, [True, True, True],), {})",
+    "speedup": 1.0060340782941002,
+    "benchmark_time_ms": 0.17220657502725228,
+    "reference_time_ms": 0.1711736995224431,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "native_layer_norm.default",
+    "args": "((T([64, 56, 56, 256], f16), [256], T([256], f16), T([256], f16), 1e-06,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "native_layer_norm.default",
+    "args": "((T([64, 56, 56, 256], f16), [256], T([256], f16), T([256], f16), 1e-06,), {})",
+    "speedup": 1.0003365857547215,
+    "benchmark_time_ms": 0.2546883253727929,
+    "reference_time_ms": 0.2546026297545029,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "ne.Scalar",
+    "args": "((T([256, 33], i64, [1, 256]), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "ne.Scalar",
+    "args": "((T([256, 33], i64, [1, 256]), 1,), {})",
+    "speedup": 1.0978066628741783,
+    "benchmark_time_ms": 0.005640920865091516,
+    "reference_time_ms": 0.005138355464452152,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "neg.default",
+    "args": "((T([64, 96, 56, 56], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "neg.default",
+    "args": "((T([64, 96, 56, 56], f16),), {})",
+    "speedup": 0.9961576993845418,
+    "benchmark_time_ms": 0.03127271387842619,
+    "reference_time_ms": 0.03139333651463767,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([3, 799, 1199], f16), [4, 3, 1184, 1216], 0,), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda', 'pin_memory': False})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "new_full.default",
+    "args": "((T([3, 799, 1199], f16), [4, 3, 1184, 1216], 0,), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda', 'pin_memory': False})",
+    "speedup": 0.9725249802620854,
+    "benchmark_time_ms": 0.015155736550302086,
+    "reference_time_ms": 0.015583904637819968,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "new_ones.default",
+    "args": "((T([2, 1024, 12, 513], f16, [6303744, 513, 525312, 1]), [256, 257],), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda', 'pin_memory': False})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "new_ones.default",
+    "args": "((T([2, 1024, 12, 513], f16, [6303744, 513, 525312, 1]), [256, 257],), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda', 'pin_memory': False})",
+    "speedup": 1.1135773968804892,
+    "benchmark_time_ms": 0.005044705931922345,
+    "reference_time_ms": 0.004530179892349009,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "new_zeros.default",
+    "args": "((T([1024, 30876], f16, [31068, 1]), [1024, 249, 249],), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda'})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "new_zeros.default",
+    "args": "((T([1024, 30876], f16, [31068, 1]), [1024, 249, 249],), {'dtype': torch.float16, 'layout': torch.strided, 'device': 'cuda'})",
+    "speedup": 1.0164902543563574,
+    "benchmark_time_ms": 0.04363354040125674,
+    "reference_time_ms": 0.04292568493820488,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "nonzero.default",
+    "args": "((T([5000], b8),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "nonzero.default",
+    "args": "((T([5000], b8),), {})",
+    "speedup": 0.9837402176593839,
+    "benchmark_time_ms": 0.04914349731038378,
+    "reference_time_ms": 0.04995576721190789,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "norm.ScalarOpt_dim",
+    "args": "((T([64, 256], f16, [12800, 1]), 2, [1], True,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "norm.ScalarOpt_dim",
+    "args": "((T([64, 256], f16, [12800, 1]), 2, [1], True,), {})",
+    "speedup": 1.001019209857339,
+    "benchmark_time_ms": 0.006997745834002837,
+    "reference_time_ms": 0.006990620924247924,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "pow.Scalar",
+    "args": "((10000, T([512], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "pow.Scalar",
+    "args": "((10000, T([512], f32),), {})",
+    "speedup": 1.00150237526353,
+    "benchmark_time_ms": 0.01167646831709484,
+    "reference_time_ms": 0.011658952195717318,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "pow.Tensor_Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "pow.Tensor_Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "speedup": 0.9986960279660797,
+    "benchmark_time_ms": 0.028673444691683852,
+    "reference_time_ms": 0.02871088288002857,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "reciprocal.default",
+    "args": "((T([512], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "reciprocal.default",
+    "args": "((T([512], f32),), {})",
+    "speedup": 0.8933414767271297,
+    "benchmark_time_ms": 0.005328603267763312,
+    "reference_time_ms": 0.0059648000306504615,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "reflection_pad2d.default",
+    "args": "((T([3, 64, 512, 512], f16), [3, 3, 3, 3],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "reflection_pad2d.default",
+    "args": "((T([3, 64, 512, 512], f16), [3, 3, 3, 3],), {})",
+    "speedup": 1.0020058675332724,
+    "benchmark_time_ms": 0.2885646988468099,
+    "reference_time_ms": 0.2879870350032934,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "reflection_pad2d_backward.default",
+    "args": "((T([3, 64, 518, 518], f16), T([3, 64, 512, 512], f16), [3, 3, 3, 3],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.00390625,
+    "max_rel_error": 0.0015337422955781221,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "reflection_pad2d_backward.default",
+    "args": "((T([3, 64, 518, 518], f16), T([3, 64, 512, 512], f16), [3, 3, 3, 3],), {})",
+    "speedup": 1.0000632811665355,
+    "benchmark_time_ms": 0.49421023248240004,
+    "reference_time_ms": 0.49417896026131736,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "relu.default",
+    "args": "((T([16, 96, 165, 165], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "relu.default",
+    "args": "((T([16, 96, 165, 165], f16),), {})",
+    "speedup": 1.003323919974279,
+    "benchmark_time_ms": 0.06119622156002257,
+    "reference_time_ms": 0.060993484099921974,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "relu_.default",
+    "args": "((T([64, 64, 224, 224], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "relu_.default",
+    "args": "((T([64, 64, 224, 224], f16),), {})",
+    "speedup": 1.0002873702199604,
+    "benchmark_time_ms": 0.2746416738102152,
+    "reference_time_ms": 0.27456277264584705,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "remainder.Scalar",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "remainder.Scalar",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "speedup": 1.069967642594311,
+    "benchmark_time_ms": 0.00817882869449233,
+    "reference_time_ms": 0.0076439962938144815,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "repeat.default",
+    "args": "((T([10, 204, 204], b8, [204, 0, 1]), [8, 1, 1],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "repeat.default",
+    "args": "((T([10, 204, 204], b8, [204, 0, 1]), [8, 1, 1],), {})",
+    "speedup": 0.999688839266431,
+    "benchmark_time_ms": 0.01367304888107393,
+    "reference_time_ms": 0.013677304721244237,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "roll.default",
+    "args": "((T([64, 56, 56, 128], f16), [3, 3], [2, 1],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "roll.default",
+    "args": "((T([64, 56, 56, 128], f16), [3, 3], [2, 1],), {})",
+    "speedup": 1.0012538669283655,
+    "benchmark_time_ms": 0.23556676903405252,
+    "reference_time_ms": 0.2352717695430445,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "round.default",
+    "args": "((T([], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "round.default",
+    "args": "((T([], f32),), {})",
+    "speedup": 1.1113513715998566,
+    "benchmark_time_ms": 0.005408603217723634,
+    "reference_time_ms": 0.004866690549846199,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "rsqrt.default",
+    "args": "((T([32, 1, 56, 56], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": NaN,
+    "max_rel_error": NaN,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "rsqrt.default",
+    "args": "((T([32, 1, 56, 56], f16),), {})",
+    "speedup": 0.998135363046163,
+    "benchmark_time_ms": 0.005803985695194413,
+    "reference_time_ms": 0.00581482823880871,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "rsub.Scalar",
+    "args": "((T([2, 12, 12, 64, 192], f32, [2064384, 172032, 12288, 192, 1]), 1.0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "rsub.Scalar",
+    "args": "((T([2, 12, 12, 64, 192], f32, [2064384, 172032, 12288, 192, 1]), 1.0,), {})",
+    "speedup": 1.027709465972503,
+    "benchmark_time_ms": 0.018241995960809214,
+    "reference_time_ms": 0.017750148816180398,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "select_backward.default",
+    "args": "((T([128, 8, 3137, 8], f16), [3, 128, 8, 3137, 8], 0, 2,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "select_backward.default",
+    "args": "((T([128, 8, 3137, 8], f16), [3, 128, 8, 3137, 8], 0, 2,), {})",
+    "speedup": 1.0005001622976724,
+    "benchmark_time_ms": 0.0898664809685551,
+    "reference_time_ms": 0.08982155561291923,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sgn.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sgn.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "speedup": 0.9555502299945338,
+    "benchmark_time_ms": 0.008391933365760305,
+    "reference_time_ms": 0.008782304793970182,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sigmoid.default",
+    "args": "((T([6, 1, 352, 352], f16, [619520, 123904, 352, 1]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sigmoid.default",
+    "args": "((T([6, 1, 352, 352], f16, [619520, 123904, 352, 1]),), {})",
+    "speedup": 0.9968084496954982,
+    "benchmark_time_ms": 0.008587364473806642,
+    "reference_time_ms": 0.008614859230406686,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sigmoid_.default",
+    "args": "((T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sigmoid_.default",
+    "args": "((T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "speedup": 0.9855655015184095,
+    "benchmark_time_ms": 0.03110259267527403,
+    "reference_time_ms": 0.031558118285751564,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sigmoid_backward.default",
+    "args": "((T([8, 3, 48, 64, 81], f16), T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sigmoid_backward.default",
+    "args": "((T([8, 3, 48, 64, 81], f16), T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "speedup": 0.9994658074559204,
+    "benchmark_time_ms": 0.026817490049367336,
+    "reference_time_ms": 0.026831823409376687,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "silu.default",
+    "args": "((T([128, 256, 56, 56], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "silu.default",
+    "args": "((T([128, 256, 56, 56], f16),), {})",
+    "speedup": 0.9965135581264626,
+    "benchmark_time_ms": 0.14012756796033532,
+    "reference_time_ms": 0.1406178238295002,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "silu_.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "silu_.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "speedup": 1.0004448847337644,
+    "benchmark_time_ms": 0.2969685502862202,
+    "reference_time_ms": 0.2968364922623885,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "silu_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "silu_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16),), {})",
+    "speedup": 0.9985384200330487,
+    "benchmark_time_ms": 0.3047077364726753,
+    "reference_time_ms": 0.3051537430703872,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sin.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sin.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "speedup": 1.03302991575623,
+    "benchmark_time_ms": 0.007156633916998007,
+    "reference_time_ms": 0.0069278089703326655,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "slice_backward.default",
+    "args": "((T([64, 128, 128, 128], f16), [64, 128, 128, 128], 0, 0, 9223372036854775807, 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "slice_backward.default",
+    "args": "((T([64, 128, 128, 128], f16), [64, 128, 128, 128], 0, 0, 9223372036854775807, 1,), {})",
+    "speedup": 1.0007021103475313,
+    "benchmark_time_ms": 0.26706940785680017,
+    "reference_time_ms": 0.26688202722391613,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "split.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), 64, 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "split.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), 64, 1,), {})",
+    "speedup": 0.9976678988484713,
+    "benchmark_time_ms": 0.0014879722032977345,
+    "reference_time_ms": 0.0014914504165315758,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "split_with_sizes.default",
+    "args": "((T([64, 192, 112, 112], f16), [64, 64, 64], 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "split_with_sizes.default",
+    "args": "((T([64, 192, 112, 112], f16), [64, 64, 64], 1,), {})",
+    "speedup": 1.0010978730719404,
+    "benchmark_time_ms": 0.0014914225909413528,
+    "reference_time_ms": 0.0014897869939178034,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sqrt.default",
+    "args": "((T([4, 512, 1], f32),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sqrt.default",
+    "args": "((T([4, 512, 1], f32),), {})",
+    "speedup": 0.9801311032479875,
+    "benchmark_time_ms": 0.005110422923733684,
+    "reference_time_ms": 0.005214019743683894,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([64, 4, 16, 196, 32], f16), T([64, 4, 16, 196, 32], f16, [401408, 100352, 6272, 1, 196]), T([64, 4, 16, 196, 32], f16)],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([64, 4, 16, 196, 32], f16), T([64, 4, 16, 196, 32], f16, [401408, 100352, 6272, 1, 196]), T([64, 4, 16, 196, 32], f16)],), {})",
+    "speedup": 1.0134584970347829,
+    "benchmark_time_ms": 0.14583461828853772,
+    "reference_time_ms": 0.14389796791405512,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "std.correction",
+    "args": "((T([16, 128, 768], f16), [-1],), {'correction': 1, 'keepdim': True})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "std.correction",
+    "args": "((T([16, 128, 768], f16), [-1],), {'correction': 1, 'keepdim': True})",
+    "speedup": 1.0006781186554712,
+    "benchmark_time_ms": 0.013654052775138342,
+    "reference_time_ms": 0.013644799981720563,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sub.Tensor",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sub.Tensor",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16),), {})",
+    "speedup": 1.0030623098998768,
+    "benchmark_time_ms": 0.044502338074868725,
+    "reference_time_ms": 0.0443664741817593,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sum.default",
+    "args": "((T([8, 512, 30522], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": NaN,
+    "max_rel_error": NaN,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sum.default",
+    "args": "((T([8, 512, 30522], f16),), {})",
+    "speedup": 1.0005389035840893,
+    "benchmark_time_ms": 0.10585154889893711,
+    "reference_time_ms": 0.1057945358443935,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "sum.dim_IntList",
+    "args": "((T([256, 32, 32, 32, 32], f16, [1048576, 32768, 32, 1024, 1]), [2], True,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "sum.dim_IntList",
+    "args": "((T([256, 32, 32, 32, 32], f16, [1048576, 32768, 32, 1024, 1]), [2], True,), {})",
+    "speedup": 1.003003340977943,
+    "benchmark_time_ms": 0.19876248583113407,
+    "reference_time_ms": 0.19816732179310362,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "tanh.default",
+    "args": "((T([2, 512, 16384], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "tanh.default",
+    "args": "((T([2, 512, 16384], f16),), {})",
+    "speedup": 0.9976999664387883,
+    "benchmark_time_ms": 0.02827198197172688,
+    "reference_time_ms": 0.02833715838704646,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "tanh_backward.default",
+    "args": "((T([2, 512, 16384], f16), T([2, 512, 16384], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "tanh_backward.default",
+    "args": "((T([2, 512, 16384], f16), T([2, 512, 16384], f16),), {})",
+    "speedup": 1.006349907908009,
+    "benchmark_time_ms": 0.039893081989462856,
+    "reference_time_ms": 0.03964136298515914,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "threshold_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), 0,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "threshold_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), 0,), {})",
+    "speedup": 1.0001391145450067,
+    "benchmark_time_ms": 0.403998438032662,
+    "reference_time_ms": 0.403942243791208,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "topk.default",
+    "args": "((T([1, 6905250], f16), 5000, 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "topk.default",
+    "args": "((T([1, 6905250], f16), 5000, 1,), {})",
+    "speedup": 0.9966613120423603,
+    "benchmark_time_ms": 0.2341347557211679,
+    "reference_time_ms": 0.2349190772152864,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "tril.default",
+    "args": "((T([256, 257], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "tril.default",
+    "args": "((T([256, 257], f16),), {})",
+    "speedup": 1.0011065937628576,
+    "benchmark_time_ms": 0.0064120804312106025,
+    "reference_time_ms": 0.00640499270623074,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "triu.default",
+    "args": "((T([1, 31, 31], f32), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "triu.default",
+    "args": "((T([1, 31, 31], f32), 1,), {})",
+    "speedup": 1.000488031286581,
+    "benchmark_time_ms": 0.0061406362222906005,
+    "reference_time_ms": 0.006137640861524379,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "unbind.int",
+    "args": "((T([3, 64, 4, 16, 196, 32], f16, [128, 1204224, 32, 75264, 384, 1]),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "unbind.int",
+    "args": "((T([3, 64, 4, 16, 196, 32], f16, [128, 1204224, 32, 75264, 384, 1]),), {})",
+    "speedup": 1.00040661662693,
+    "benchmark_time_ms": 0.0014921666486568735,
+    "reference_time_ms": 0.0014915601554975817,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "unfold_backward.default",
+    "args": "((T([128, 640, 2, 2, 12, 12], f16), [128, 640, 2, 20, 12], 3, 12, 8,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "unfold_backward.default",
+    "args": "((T([128, 640, 2, 2, 12, 12], f16), [128, 640, 2, 20, 12], 3, 12, 8,), {})",
+    "speedup": 1.0042725779498767,
+    "benchmark_time_ms": 0.3461181813043586,
+    "reference_time_ms": 0.34464565587454826,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "unsqueeze_.default",
+    "args": "((T([2, 12, 64, 192], f32), 1,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "unsqueeze_.default",
+    "args": "((T([2, 12, 64, 192], f32), 1,), {})",
+    "speedup": null,
+    "benchmark_time_ms": null,
+    "reference_time_ms": 0.0424592736276064,
+    "error_msg": "\nException raised for unsqueeze_.default:\n    args: ((T([2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 12, 64, 192], f32), 1,), {})\n    exc: Reference and result tensors are not close: max absolute error 0.0, max relative error 0.0\n",
+    "successfully_ran": false,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "upsample_bicubic2d.vec",
+    "args": "((T([64, 3, 240, 240], f16), [224, 224], False, None,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "upsample_bicubic2d.vec",
+    "args": "((T([64, 3, 240, 240], f16), [224, 224], False, None,), {})",
+    "speedup": 1.0008539306815385,
+    "benchmark_time_ms": 0.19764278661668971,
+    "reference_time_ms": 0.19747415737489635,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "upsample_bilinear2d.vec",
+    "args": "((T([3, 256, 256, 256], f16), None, True, [2.0, 2.0],), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "upsample_bilinear2d.vec",
+    "args": "((T([3, 256, 256, 256], f16), None, True, [2.0, 2.0],), {})",
+    "speedup": 0.9996829361632181,
+    "benchmark_time_ms": 0.6963393988571768,
+    "reference_time_ms": 0.6965602529235184,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "upsample_nearest2d.vec",
+    "args": "((T([4, 256, 148, 152], f16), [296, 304], None,), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "upsample_nearest2d.vec",
+    "args": "((T([4, 256, 148, 152], f16), [296, 304], None,), {})",
+    "speedup": 1.0011458892229592,
+    "benchmark_time_ms": 0.27470475134006045,
+    "reference_time_ms": 0.27439033041755073,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([32, 128, 56, 56], f16, [401408, 1, 7168, 128]), [1],), {'correction': 0, 'keepdim': True})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([32, 128, 56, 56], f16, [401408, 1, 7168, 128]), [1],), {'correction': 0, 'keepdim': True})",
+    "speedup": 0.9906037529475584,
+    "benchmark_time_ms": 0.05677005884634865,
+    "reference_time_ms": 0.05730854408478503,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  },
+  {
+    "op_name": "where.self",
+    "args": "((T([1, 1, 1024, 1024], b8), T([4, 12, 1024, 1024], f16), T([], f16),), {})",
+    "is_correct": true,
+    "error_msg": null,
+    "max_abs_error": 0.0,
+    "max_rel_error": 0.0,
+    "test_type": "correctness"
+  },
+  {
+    "op_name": "where.self",
+    "args": "((T([1, 1, 1024, 1024], b8), T([4, 12, 1024, 1024], f16), T([], f16),), {})",
+    "speedup": 1.0033989383446635,
+    "benchmark_time_ms": 0.13795114822371837,
+    "reference_time_ms": 0.13748384909724978,
+    "error_msg": "",
+    "successfully_ran": true,
+    "test_type": "performance"
+  }
+]
