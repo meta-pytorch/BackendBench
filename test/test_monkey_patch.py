@@ -23,6 +23,8 @@ from BackendBench.scripts.create_watermarked_operators import get_operator_water
 
 
 class TestMonkeyPatch:
+    """Verify monkey patching of directory backend."""
+
     kernel_dir = "generated_kernels_test_monkey_path"
 
     @pytest.fixture(scope="module")
@@ -39,7 +41,7 @@ class TestMonkeyPatch:
             ],
             check=True,
         )
-        # Create watermarked implementations with unique values to catch cross-contamination
+        # Create watermarked implementations with unique values to verify monkey patching
         subprocess.run(
             [
                 sys.executable,
