@@ -22,7 +22,6 @@ def get_all_operators_from_op_map():
     """Extract all unique folder names from the authoritative op_map."""
     folder_names = set()
 
-    # Parse the op_map_data to extract all canonical operator names
     for line in op_map_data.strip().split("\n"):
         if line.startswith("canonical:"):
             # Extract canonical name from line like "canonical:add.Tensor func:add.Tensor ..."
@@ -45,14 +44,10 @@ def setup_operator_directories(base_dir: str = "generated_kernels"):
     Set up directory structure for operators in op_map.
 
     This creates directories only for operators that exist in the authoritative op_map,
-    which contains the curated set of operators from opinfo, torchbench, and other
-    evaluation suites that actually matter for backend testing.
-
-    No CSV dependencies - reads directly from the authoritative op_map data.
+    which contains the curated set of operators from opinfo, torchbench
     """
     print("Discovering operators from authoritative op_map...")
 
-    # Get all operators directly from op_map (no CSV dependency)
     folder_names = get_all_operators_from_op_map()
     print(f"Found {len(folder_names)} unique operators in op_map")
 

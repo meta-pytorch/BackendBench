@@ -64,16 +64,9 @@ class DirectoryBackend(Backend):
 
             try:
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
-
-                # Query the authoritative op_map for all operator variants that should
-                # map to this folder name. For example, query("add") returns:
-                # - add.Tensor (functional), add_.Tensor (in-place), add.out (out-variant)
-                # - add.Scalar (functional), add_.Scalar (in-place), add.Scalar_out (out-variant)
                 op_variants = query(op_name)
 
                 if op_variants:
-                    # Register the same kernel implementation for all operator variants
-                    # This is the key insight: one implementation handles all variants
                     for variant_info in op_variants:
                         op_full_name = variant_info["op"]
                         pytorch_op = self._get_pytorch_op(op_full_name)
