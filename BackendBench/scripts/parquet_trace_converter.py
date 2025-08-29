@@ -17,7 +17,7 @@ import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
 from BackendBench.data_loaders import _load_from_trace
-from BackendBench.scripts.dataset_filters import (
+from BackendBench.scripts.test_suite_filters import (
     apply_runtime_filter,
     apply_skip_ops_filter,
 )
@@ -28,7 +28,7 @@ DEFAULT_PARQUET_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_tr
 
 
 """
-Columns for the parquet dataset:
+Columns for the parquet test suite:
 - uuid (int) (hash of op + args)
 - op_name (string)
 - args (string)
@@ -46,13 +46,13 @@ logger = logging.getLogger(__name__)
 
 
 def _upload_to_hf(file_path: str) -> None:
-    """Upload file to GPUMODE/huggingface_op_trace."""
+    """Upload file to GPUMODE/backendbench_tests."""
     try:
         api = HfApi()
         api.upload_file(
             path_or_fileobj=file_path,
             path_in_repo=Path(file_path).name,
-            repo_id="GPUMODE/huggingface_op_trace",
+            repo_id="GPUMODE/backendbench_tests",
             repo_type="dataset",
         )
         logger.info(f"Uploaded {Path(file_path).name} to Hugging Face")
@@ -182,9 +182,9 @@ def _validate_parquet_name(parquet_name: str) -> str:
     if not parquet_name.endswith(".parquet"):
         raise click.BadParameter("Parquet file must end with .parquet suffix")
 
-    # Ensure local files are in datasets directory
-    if not parquet_name.startswith("datasets/"):
-        parquet_name = os.path.join("datasets", parquet_name)
+    # Ensure local files are in local_test_suites directory
+    if not parquet_name.startswith("local_test_suites/"):
+        parquet_name = os.path.join("local_test_suites", parquet_name)
 
     return parquet_name
 
@@ -231,13 +231,13 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
     "--parquet-name",
     default="backend_bench_problems.parquet",
     type=str,
-    help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/.",
+    help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in local_test_suites/.",
 )
 @click.option(
     "--upload-to-hf",
     is_flag=True,
     default=False,
-    help="Upload generated parquet files to Hugging Face (GPUMODE/huggingface_op_trace) in trace-to-parquet mode",
+    help="Upload generated parquet files to Hugging Face (GPUMODE/backendbench_tests) in trace-to-parquet mode",
 )
 @click.option(
     "--limit",
@@ -249,8 +249,8 @@ def main(log_level, mode, trace_file, parquet_name, upload_to_hf, limit):
     """Convert trace files to parquet format or vice versa."""
     setup_logging(log_level)
 
-    # Create datasets directory
-    os.makedirs("datasets", exist_ok=True)
+    # Create local_test_suites directory
+    os.makedirs("local_test_suites", exist_ok=True)
 
     if mode == "trace-to-parquet":
         # Validate inputs/outputs

@@ -20,8 +20,9 @@ from BackendBench.suite import (
     FactoTestSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
-    TorchBenchTestSuite,
+    ModelTracesTestSuite,
 )
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,7 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "modeltraces", "facto"]),
     help="Which suite to run",
 )
 @click.option(
@@ -96,7 +97,7 @@ def setup_logging(log_level):
     help="Maximum refinement rounds per worker for KernelAgent backend",
 )
 @click.option(
-    "--alternative-torchbench-data-path",
+    "--alternative-modeltraces-data-path",
     default=None,
     type=str,
     help="Internal testing flag for BackendBench development. Users should not use this.",
@@ -151,7 +152,7 @@ def cli(
     llm_relay_model,
     kernel_agent_workers,
     kernel_agent_max_rounds,
-    alternative_torchbench_data_path,
+    alternative_modeltraces_data_path,
     ops_directory,
     log_dir,
     disable_output_logs,
@@ -159,13 +160,20 @@ def cli(
     check_overhead_dominated_ops,
     p,
 ):
-    if suite != "torchbench":
-        if topn_inputs is not None:
-            raise ValueError("topn-inputs is only supported for torchbench suite")
-        if check_overhead_dominated_ops:
-            raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
-
     setup_logging(log_level)
+
+    # Handle deprecated torchbench suite name
+    give_torchbench_warning = False
+    if suite == "torchbench":
+        give_torchbench_warning = True
+        suite = "modeltraces"
+
+    if suite not in ["modeltraces"]:
+        if topn_inputs is not None:
+            raise ValueError("topn-inputs is only supported for modeltraces suite")
+        if check_overhead_dominated_ops:
+            raise ValueError("check-overhead-dominated-ops is only supported for modeltraces suite")
+
     if ops:
         ops = ops.split(",")
 
@@ -189,9 +197,9 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "torchbench": lambda: TorchBenchTestSuite(
-            "torchbench",
-            alternative_torchbench_data_path,
+        "modeltraces": lambda: ModelTracesTestSuite(
+            "modeltraces",
+            alternative_modeltraces_data_path,
             filter=ops,
             topn=topn_inputs,
             check_overhead_dominated_ops=check_overhead_dominated_ops,
@@ -339,6 +347,11 @@ def cli(
             p=p,
         )
         print(f"Results saved to: {log_dir}")
+
+        if give_torchbench_warning:
+            warnings.warn(
+                "'torchbench' suite has been renamed to 'modeltraces'. Please use `--suite modeltraces` instead. `--suite torchbench` may no longer be supported in future versions of BackendBench.",
+            )
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):

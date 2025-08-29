@@ -17,7 +17,7 @@ from .base import OpTest, Test, TestSuite
 from .facto import FactoTestSuite
 from .opinfo import OpInfoTestSuite
 from .smoke import randn, SmokeTestSuite
-from .torchbench import TorchBenchOpTest, TorchBenchTestSuite
+from .modeltraces import ModelTracesOpTest, ModelTracesTestSuite
 
 __all__ = [
     "Test",
@@ -27,6 +27,6 @@ __all__ = [
     "OpInfoTestSuite",
     "SmokeTestSuite",
     "randn",
-    "TorchBenchOpTest",
-    "TorchBenchTestSuite",
+    "ModelTracesOpTest",
+    "ModelTracesTestSuite",
 ]

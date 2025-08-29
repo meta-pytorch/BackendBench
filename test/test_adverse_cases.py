@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from BackendBench.suite import TorchBenchOpTest
+from BackendBench.suite import ModelTracesOpTest
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import BackendBench.backends as backends
 import torch
@@ -16,13 +16,13 @@ class TestAdaptiveAvgPool2dBackward:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Requires GPU")
     def test_adaptive_avg_pool2d_backward_gpu(self):
         """Test on GPU with eval_one_op."""
-        op_test_should_error = TorchBenchOpTest(
+        op_test_should_error = ModelTracesOpTest(
             "aten._adaptive_avg_pool2d_backward.default",
             ["((T([512, 4096, 56, 56], f16), T([512, 4096, 56, 56], f16)), {})"],
             None,
         )
 
-        op_test_should_succeed = TorchBenchOpTest(
+        op_test_should_succeed = ModelTracesOpTest(
             "aten.addmm.default",
             ["((T([14, 14], f32), T([14, 14], f32), T([14, 14], f32)), {})"],
             None,

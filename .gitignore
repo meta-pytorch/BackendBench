@@ -6,7 +6,7 @@ backendbench.egg-info/
 CLAUDE.md
 venv/
 ops/
-datasets/
+local_test_suites/
 uv.lock
 .pre-commit-cache/
 logs/

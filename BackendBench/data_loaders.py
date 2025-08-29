@@ -27,8 +27,8 @@ from tqdm import tqdm
 # you can explore the dataset here
 # https://huggingface.co/datasets/GPUMODE/backendbench_tests
 HUGGINGFACE_REPO = "GPUMODE/backendbench_tests"
-TORCHBENCH_SUITE_HF_COMMIT = "25a7c56b0a4029b192b61e32fd403e19258487e1"
-TORCHBENCH_SUITE_FILE = "backend_bench_problems.parquet"
+MODELTRACES_SUITE_HF_COMMIT = "25a7c56b0a4029b192b61e32fd403e19258487e1"
+MODELTRACES_SUITE_FILE = "backend_bench_problems.parquet"
 
 
 def _args_size(args):
@@ -231,8 +231,8 @@ def _load_from_parquet(
         # read parquet file from huggingface
         table = load_dataset(
             HUGGINGFACE_REPO,
-            data_files=TORCHBENCH_SUITE_FILE,
-            revision=TORCHBENCH_SUITE_HF_COMMIT,
+            data_files=MODELTRACES_SUITE_FILE,
+            revision=MODELTRACES_SUITE_HF_COMMIT,
         )["train"]
     else:
         # read parquet file directly
