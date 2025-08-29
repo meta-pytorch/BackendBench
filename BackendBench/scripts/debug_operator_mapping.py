@@ -8,14 +8,14 @@
 
 
 """
-Debug script to show how TorchBench operator names map to DirectoryBackend folder names.
+Debug script to show how ModelTraces operator names map to DirectoryBackend folder names.
 Creates a CSV file showing the mapping for debugging purposes.
 
 Usage:
     python -m BackendBench.scripts.debug_operator_mapping
 
 Output:
-    torchbench_operator_folder_mapping.csv - CSV file with operator mappings
+    modeltraces_operator_folder_mapping.csv - CSV file with operator mappings
 """
 
 import csv
@@ -24,7 +24,7 @@ from BackendBench.backends.directory import DirectoryBackend
 
 
 def get_operator_mapping():
-    """Get the mapping from TorchBench operators to folder names."""
+    """Get the mapping from ModelTraces operators to folder names."""
     mappings = []
 
     # Create a DirectoryBackend to see what operators it loads
@@ -87,7 +87,7 @@ def create_mapping_csv():
     """Create a CSV file with the operator mapping."""
     mappings = get_operator_mapping()
 
-    csv_file = "torchbench_operator_folder_mapping.csv"
+    csv_file = "modeltraces_operator_folder_mapping.csv"
 
     with open(csv_file, "w", newline="") as f:
         if mappings:
@@ -113,7 +113,7 @@ def create_mapping_csv():
 
 
 if __name__ == "__main__":
-    print("Creating TorchBench operator to folder mapping...")
+    print("Creating ModelTraces operator to folder mapping...")
     csv_file = create_mapping_csv()
     print(f"\nDebug CSV created: {csv_file}")
     print("This file shows how PyTorch operators map to generated_kernels/ folder names")

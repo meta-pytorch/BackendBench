@@ -17,12 +17,12 @@ from BackendBench.scripts.pytorch_operators import (
     extract_aten_ops,
     extract_operator_name,
 )
-from BackendBench.suite import OpInfoTestSuite, TorchBenchTestSuite
+from BackendBench.suite import OpInfoTestSuite, ModelTracesTestSuite
 
 
-def get_torchbench_ops():
-    """Get operations from TorchBench suite"""
-    suite = TorchBenchTestSuite("torchbench", None)
+def get_modeltraces_ops():
+    """Get operations from ModelTraces suite"""
+    suite = ModelTracesTestSuite("modeltraces", None)
     ops = set()
     for optest in suite:
         op_str = str(optest.op)
@@ -48,27 +48,27 @@ def generate_coverage_csv():
     print(f"  Unique successful ops: {len(set(opinfo_successful_ops))}")
 
     opinfo_ops = set(extract_aten_ops(opinfo_successful_ops))
-    torchbench_ops = get_torchbench_ops()
+    modeltraces_ops = get_modeltraces_ops()
 
     print("\nOperator counts:")
     print(f"- Total native functions: {len(all_native_ops)}")
     print(f"- Core operators: {len(core_ops)}")
     print(f"- OpInfo: {len(opinfo_ops)}")
-    print(f"- TorchBench: {len(torchbench_ops)}")
+    print(f"- ModelTraces: {len(modeltraces_ops)}")
 
     # Create comprehensive operator list
-    all_operators = set(all_native_ops) | set(core_ops) | opinfo_ops | torchbench_ops
+    all_operators = set(all_native_ops) | set(core_ops) | opinfo_ops | modeltraces_ops
     core_ops_set = set(core_ops)
 
     # Generate CSV
-    csv_data = [["op_name", "is_core", "is_in_opinfo", "is_in_torchbench"]]
+    csv_data = [["op_name", "is_core", "is_in_opinfo", "is_in_modeltraces"]]
 
     for op in sorted(all_operators):
         row = [
             op,
             True if op in core_ops_set else False,
             True if op in opinfo_ops else False,
-            True if op in torchbench_ops else False,
+            True if op in modeltraces_ops else False,
         ]
         csv_data.append(row)
 
@@ -81,15 +81,15 @@ def generate_coverage_csv():
 
     # Analysis
     core_in_opinfo = core_ops_set & opinfo_ops
-    core_in_torchbench = core_ops_set & torchbench_ops
-    core_in_either = core_ops_set & (opinfo_ops | torchbench_ops)
-    core_missing_both = core_ops_set - (opinfo_ops | torchbench_ops)
+    core_in_modeltraces = core_ops_set & modeltraces_ops
+    core_in_either = core_ops_set & (opinfo_ops | modeltraces_ops)
+    core_missing_both = core_ops_set - (opinfo_ops | modeltraces_ops)
 
     print(
         f"\nCore in OpInfo: {len(core_in_opinfo)}/{len(core_ops)} ({len(core_in_opinfo) / len(core_ops) * 100:.1f}%)"
     )
     print(
-        f"Core in TorchBench: {len(core_in_torchbench)}/{len(core_ops)} ({len(core_in_torchbench) / len(core_ops) * 100:.1f}%)"
+        f"Core in ModelTraces: {len(core_in_modeltraces)}/{len(core_ops)} ({len(core_in_modeltraces) / len(core_ops) * 100:.1f}%)"
     )
     print(
         f"Combined coverage: {len(core_in_either)}/{len(core_ops)} ({len(core_in_either) / len(core_ops) * 100:.1f}%)"

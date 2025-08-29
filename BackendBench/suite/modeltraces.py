@@ -11,15 +11,15 @@ Data Source:
 - Dataset: https://huggingface.co/datasets/GPUMODE/backendbench_tests
 - Configuration: Set in data_loaders.py:
   - HUGGINGFACE_REPO: HF repository name
-  - TORCHBENCH_SUITE_FILE: Specific file name in the repo
-  - TORCHBENCH_SUITE_HF_COMMIT: Git commit hash for reproducibility
+  - MODELTRACES_SUITE_FILE: Specific file name in the repo
+  - MODELTRACES_SUITE_HF_COMMIT: Git commit hash for reproducibility
 
 Updating the Test Set:
 1. Choose a test file from https://huggingface.co/datasets/GPUMODE/backendbench_tests (it will likely be the same)
-2. Update TORCHBENCH_SUITE_FILE in data_loaders.py with the file name (it will likely be the same)
+2. Update MODELTRACES_SUITE_FILE in data_loaders.py with the file name (it will likely be the same)
 3. Get the current commit hash:
    python -c "from huggingface_hub import HfApi; print(HfApi().dataset_info('GPUMODE/backendbench_tests', revision='main').sha)"
-4. Update TORCHBENCH_SUITE_HF_COMMIT in data_loaders.py with the hash
+4. Update MODELTRACES_SUITE_HF_COMMIT in data_loaders.py with the hash
 
 Creating New Test Sets:
 Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFace.
@@ -35,13 +35,13 @@ from BackendBench.op_categories import UNSUPPORTED_OPERATORS
 from BackendBench.utils import deserialize_args
 
 
-class TorchBenchTest:
+class ModelTracesTest:
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
 
 
-class TorchBenchOpTest:
+class ModelTracesOpTest:
     def __init__(self, op, inputs, topn):
         self.op = eval(f"torch.ops.{op}")
         self.inputs = inputs
@@ -60,16 +60,16 @@ class TorchBenchOpTest:
     def correctness_tests(self):
         for inp in self.tests():
             args, kwargs = deserialize_args(inp)
-            yield TorchBenchTest(*args, **kwargs)
+            yield ModelTracesTest(*args, **kwargs)
 
     @property
     def performance_tests(self):
         for inp in self.tests():
             args, kwargs = deserialize_args(inp)
-            yield TorchBenchTest(*args, **kwargs)
+            yield ModelTracesTest(*args, **kwargs)
 
 
-class TorchBenchTestSuite:
+class ModelTracesTestSuite:
     def __init__(
         self,
         name,
@@ -101,4 +101,4 @@ class TorchBenchTestSuite:
         for op, inputs in self.optests.items():
             if any(s in op for s in UNSUPPORTED_OPERATORS):
                 continue
-            yield TorchBenchOpTest(op, inputs, self.topn)
+            yield ModelTracesOpTest(op, inputs, self.topn)

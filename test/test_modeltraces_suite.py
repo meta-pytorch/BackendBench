@@ -5,12 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from BackendBench.suite import TorchBenchOpTest
+from BackendBench.suite import ModelTracesOpTest
 
 
 class TestOpTest:
     def test_op_test(self):
-        op_test = TorchBenchOpTest(
+        op_test = ModelTracesOpTest(
             "aten.relu.default", ["((T([32, 128, 512], f16, None, 'cpu'),), {})"], None
         )
         for test in op_test.correctness_tests:
@@ -24,7 +24,7 @@ class TestOpTest:
             torch.testing.assert_close(torch.relu(arg), op_test.op(arg))
 
     def test_topn(self):
-        op_test = TorchBenchOpTest(
+        op_test = ModelTracesOpTest(
             "aten.relu.default",
             [
                 "((T([32, 128, 512], f16, None, 'cpu'),), {})",

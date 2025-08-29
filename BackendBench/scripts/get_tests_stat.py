@@ -11,7 +11,7 @@ This is a helper script to analyze the test suite and provide statistics about t
 import statistics
 
 import torch
-from BackendBench.suite import OpInfoTestSuite, TorchBenchTestSuite, FactoTestSuite
+from BackendBench.suite import OpInfoTestSuite, ModelTracesTestSuite, FactoTestSuite
 from BackendBench.scripts.pytorch_operators import extract_operator_name
 
 
@@ -133,8 +133,8 @@ def main():
             "cuda",
             torch.bfloat16,
         ),
-        "torchbench": TorchBenchTestSuite(
-            "torchbench",
+        "modeltraces": ModelTracesTestSuite(
+            "modeltraces",
         ),
         "facto": FactoTestSuite(
             "facto_cuda_bfloat16",
