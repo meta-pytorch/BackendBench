@@ -141,17 +141,47 @@ class CustomOpsBackend(Backend):
 
         def wrapper(*args, **kwargs):
             # Minimal example: assume single input tensor -> single output tensor, same shape
-            # Move tensors to GPU with CuPy
+            # Use DLPack for zero-copy when on CUDA
             torch_input = args[0]
             assert isinstance(torch_input, torch.Tensor)
-            x_cp = cp.asarray(torch_input.detach().contiguous().cpu().numpy())
+
+            orig_device = torch_input.device
+            orig_dtype = torch_input.dtype
+
+            # Ensure CUDA tensor for kernel; cast to float32 for this demo kernel
+            if not torch_input.is_cuda:
+                if not torch.cuda.is_available():
+                    raise RuntimeError("CUDA is required for CUDA kernels but no CUDA device is available")
+                torch_input = torch_input.to("cuda")
+            if torch_input.dtype != torch.float32:
+                torch_input = torch_input.to(torch.float32)
+
+            # DLPack zero-copy into CuPy
+            try:
+                import torch.utils.dlpack as torch_dlpack  # local import to avoid overhead
+                x_cp = cp.from_dlpack(torch_dlpack.to_dlpack(torch_input.contiguous()))
+            except Exception as e:
+                # Fallback (should rarely happen): go through CPU
+                x_cp = cp.asarray(torch_input.detach().contiguous().cpu().numpy())
+
             y_cp = cp.empty_like(x_cp)
             n = x_cp.size
             threads = 256
             blocks = (n + threads - 1) // threads
             kernel((blocks,), (threads,), (x_cp, y_cp, n))
-            y = torch.from_numpy(cp.asnumpy(y_cp))
-            return y.to(torch_input.device)
+
+            # Convert back to torch via DLPack (zero-copy)
+            try:
+                y_torch = torch_dlpack.from_dlpack(y_cp)
+            except Exception:
+                y_torch = torch.from_numpy(cp.asnumpy(y_cp)).to(torch_input.device)
+
+            # Cast back to original dtype and device
+            if orig_dtype != torch.float32:
+                y_torch = y_torch.to(orig_dtype)
+            if orig_device.type == "cpu":
+                y_torch = y_torch.to("cpu")
+            return y_torch
 
         return wrapper
 
