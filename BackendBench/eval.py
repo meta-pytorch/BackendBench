@@ -4,11 +4,12 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import csv
 import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
@@ -23,7 +24,7 @@ try:
 except ImportError:
     TRITON_AVAILABLE = False
 
-from BackendBench.utils import serialize_args, uses_cuda_stream, compute_errors
+from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 logger = logging.getLogger(__name__)
 
@@ -196,15 +197,195 @@ def eval_one_op(op, impl, correctness_tests, performance_tests):
     return correctness_score, performance_score, test_data
 
 
-def save_verbose_results(
+def save_results(
     results: List[Dict[str, Any]],
-    output_path: str = "backendbench_verbose_results.json",
+    output_path: Union[str, Path] = "backendbench_output",
+    command: str = None,
+    mean_correctness: float = None,
+    geomean_perf: float = None,
+    perf_at_p_score: float = None,
+    p: float = 1.0,
 ):
-    """Save verbose results to a JSON file."""
-    with open(Path(output_path), "w") as f:
-        json.dump(results, f, indent=2)
+    """Save results without creating per-operator directories.
 
-    logger.info(f"Verbose results saved to {output_path}")
+    Args:
+        results: List of test results, each containing op_name, args, and test metrics
+        output_path: Base directory for saving results
+
+    Structure created:
+        output_path/
+        ├── README.md                  # Top level summary of results
+        ├── full_results.json          # Complete results log
+        ├── operator_summary.csv       # Operator-level summary
+        └── failed_ops.json            # Log of failed operations
+    """
+    base_dir = Path(output_path)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Save the full log in the base directory
+    full_log_path = base_dir / "full_results.json"
+    failed_ops_path = base_dir / "failed_ops.json"
+    summary_csv_path = base_dir / "operator_summary.csv"
+    with open(full_log_path, "w") as f:
+        json.dump(results, f, indent=2)
+    logger.info(f"Full results saved to {full_log_path}")
+
+    # 2. Organize results by operator (without creating directories)
+    op_results = defaultdict(list)
+    op_summaries = {}
+    failed_ops = []
+
+    for result in results:
+        op_name = result["op_name"]
+        op_results[op_name].append(result)
+
+    # Process each operator for summary
+    for op_name, op_tests in op_results.items():
+        # Calculate operator-level summary
+        total_tests = len(op_tests)
+        correct_tests = sum(1 for t in op_tests if t.get("Is_correct", 0) == 1)
+        failed_tests = []
+
+        # Collect performance metrics
+        speedups = []
+        benchmark_times = []
+        abs_errors = []
+        rel_errors = []
+
+        for test in op_tests:
+            # Check for failures
+            if test.get("Is_correct", 0) == 0:
+                failed_tests.append(
+                    {
+                        "op_name": op_name,
+                        "args": test.get("args", ""),
+                        "error": test.get("correctness_errors", ""),
+                    }
+                )
+
+            # Collect metrics
+            if test.get("speedup") and test.get("benchmark_time"):
+                speedups.append(float(test["speedup"]))
+                benchmark_times.append(float(test["benchmark_time"]))
+
+            if test.get("absolute_error") and test.get("relative_error"):
+                abs_errors.append(float(test["absolute_error"]))
+                rel_errors.append(float(test["relative_error"]))
+
+        # Calculate summary statistics
+        correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
+        avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
+        geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
+        mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
+        mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
+        max_rel_error = max(rel_errors) if rel_errors else 0.0
+        max_abs_error = max(abs_errors) if abs_errors else 0.0
+
+        op_summaries[op_name] = {
+            "operator": op_name,
+            "total_tests": total_tests,
+            "passed_tests": correct_tests,
+            "failed_tests": total_tests - correct_tests,
+            "correctness_rate": correctness_rate,
+            "avg_speedup": avg_speedup,
+            "geomean_speedup": geomean_speedup,
+            "mean_absolute_error": mean_abs_error,
+            "mean_relative_error": mean_rel_error,
+            "max_relative_error": max_rel_error,
+            "max_absolute_error": max_abs_error,
+        }
+
+        # Add to failed ops list if there were failures
+        if failed_tests:
+            failed_ops.extend(failed_tests)
+
+    # 3. Create operator-level summary CSV
+    if len(op_summaries) > 0:
+        op_summary_list = list(op_summaries.values())
+        fieldnames = list(op_summary_list[0].keys())
+
+        with open(summary_csv_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            for summary in op_summaries.values():
+                writer.writerow(summary)
+
+        logger.info(f"Operator summary CSV saved to {summary_csv_path}")
+
+    # 4. Save failed operations log
+    if failed_ops:
+        with open(failed_ops_path, "w") as f:
+            json.dump(failed_ops, f, indent=2)
+        logger.info(f"Failed operations log saved to {failed_ops_path}")
+
+    # Save README if metrics are provided
+    if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):
+        save_readme(
+            output_path=base_dir,
+            command=command,
+            mean_correctness=mean_correctness,
+            geomean_perf=geomean_perf,
+            perf_at_p_score=perf_at_p_score,
+            p=p,
+        )
+
+    # Log summary
+    logger.info(f"Results saved to directory: {base_dir.absolute()}")
+
+
+def save_readme(
+    output_path: Union[str, Path],
+    command: str,
+    mean_correctness: float,
+    geomean_perf: float,
+    perf_at_p_score: float,
+    p: float = 1.0,
+):
+    """Save a README file with run summary and results.
+
+    Args:
+        output_path: Directory to save the README in
+        command: The command used to run the benchmark
+        mean_correctness: Mean correctness score
+        geomean_perf: Geometric mean of performance scores
+        perf_at_p_score: Performance at threshold p score
+        p: The threshold value used for perf@p calculation
+    """
+    base_dir = Path(output_path)
+    base_dir.mkdir(parents=True, exist_ok=True)
+
+    readme_path = base_dir / "README.md"
+
+    with open(readme_path, "w") as f:
+        f.write("# BackendBench Run Summary\n\n")
+
+        f.write("## Command\n")
+        f.write("```bash\n")
+        f.write(f"{command}\n")
+        f.write("```\n\n")
+
+        f.write("## Results\n\n")
+        f.write("| Metric | Value |\n")
+        f.write("|--------|-------|\n")
+        f.write(f"| Correctness Score | {mean_correctness:.2f} |\n")
+        f.write(f"| Performance Score (geomean speedup) | {geomean_perf:.2f} |\n")
+        f.write(f"| Perf@{p} Score | {perf_at_p_score:.2f} |\n")
+        f.write("\n")
+
+        f.write("### Metric Descriptions\n\n")
+        f.write("- **Correctness Score**: Mean pass rate over all operators\n")
+        f.write("- **Performance Score**: Geometric mean speedup over all operators\n")
+        f.write(f"- **Perf@{p} Score**: Rate of correct samples with a speedup greater than {p}\n")
+        f.write("\n")
+
+        f.write("## Output Files\n\n")
+        f.write("The following files are saved in this directory:\n\n")
+        f.write("- `full_results.json`: Complete test results for all operators\n")
+        f.write("- `operator_summary.csv`: Operator-level summary statistics\n")
+        f.write("- `failed_ops.json`: Log of failed operations (if any)\n")
+        f.write("- `README.md`: This file\n")
+
+    logger.info(f"README saved to {readme_path}")
 
 
 def perf_at_p(correctness, performance, p=1.0):

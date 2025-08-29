@@ -108,10 +108,16 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
-    "--output-path",
+    "--log-dir",
     default=None,
     type=str,
-    help="Path for JSON output file with detailed results (if not specified, no JSON output)",
+    help="Directory for output logs. Default: backendbench_output_{timestamp} (or ops-directory for directory backend)",
+)
+@click.option(
+    "--disable-output-logs",
+    default=False,
+    is_flag=True,
+    help="Disable verbose logging of individual test results",
 )
 @click.option(
     "--num-workers",
@@ -147,7 +153,8 @@ def cli(
     kernel_agent_max_rounds,
     alternative_torchbench_data_path,
     ops_directory,
-    output_path,
+    log_dir,
+    disable_output_logs,
     num_workers,
     check_overhead_dominated_ops,
     p,
@@ -162,6 +169,7 @@ def cli(
     if ops:
         ops = ops.split(",")
 
+    backend_name = backend
     if backend == "llm-relay":
         backend = backends.LLMRelayBackend(model=llm_relay_model)
     else:
@@ -195,6 +203,18 @@ def cli(
             filter=ops,
         ),
     }[suite]()
+
+    # Determine log directory
+    import datetime
+
+    if not log_dir:
+        if backend_name == "directory":
+            # For directory backend, default to ops_directory
+            log_dir = ops_directory
+        else:
+            # For other backends, create timestamped directory
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            log_dir = f"backendbench_output_{timestamp}"
 
     # For LLM backend, we need to generate kernels first
     if backend.name == "llm":
@@ -294,19 +314,31 @@ def cli(
                     entry.update(data)
                     verbose_results.append(entry)
 
+    # @todo: We should just calculate these in a seperate function from verbose_results
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
+
     print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
 
-    # Save verbose results if output path is specified
-    if output_path and verbose_results:
-        eval.save_verbose_results(verbose_results, output_path)
-        print(f"Detailed results saved to: {output_path}")
+    command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
+
+    # Save results if not disabled
+    if not disable_output_logs:
+        eval.save_results(
+            verbose_results,
+            log_dir,
+            command=command,
+            mean_correctness=mean_correctness,
+            geomean_perf=geomean_perf,
+            perf_at_p_score=perf_at_p_score,
+            p=p,
+        )
+        print(f"Results saved to: {log_dir}")
 
 
 def setup_llm_backend(llm_backend, llm_client, suite, max_attempts=5):
