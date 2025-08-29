@@ -9,7 +9,7 @@
 """
 Setup script to create directory structure for PyTorch operators in op_map.
 This creates directories for operators that are actually used in evaluation suites
-(opinfo, torchbench, etc.) so LLM researchers can fill them with generated kernels.
+(opinfo, torchbench) so LLM researchers can fill them with generated kernels.
 """
 
 import argparse
@@ -46,16 +46,13 @@ def setup_operator_directories(base_dir: str = "generated_kernels"):
     This creates directories only for operators that exist in the authoritative op_map,
     which contains the curated set of operators from opinfo, torchbench
     """
-    print("Discovering operators from authoritative op_map...")
 
     folder_names = get_all_operators_from_op_map()
     print(f"Found {len(folder_names)} unique operators in op_map")
 
-    # Create base directory
     base_path = Path(base_dir)
     base_path.mkdir(exist_ok=True)
 
-    # Create directories for each unique operator folder
     created_count = 0
     skipped_count = 0
 
