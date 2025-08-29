@@ -57,7 +57,7 @@ def clean_op_name_for_directory(op_name: str) -> str:
 
 
 def create_readme_for_op(
-    op_dir: Path, op_name: str, is_core: bool, is_opinfo: bool, is_torchbench: bool
+    op_dir: Path, op_name: str, is_core: bool, is_opinfo: bool, is_modeltraces: bool
 ):
     """Create a README.md file for each operator directory."""
     readme_path = op_dir / "README.md"
@@ -67,8 +67,8 @@ def create_readme_for_op(
         status.append("Core PyTorch operator")
     if is_opinfo:
         status.append("Has OpInfo tests")
-    if is_torchbench:
-        status.append("Used in TorchBench")
+    if is_modeltraces:
+        status.append("Used in ModelTraces")
 
     content = f"""# {op_name}
 
@@ -119,15 +119,15 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
                     "name": row["op_name"],
                     "is_core": row["is_core"] == "True",
                     "is_opinfo": row["is_in_opinfo"] == "True",
-                    "is_torchbench": row["is_in_torchbench"] == "True",
+                    "is_modeltraces": row["is_in_modeltraces"] == "True",
                 }
             )
 
     # Filter operators based on criteria
     if not include_all:
-        # By default, only include operators that are in TorchBench
-        operators = [op for op in operators if op["is_torchbench"]]
-        print(f"Setting up directories for {len(operators)} TorchBench operators")
+        # By default, only include operators that are in ModelTraces
+        operators = [op for op in operators if op["is_modeltraces"]]
+        print(f"Setting up directories for {len(operators)} ModelTraces operators")
     else:
         print(f"Setting up directories for all {len(operators)} operators")
 
@@ -151,7 +151,7 @@ def setup_operator_directories(base_dir: str = "generated_kernels", include_all:
             continue
 
         op_dir.mkdir(exist_ok=True)
-        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"])
+        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_modeltraces"])
         created_count += 1
 
     print("\nDirectory setup complete:")
@@ -201,7 +201,7 @@ def main():
     parser.add_argument(
         "--include-all",
         action="store_true",
-        help="Include all operators, not just TorchBench operators",
+        help="Include all operators, not just ModelTraces operators",
     )
     parser.add_argument(
         "--regenerate-csv",
