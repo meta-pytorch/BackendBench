@@ -161,8 +161,7 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        test_data = {}
-        score, correctness_results = eval_correctness(op, impl, tests, test_data)
+        score, correctness_results = eval_correctness(op, impl, tests)
         assert score == 1.0
         assert len(correctness_results) == len(tests)
 

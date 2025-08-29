@@ -153,7 +153,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
+def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
@@ -161,7 +161,7 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     base_times = []
     test_times = []
     args_strs = []
-    test_results: List[PerformanceTestResult] = []
+    performance_results: List[PerformanceTestResult] = []
 
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
@@ -179,8 +179,17 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
             ):
                 raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
+            performance_results.append(
+                PerformanceTestResult(
+                    op_name=op.__name__,
+                    args=args_str,
+                    speedup=test_time / base_time,
+                    successfully_ran=True,
+                    benchmark_time=test_time,
+                )
+            )
         except Exception as e:
-            test_results.append(
+            performance_results.append(
                 PerformanceTestResult(
                     op_name=op.__name__,
                     args=args_str,
@@ -190,27 +199,12 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
                     error_msg=str(e),
                 )
             )
-            pass
         finally:
             test_times.append(test_time)
-            test_data[args_str]["benchmark_time"] = str(test_time)
-            test_results.append(
-                PerformanceTestResult(
-                    op_name=op.__name__,
-                    args=args_str,
-                    speedup=test_time / base_time,
-                    successfully_ran=True,
-                    benchmark_time=test_time,
-                )
-            )
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
 
-    # Update test_data with speedups from the tensor
-    for i, args_str in enumerate(args_strs):
-        test_data[args_str]["speedup"] = str(speedups[i].item())
-
-    return speedups.log().mean().exp()
+    return speedups.log().mean().exp(), performance_results
 
 
 def eval_one_op(
@@ -219,7 +213,7 @@ def eval_one_op(
     """Evaluate impl of op against correctness_tests and performance_tests.
 
     Returns:
-        Tuple of (correctness_score, performance_score, test_data)
+        Tuple of (correctness_score, performance_score, correctness_results, performance_results)
     """
 
     if uses_cuda_stream(impl):
