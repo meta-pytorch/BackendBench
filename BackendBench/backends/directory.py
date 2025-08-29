@@ -142,7 +142,9 @@ class DirectoryBackend(Backend):
     def __getitem__(self, key):
         if key in self.compiled_kernels:
             return self.compiled_kernels[key]
-        raise KeyError(f"Operator {key} not implemented in DirectoryBackend - add implementation to {self.ops_dir}/")
+        raise KeyError(
+            f"Operator {key} not implemented in DirectoryBackend - add implementation to {self.ops_dir}/"
+        )
 
     def __contains__(self, key):
         return key in self.compiled_kernels

@@ -39,7 +39,7 @@ def get_all_operators_from_op_map():
     return sorted(folder_names)
 
 
-def setup_operator_directories(base_dir: str = "generated_kernels"):
+def setup_operator_directories(base_dir: str = "generated_kernels", verbose: bool = False):
     """
     Set up directory structure for operators in op_map.
 
@@ -60,12 +60,14 @@ def setup_operator_directories(base_dir: str = "generated_kernels"):
         op_dir = base_path / folder_name
 
         if op_dir.exists():
-            print(f"Directory already exists: {folder_name}")
+            if verbose:
+                print(f"Directory already exists: {folder_name}")
             skipped_count += 1
             continue
 
         op_dir.mkdir(exist_ok=True)
-        print(f"Created directory: {folder_name}")
+        if verbose:
+            print(f"Created directory: {folder_name}")
         created_count += 1
 
     print("\nDirectory setup complete:")
@@ -88,9 +90,15 @@ def main():
         default="generated_kernels",
         help="Base directory for operator implementations (default: generated_kernels)",
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show verbose output for each directory created/skipped",
+    )
 
     args = parser.parse_args()
-    setup_operator_directories(args.base_dir)
+    setup_operator_directories(args.base_dir, verbose=args.verbose)
 
 
 if __name__ == "__main__":
