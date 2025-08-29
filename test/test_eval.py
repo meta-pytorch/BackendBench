@@ -4,19 +4,19 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import importlib.util
+from collections import defaultdict
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
-
-
-import importlib.util
 from BackendBench.eval import (
-    format_exception,
     allclose,
-    eval_correctness_test,
-    eval_correctness,
-    eval_one_op,
     cpu_bench,
+    eval_correctness,
+    eval_correctness_test,
+    eval_one_op,
+    format_exception,
     perf_at_p,
 )
 
@@ -161,11 +161,10 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        test_data = {}
+        test_data = defaultdict(dict)
         score = eval_correctness(op, impl, tests, test_data)
         assert score == 1.0
-        # TODO: test_data is overwritten by tests with same args
-        # assert len(test_data) == len(tests)  # Should have data for each test
+        assert len(test_data) == len(tests)  # Should have data for each test
 
 
 class TestEvalPerformance:
@@ -210,7 +209,11 @@ class TestEvalOneOp:
 
 
 def fastp_kernel_bench(
-    is_correct: np.ndarray, baseline_speed: np.ndarray, actual_speed: np.ndarray, n: int, p: float
+    is_correct: np.ndarray,
+    baseline_speed: np.ndarray,
+    actual_speed: np.ndarray,
+    n: int,
+    p: float,
 ) -> float:
     """
     Original fastp implementation from kernelBench

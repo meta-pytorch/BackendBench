@@ -1,0 +1,437 @@
+[
+  {
+    "op_name": "_log_softmax.default",
+    "args": "((T([8192, 50265], f16), 1, False,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "_log_softmax_backward_data.default",
+    "args": "((T([8192, 50265], f16), T([8192, 50265], f16), 1, torch.float16,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "_softmax.default",
+    "args": "((T([256, 1024, 1024], f16), -1, False,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "_softmax_backward_data.default",
+    "args": "((T([256, 1024, 1024], f16), T([256, 1024, 1024], f16), -1, torch.float16,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "abs.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "add.Tensor",
+    "args": "((T([256, 32, 32, 32, 32], f16, [66528, 63, 2079, 1, 0]), T([256, 32, 32, 32, 32], f16, [66528, 2079, 63, 0, 1]),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "add_.Tensor",
+    "args": "((T([128, 256, 56, 56], f16), T([128, 256, 56, 56], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "addmm.default",
+    "args": "((T([64], f16), T([401536, 512], f16), T([512, 64], f16, [1, 512]),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "any.default",
+    "args": "((T([64, 128, 512], b8),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "bitwise_and.Tensor",
+    "args": "((T([5000], b8), T([5000], b8),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "bitwise_not.default",
+    "args": "((T([4, 1, 512, 512], b8),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "bmm.default",
+    "args": "((T([256, 32, 1024], f16), T([256, 1024, 1024], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "cat.default",
+    "args": "(([T([128, 64, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16), T([128, 128, 56, 56], f16)], 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "clamp.default",
+    "args": "((T([1438452, 1], f16), None, 4.135166556742356,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "constant_pad_nd.default",
+    "args": "((T([128, 96, 113, 113], f16), [0, -1, 0, -1],), {})",
+    "error": "'list' object is not callable"
+  },
+  {
+    "op_name": "cos.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "cumsum.default",
+    "args": "((T([64, 128], i32), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "div.Scalar",
+    "args": "((T([128, 256, 56, 56], f16, [256, 1, 0, 0]), 3136,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "div.Tensor",
+    "args": "((T([64, 4, 512, 512], f16), 8.0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "div_.Tensor",
+    "args": "((T([1024, 2, 768], f16), 8.0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "elu.default",
+    "args": "((T([256, 197951], f16), 1.6732632423543772, 1.0507009873554805,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "eq.Scalar",
+    "args": "((T([2, 256, 12, 257], f16, [0, 257, 0, 1]), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "eq.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "erf.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "exp.default",
+    "args": "((T([6, 476, 3072], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "fill_.Scalar",
+    "args": "((T([476], i64), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "fill_.Tensor",
+    "args": "((T([118], f16), T([], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "flip.default",
+    "args": "((T([256, 257], f16), [0],), {})",
+    "error": ""
+  },
+  {
+    "op_name": "floor_divide.default",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "ge.Scalar",
+    "args": "((T([5000, 4], f32), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "gelu.default",
+    "args": "((T([128, 3137, 512], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "gelu_backward.default",
+    "args": "((T([128, 3137, 512], f16), T([128, 3137, 512], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "gt.Scalar",
+    "args": "((T([16, 128], i64), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "gt.Tensor",
+    "args": "((T([5000, 4], f32), T([4], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "isinf.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "isnan.default",
+    "args": "((T([64, 128, 512], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "le.Scalar",
+    "args": "((T([0, 91], f16), 4.135166556742356,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "lt.Scalar",
+    "args": "((T([2, 1024], f16), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "lt.Tensor",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "masked_fill.Scalar",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "masked_fill.Tensor",
+    "args": "((T([8, 12, 512, 512], f16), T([8, 12, 512, 512], b8, [512, 0, 0, 1]), T([], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "masked_fill_.Scalar",
+    "args": "((T([4, 12, 512, 512], f16), T([4, 1, 512, 512], b8), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "max.default",
+    "args": "((T([5000, 4], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "max.dim",
+    "args": "((T([64, 196, 1000], f16), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "maximum.default",
+    "args": "((T([4, 12, 128, 128], f16), T([], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mean.default",
+    "args": "((T([6, 3, 352, 352], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mean.dim",
+    "args": "((T([128, 256, 56, 56], f16), [2, 3], True,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "min.default",
+    "args": "((T([2], i64),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "minimum.default",
+    "args": "((T([2, 1, 1, 448], f16), T([2, 12, 64, 448], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mm.default",
+    "args": "((T([8192, 50265], f16), T([50265, 512], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mse_loss.default",
+    "args": "((T([6, 512, 44, 44], f16), T([6, 512, 44, 44], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mul.Tensor",
+    "args": "((T([256, 1024, 1024], f16), 0.1767766952966369,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "mul_.Tensor",
+    "args": "((T([128, 256, 48, 48], f16), T([], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "native_batch_norm.default",
+    "args": "((T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f16), True, 0.1, 0.001,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "native_batch_norm_backward.default",
+    "args": "((T([128, 64, 147, 147], f16), T([128, 64, 147, 147], f16), T([64], f16), T([64], f16), T([64], f16), T([64], f32), T([64], f32), True, 0.001, [True, True, True],), {})",
+    "error": ""
+  },
+  {
+    "op_name": "native_group_norm.default",
+    "args": "((T([64, 96, 56, 56], f16), T([96], f16), T([96], f16), 64, 96, 3136, 1, 1e-05,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "native_group_norm_backward.default",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16), T([64, 1], f16), T([64, 1], f16), T([96], f16), 64, 96, 3136, 1, [True, True, True],), {})",
+    "error": ""
+  },
+  {
+    "op_name": "native_layer_norm.default",
+    "args": "((T([64, 56, 56, 256], f16), [256], T([256], f16), T([256], f16), 1e-06,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "ne.Scalar",
+    "args": "((T([256, 33], i64, [1, 256]), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "neg.default",
+    "args": "((T([64, 96, 56, 56], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "nonzero.default",
+    "args": "((T([5000], b8),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "pow.Scalar",
+    "args": "((10000, T([512], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "pow.Tensor_Scalar",
+    "args": "((T([2, 512, 16384], f16), 3.0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "reciprocal.default",
+    "args": "((T([512], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "relu.default",
+    "args": "((T([16, 96, 165, 165], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "relu_.default",
+    "args": "((T([64, 64, 224, 224], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "remainder.Scalar",
+    "args": "((T([1, 5000], i64), 90,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "repeat.default",
+    "args": "((T([10, 204, 204], b8, [204, 0, 1]), [8, 1, 1],), {})",
+    "error": ""
+  },
+  {
+    "op_name": "rsqrt.default",
+    "args": "((T([32, 1, 56, 56], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sigmoid.default",
+    "args": "((T([6, 1, 352, 352], f16, [619520, 123904, 352, 1]),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sigmoid_.default",
+    "args": "((T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sigmoid_backward.default",
+    "args": "((T([8, 3, 48, 64, 81], f16), T([8, 3, 48, 64, 81], f16, [783360, 261120, 5440, 85, 1]),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "silu.default",
+    "args": "((T([128, 256, 56, 56], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "silu_.default",
+    "args": "((T([128, 96, 112, 112], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "silu_backward.default",
+    "args": "((T([128, 96, 112, 112], f16), T([128, 96, 112, 112], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sin.default",
+    "args": "((T([1024, 512], f32),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "stack.default",
+    "args": "(([T([64, 4, 16, 196, 32], f16), T([64, 4, 16, 196, 32], f16, [401408, 100352, 6272, 1, 196]), T([64, 4, 16, 196, 32], f16)],), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sub.Tensor",
+    "args": "((T([64, 96, 56, 56], f16), T([64, 96, 56, 56], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sum.dim_IntList",
+    "args": "((T([256, 32, 32, 32, 32], f16, [1048576, 32768, 32, 1024, 1]), [2], True,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "sum.default",
+    "args": "((T([8, 512, 30522], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "tanh.default",
+    "args": "((T([2, 512, 16384], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "tanh_backward.default",
+    "args": "((T([2, 512, 16384], f16), T([2, 512, 16384], f16),), {})",
+    "error": ""
+  },
+  {
+    "op_name": "threshold_backward.default",
+    "args": "((T([64, 64, 224, 224], f16), T([64, 64, 224, 224], f16), 0,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "topk.default",
+    "args": "((T([1, 6905250], f16), 5000, 1,), {})",
+    "error": "at 18:11:\n    k: tl.constexpr,\n    N: tl.constexpr,\n    BLOCK_SIZE: tl.constexpr,\n    DESCENDING: tl.constexpr,\n):\n    cur_batch = tle.program_id(0)\n    chunk_x += cur_batch * N\n    chunk_index += cur_batch * N\n    y_ptr += cur_batch * k\n    index_ptr += cur_batch * k\n\n    cols = tl.arange(0, BLOCK_SIZE)\n           ^"
+  },
+  {
+    "op_name": "triu.default",
+    "args": "((T([1, 31, 31], f32), 1,), {})",
+    "error": ""
+  },
+  {
+    "op_name": "var_mean.correction",
+    "args": "((T([32, 128, 56, 56], f16, [401408, 1, 7168, 128]), [1],), {'correction': 0, 'keepdim': True})",
+    "error": ""
+  },
+  {
+    "op_name": "where.self",
+    "args": "((T([1, 1, 1024, 1024], b8), T([4, 12, 1024, 1024], f16), T([], f16),), {})",
+    "error": ""
+  }
+]
