@@ -7,142 +7,98 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Setup script to create directory structure for all PyTorch operators.
-This creates empty directories that LLM researchers can fill with generated kernels.
+Setup script to create directory structure for PyTorch operators in op_map.
+This creates directories for operators that are actually used in evaluation suites
+(opinfo, torchbench, etc.) so LLM researchers can fill them with generated kernels.
 """
 
-import os
-import csv
 import argparse
 from pathlib import Path
-from collections import defaultdict
 
-from .op_map import query
-
-
-def get_folder_name_for_operator(op_name: str) -> str:
-    """Get the proper folder name for an operator using authoritative op_map query."""
-    clean_name = op_name[6:] if op_name.startswith("aten::") else op_name
-
-    results = query(clean_name)
-    if results:
-        canonical = results[0]["canonical"]
-        if "." in canonical:
-            return canonical.split(".")[0]
-        return canonical
-
-    print(
-        f"WARNING: Could not map operator '{op_name}' to folder name - skipping directory creation"
-    )
-    return None
+from .op_map import op_map_data
 
 
-def setup_operator_directories(base_dir: str = "generated_kernels", include_all: bool = False):
-    """Set up directory structure for PyTorch operators."""
+def get_all_operators_from_op_map():
+    """Extract all unique folder names from the authoritative op_map."""
+    folder_names = set()
 
-    print("Using authoritative op_map for operator mapping...")
+    # Parse the op_map_data to extract all canonical operator names
+    for line in op_map_data.strip().split("\n"):
+        if line.startswith("canonical:"):
+            # Extract canonical name from line like "canonical:add.Tensor func:add.Tensor ..."
+            canonical_part = line.split()[0]  # Get "canonical:add.Tensor"
+            canonical_name = canonical_part.split(":", 1)[1]  # Get "add.Tensor"
 
-    csv_path = "pytorch_operator_coverage.csv"
-    if not os.path.exists(csv_path):
-        print(f"Error: {csv_path} not found. Please generate it first.")
-        print("Run: python -m BackendBench.scripts.generate_operator_coverage_csv")
-        return
+            # Extract folder name (base name without overload)
+            if "." in canonical_name:
+                folder_name = canonical_name.split(".")[0]
+            else:
+                folder_name = canonical_name
+
+            folder_names.add(folder_name)
+
+    return sorted(folder_names)
+
+
+def setup_operator_directories(base_dir: str = "generated_kernels"):
+    """
+    Set up directory structure for operators in op_map.
+
+    This creates directories only for operators that exist in the authoritative op_map,
+    which contains the curated set of operators from opinfo, torchbench, and other
+    evaluation suites that actually matter for backend testing.
+
+    No CSV dependencies - reads directly from the authoritative op_map data.
+    """
+    print("Discovering operators from authoritative op_map...")
+
+    # Get all operators directly from op_map (no CSV dependency)
+    folder_names = get_all_operators_from_op_map()
+    print(f"Found {len(folder_names)} unique operators in op_map")
 
     # Create base directory
     base_path = Path(base_dir)
     base_path.mkdir(exist_ok=True)
 
-    # Read operator data from CSV
-    operators = []
-    with open(csv_path, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            operators.append(
-                {
-                    "name": row["op_name"],
-                    "is_core": row["is_core"] == "True",
-                    "is_opinfo": row["is_in_opinfo"] == "True",
-                    "is_torchbench": row["is_in_torchbench"] == "True",
-                }
-            )
-
-    # Filter operators based on criteria
-    if not include_all:
-        # By default, only include operators that are in TorchBench
-        operators = [op for op in operators if op["is_torchbench"]]
-        print(f"Setting up directories for {len(operators)} TorchBench operators")
-    else:
-        print(f"Setting up directories for all {len(operators)} operators")
-
-    # Create directories
+    # Create directories for each unique operator folder
     created_count = 0
     skipped_count = 0
-    folder_to_ops = defaultdict(list)  # Track which operators go into each folder
 
-    for op in operators:
-        op_name = op["name"]
-        dir_name = get_folder_name_for_operator(op_name)
-
-        if not dir_name:  # Skip if we couldn't clean the name
-            print(f"Skipping operator with invalid name: {op_name}")
-            skipped_count += 1
-            continue
-
-        op_dir = base_path / dir_name
-
-        # Track which operators map to this folder
-        folder_to_ops[dir_name].append(op_name)
+    for folder_name in folder_names:
+        op_dir = base_path / folder_name
 
         if op_dir.exists():
+            print(f"Directory already exists: {folder_name}")
             skipped_count += 1
             continue
 
         op_dir.mkdir(exist_ok=True)
+        print(f"Created directory: {folder_name}")
         created_count += 1
 
     print("\nDirectory setup complete:")
     print(f"- Created {created_count} new directories")
     print(f"- Skipped {skipped_count} existing directories")
-    print(f"- Total operators processed: {len(operators)}")
-    print(f"- Unique folders created: {len(folder_to_ops)}")
+    print(f"- Total unique operators from op_map: {len(folder_names)}")
     print(f"- Base directory: {base_path.absolute()}")
 
-    # Show some mapping statistics
-    if folder_to_ops:
-        max_ops_per_folder = max(len(ops) for ops in folder_to_ops.values())
-        folders_with_multiple_ops = sum(1 for ops in folder_to_ops.values() if len(ops) > 1)
-        print(f"- Max operators per folder: {max_ops_per_folder}")
-        print(f"- Folders handling multiple operators: {folders_with_multiple_ops}")
+    print("\nExample operators that will be handled:")
+    for folder in sorted(folder_names)[:10]:
+        print(f"  {folder}/  (handles all {folder}.* variants)")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Set up directory structure for PyTorch operator implementations"
+        description="Set up directory structure for PyTorch operators from op_map"
     )
     parser.add_argument(
         "--base-dir",
         default="generated_kernels",
         help="Base directory for operator implementations (default: generated_kernels)",
     )
-    parser.add_argument(
-        "--include-all",
-        action="store_true",
-        help="Include all operators, not just TorchBench operators",
-    )
-    parser.add_argument(
-        "--regenerate-csv",
-        action="store_true",
-        help="Force regeneration of the operator coverage CSV",
-    )
 
     args = parser.parse_args()
-
-    # Remove existing CSV if regeneration is requested
-    if args.regenerate_csv and os.path.exists("pytorch_operator_coverage.csv"):
-        os.remove("pytorch_operator_coverage.csv")
-        print("Removed existing CSV, will regenerate...")
-
-    setup_operator_directories(args.base_dir, args.include_all)
+    setup_operator_directories(args.base_dir)
 
 
 if __name__ == "__main__":

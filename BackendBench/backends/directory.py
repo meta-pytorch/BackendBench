@@ -25,6 +25,21 @@ class DirectoryBackend(Backend):
         self._load_kernels()
 
     def _load_kernels(self):
+        """
+        Discovers and loads kernel implementations from the operator directory structure.
+
+        This method scans the ops_dir for subdirectories named after PyTorch operators
+        (e.g., "add", "mul", "conv2d"). Each subdirectory should contain Python files
+        with kernel implementations following the naming pattern: {op_name}_implementation*.py
+
+        The loading process:
+        1. Finds implementation files in each operator directory
+        2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
+           that should map to this directory (e.g., add.Tensor, add_.Scalar, add.out)
+        3. Registers the same kernel implementation for all discovered variants
+        4. This ensures comprehensive coverage - a single "add" implementation handles
+           all add variants: functional (add.Tensor), in-place (add_.Tensor), out (add.out)
+        """
         if not os.path.exists(self.ops_dir):
             logger.warning(f"ops directory {self.ops_dir} does not exist")
             return
@@ -44,23 +59,23 @@ class DirectoryBackend(Backend):
                 logger.debug(f"No implementation files found in {op_dir}")
                 continue
 
-            # Use the first implementation file
-            impl_file = sorted(impl_files)[0]  # Sort to ensure consistent selection
+            impl_file = sorted(impl_files)[0]
             impl_path = os.path.join(op_dir, impl_file)
 
             try:
-                # Load the implementation
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
 
-                # Use query() to get all PyTorch operator variants for this folder
+                # Query the authoritative op_map for all operator variants that should
+                # map to this folder name. For example, query("add") returns:
+                # - add.Tensor (functional), add_.Tensor (in-place), add.out (out-variant)
+                # - add.Scalar (functional), add_.Scalar (in-place), add.Scalar_out (out-variant)
                 op_variants = query(op_name)
 
                 if op_variants:
-                    # Register kernel for all operator variants
+                    # Register the same kernel implementation for all operator variants
+                    # This is the key insight: one implementation handles all variants
                     for variant_info in op_variants:
                         op_full_name = variant_info["op"]
-
-                        # Convert op name to actual PyTorch operation object
                         pytorch_op = self._get_pytorch_op(op_full_name)
                         if pytorch_op:
                             self.compiled_kernels[pytorch_op] = kernel_func
@@ -76,11 +91,23 @@ class DirectoryBackend(Backend):
         logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
 
     def _get_pytorch_op(self, op_name: str):
-        """Convert operator name to PyTorch operation object using standardized approach."""
+        """
+        Convert an operator name string to the actual PyTorch operation object.
+
+        PyTorch operations are structured as torch.ops.aten.{base_name}.{overload}.
+        This method handles the conversion from string names like "add.Tensor" or "relu.default"
+        to the actual callable operation objects that can be registered in the dispatcher.
+
+        Args:
+            op_name: String name like "add.Tensor", "relu.default", or just "relu"
+
+        Returns:
+            PyTorch operation object that can be used for dispatch registration,
+            or None if the operation doesn't exist in torch.ops.aten
+        """
         try:
             if "." in op_name:
                 base_name, overload = op_name.split(".", 1)
-                # Handle special case for default overload
                 if overload == "default":
                     return getattr(torch.ops.aten, base_name).default
                 else:
@@ -92,6 +119,23 @@ class DirectoryBackend(Backend):
             return None
 
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+        """
+        Dynamically load a kernel implementation function from a Python file.
+
+        Each operator directory should contain implementation files that export a function
+        named {op_name}_kernel_impl. This function becomes the kernel implementation
+        that gets registered for all variants of the operator.
+
+        Args:
+            file_path: Path to the Python implementation file
+            op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
+
+        Returns:
+            Callable kernel implementation function
+
+        Raises:
+            ValueError: If the expected kernel function is not found in the file
+        """
         spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
