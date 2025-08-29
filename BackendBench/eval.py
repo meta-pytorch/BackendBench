@@ -24,6 +24,7 @@ class CorrectnessTestResult:
     error_msg: str = ""
     abs_error: float = None
     rel_error: float = None
+    test_type: str = "correctness"
 
 
 @dataclass
@@ -35,7 +36,7 @@ class PerformanceTestResult:
     reference_time_ms: float
     error_msg: str = ""
     successfully_ran: bool = False
-
+    test_type: str = "performance"
 
 try:
     if torch.cuda.is_available():
@@ -178,7 +179,10 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 ref,
                 res,
             ):
-                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
+                abs_error, rel_error = compute_errors(ref, res)
+                raise ValueError(
+                    f"Reference and result tensors are not close: mean absolute error {abs_error}, mean relative error {rel_error}"
+                )
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
             performance_results.append(
                 PerformanceTestResult(
@@ -191,6 +195,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 )
             )
         except Exception as e:
+            error_msg = format_exception(e, op, test.args, test.kwargs)
             performance_results.append(
                 PerformanceTestResult(
                     op_name=op.__name__,
@@ -199,7 +204,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                     speedup=None,
                     benchmark_time_ms=None,
                     reference_time_ms=base_time,
-                    error_msg=str(e),
+                    error_msg=error_msg,
                 )
             )
         finally:
