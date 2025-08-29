@@ -173,6 +173,8 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
         base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
         base_times.append(base_time)
+        # Note: If the test fails we consider the speedup to be 1.0
+        # TODO: We should make this more explicit, by having an if resolving it in the except and removing the finally block
         test_time = base_time
         try:
             ref = op(*test.args, **test.kwargs)
