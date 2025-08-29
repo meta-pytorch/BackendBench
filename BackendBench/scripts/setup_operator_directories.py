@@ -78,7 +78,7 @@ def get_opinfo_operators() -> Set[str]:
         import torch
         from BackendBench.suite import OpInfoTestSuite
 
-        suite = OpInfoTestSuite("opinfo", "cuda", torch.bfloat16)
+        suite = OpInfoTestSuite("opinfo", "cpu", torch.float32)
         opinfo_ops = [str(optest.op) for optest in suite]
         return set(extract_aten_ops(opinfo_ops))
     except Exception as e:

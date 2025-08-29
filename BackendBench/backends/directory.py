@@ -12,7 +12,7 @@ from typing import Callable, Dict
 
 from .base import Backend
 from ..scripts.op_map import query
-import torch
+from ..utils import get_pytorch_op
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class DirectoryBackend(Backend):
                 if op_variants:
                     for variant_info in op_variants:
                         op_full_name = variant_info["op"]
-                        pytorch_op = self._get_pytorch_op(op_full_name)
+                        pytorch_op = get_pytorch_op(op_full_name)
                         if pytorch_op:
                             self.compiled_kernels[pytorch_op] = kernel_func
                             logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
@@ -82,34 +82,6 @@ class DirectoryBackend(Backend):
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
 
         logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
-
-    def _get_pytorch_op(self, op_name: str):
-        """
-        Convert an operator name string to the actual PyTorch operation object.
-
-        PyTorch operations are structured as torch.ops.aten.{base_name}.{overload}.
-        This method handles the conversion from string names like "add.Tensor" or "relu.default"
-        to the actual callable operation objects that can be registered in the dispatcher.
-
-        Args:
-            op_name: String name like "add.Tensor", "relu.default", or just "relu"
-
-        Returns:
-            PyTorch operation object that can be used for dispatch registration,
-            or None if the operation doesn't exist in torch.ops.aten
-        """
-        try:
-            if "." in op_name:
-                base_name, overload = op_name.split(".", 1)
-                if overload == "default":
-                    return getattr(torch.ops.aten, base_name).default
-                else:
-                    return getattr(getattr(torch.ops.aten, base_name), overload)
-            else:
-                return getattr(torch.ops.aten, op_name).default
-        except AttributeError:
-            logger.warning(f"Could not find PyTorch operation for {op_name}")
-            return None
 
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
         """
