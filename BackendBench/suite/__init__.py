@@ -14,19 +14,23 @@ backend implementations by comparing them against PyTorch operations.
 """
 
 from .base import OpTest, Test, TestSuite
+from .custom_ops import CustomOpsTestSuite
 from .facto import FactoTestSuite
 from .opinfo import OpInfoTestSuite
 from .smoke import randn, SmokeTestSuite
 from .torchbench import TorchBenchOpTest, TorchBenchTestSuite
+from .custom_fs import CustomFilesystemTestSuite
 
 __all__ = [
     "Test",
     "OpTest",
     "TestSuite",
+    "CustomOpsTestSuite",
     "FactoTestSuite",
     "OpInfoTestSuite",
     "SmokeTestSuite",
     "randn",
     "TorchBenchOpTest",
     "TorchBenchTestSuite",
+    "CustomFilesystemTestSuite",
 ]

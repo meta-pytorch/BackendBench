@@ -17,6 +17,8 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
+    CustomFilesystemTestSuite,
+    CustomOpsTestSuite,
     FactoTestSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
@@ -49,13 +51,13 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "custom_ops", "custom_fs"]),
     help="Which suite to run",
 )
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory", "custom_ops"]),
     help="Which backend to run",
 )
 @click.option(
@@ -179,6 +181,7 @@ def cli(
             "llm": backends.LLMBackend,
             "kernel_agent": backends.KernelAgentBackend,
             "directory": backends.DirectoryBackend,
+            "custom_ops": backends.CustomOpsBackend,
         }[backend]()
 
     suite = {
@@ -202,6 +205,8 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
+        "custom_fs": lambda: CustomFilesystemTestSuite("custom_ops"),
+        "custom_ops": lambda: CustomOpsTestSuite,
     }[suite]()
 
     # Determine log directory
@@ -235,6 +240,9 @@ def cli(
     # For Directory backend, we need to load existing kernels from a directory
     elif backend.name == "directory":
         backend = backends.DirectoryBackend(ops_directory)
+    elif backend.name == "custom_ops":
+        # Switch to filesystem-based custom ops under ./custom_ops
+        backend = backends.CustomOpsBackend("custom_ops")
 
     overall_correctness = []
     overall_performance = []
