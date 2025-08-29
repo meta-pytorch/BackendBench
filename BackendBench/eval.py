@@ -31,7 +31,8 @@ class PerformanceTestResult:
     op_name: str
     args: str
     speedup: float
-    benchmark_time: float
+    benchmark_time_ms: float
+    reference_time_ms: float
     error_msg: str = ""
     successfully_ran: bool = False
 
@@ -185,7 +186,8 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                     args=args_str,
                     speedup=test_time / base_time,
                     successfully_ran=True,
-                    benchmark_time=test_time,
+                    benchmark_time_ms=test_time,
+                    reference_time_ms=base_time,
                 )
             )
         except Exception as e:
@@ -195,7 +197,8 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                     args=args_str,
                     successfully_ran=False,
                     speedup=None,
-                    benchmark_time=None,
+                    benchmark_time_ms=None,
+                    reference_time_ms=base_time,
                     error_msg=str(e),
                 )
             )
@@ -237,7 +240,8 @@ def eval_one_op(
                     op_name=op.__name__,
                     args=args_str,
                     speedup=0,
-                    benchmark_time=0,
+                    benchmark_time_ms=0,
+                    reference_time_ms=0,
                     error_msg="Skipped: uses CUDA stream",
                 )
             )
@@ -285,7 +289,7 @@ def save_results(
 
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
-    failed_tests_path = base_dir / "failed_ops.json"
+    failed_ops_path = base_dir / "failed_ops.json"
     summary_csv_path = base_dir / "operator_summary.csv"
 
     with open(full_log_path, "w") as f:
@@ -316,7 +320,6 @@ def save_results(
         correct_tests = sum(1 for result in correctness_results if result.is_correct)
         # Collect performance metrics
         speedups = []
-        benchmark_times = []
         abs_errors = []
         rel_errors = []
 
@@ -334,9 +337,8 @@ def save_results(
                 failed_tests.append(asdict(test))
 
             # Collect metrics
-            if test.speedup and test.benchmark_time:
+            if test.speedup:
                 speedups.append(float(test.speedup))
-                benchmark_times.append(float(test.benchmark_time))
 
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
@@ -378,9 +380,9 @@ def save_results(
     # sort failed_tests
     failed_tests.sort(key=lambda x: (x["op_name"], x["args"]))
 
-    with open(failed_tests_path, "w") as f:
+    with open(failed_ops_path, "w") as f:
         json.dump(failed_tests, f, indent=2)
-    logger.info(f"Failed operations log saved to {failed_tests_path}")
+    logger.info(f"Failed operations log saved to {failed_ops_path}")
 
     # Save README if metrics are provided
     if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):
