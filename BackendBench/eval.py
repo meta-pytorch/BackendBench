@@ -11,6 +11,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
+import math
 
 import torch
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
@@ -22,8 +23,8 @@ class CorrectnessTestResult:
     args: str
     is_correct: bool = False
     error_msg: str = ""
-    abs_error: float = None
-    rel_error: float = None
+    max_abs_error: float = -math.inf
+    max_rel_error: float = -math.inf
     test_type: str = "correctness"
 
 
@@ -37,6 +38,7 @@ class PerformanceTestResult:
     error_msg: str = ""
     successfully_ran: bool = False
     test_type: str = "performance"
+
 
 try:
     if torch.cuda.is_available():
@@ -125,8 +127,8 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
                 args=args_str,
                 is_correct=is_correct,
                 error_msg=error_msg,
-                abs_error=abs_error,
-                rel_error=rel_error,
+                max_abs_error=abs_error,
+                max_rel_error=rel_error,
             )
         )
 
@@ -181,7 +183,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
             ):
                 abs_error, rel_error = compute_errors(ref, res)
                 raise ValueError(
-                    f"Reference and result tensors are not close: mean absolute error {abs_error}, mean relative error {rel_error}"
+                    f"Reference and result tensors are not close: max absolute error {abs_error}, max relative error {rel_error}"
                 )
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
             performance_results.append(
@@ -333,9 +335,9 @@ def save_results(
             if not test.is_correct:
                 failed_tests.append(asdict(test))
 
-            if test.abs_error and test.rel_error:
-                abs_errors.append(float(test.abs_error))
-                rel_errors.append(float(test.rel_error))
+            if test.max_abs_error and test.max_rel_error:
+                abs_errors.append(float(test.max_abs_error))
+                rel_errors.append(float(test.max_rel_error))
 
         for test in performance_results:
             if not test.successfully_ran:
@@ -349,10 +351,8 @@ def save_results(
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
         geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
-        mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
-        max_rel_error = max(rel_errors) if rel_errors else 0.0
         max_abs_error = max(abs_errors) if abs_errors else 0.0
+        max_rel_error = max(rel_errors) if rel_errors else 0.0
 
         op_summaries[op_name] = {
             "operator": op_name,
@@ -362,10 +362,8 @@ def save_results(
             "correctness_rate": correctness_rate,
             "avg_speedup": avg_speedup,
             "geomean_speedup": geomean_speedup,
-            "mean_absolute_error": mean_abs_error,
-            "mean_relative_error": mean_rel_error,
-            "max_relative_error": max_rel_error,
             "max_absolute_error": max_abs_error,
+            "max_relative_error": max_rel_error,
         }
 
     # 3. Create operator-level summary CSV

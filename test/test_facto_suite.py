@@ -42,7 +42,9 @@ class TestFactoSuite:
 
         # Iterate through the test suite (should contain relu operations)
         for test in suite:
+            ctest_count = 0
             for ctest in test.correctness_tests:
+                ctest_count += 1
                 for arg in ctest.args:
                     if isinstance(arg, torch.Tensor):
                         # assert args not empty
@@ -60,7 +62,9 @@ class TestFactoSuite:
                 test.performance_tests,
             )
 
-            assert len(correctness_results) == len(test.correctness_tests)
+            assert len(correctness_results) == ctest_count, (
+                f"Number of correctness results for {test.op} is not {ctest_count}"
+            )
             is_correct = all(result.is_correct for result in correctness_results)
             overall_correctness.append(is_correct)
 
