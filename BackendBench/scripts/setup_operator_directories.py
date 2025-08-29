@@ -14,8 +14,24 @@ This creates directories for operators that are actually used in evaluation suit
 
 import argparse
 from pathlib import Path
+from typing import Set
 
 from .op_map import op_map_data
+
+
+def extract_operator_name(op_str: str) -> str:
+    """Extract clean operator name from various operator string formats."""
+    if "aten." in op_str:
+        return op_str.split("aten.")[-1].split(".")[0]
+    elif "." in op_str:
+        return op_str.split(".")[0]
+    else:
+        return op_str
+
+
+def extract_aten_ops(op_strings):
+    """Extract unique aten operator names from a list of operation strings."""
+    return [extract_operator_name(op_str) for op_str in op_strings]
 
 
 def get_all_operators_from_op_map():
@@ -39,16 +55,70 @@ def get_all_operators_from_op_map():
     return sorted(folder_names)
 
 
-def setup_operator_directories(base_dir: str = "generated_kernels", verbose: bool = False):
-    """
-    Set up directory structure for operators in op_map.
+def get_torchbench_operators() -> Set[str]:
+    """Get operators used in TorchBench suite."""
+    try:
+        from BackendBench.suite import TorchBenchTestSuite
 
-    This creates directories only for operators that exist in the authoritative op_map,
-    which contains the curated set of operators from opinfo, torchbench
+        suite = TorchBenchTestSuite("torchbench", None)
+        ops = set()
+        for optest in suite:
+            op_str = str(optest.op)
+            op_name = extract_operator_name(op_str)
+            ops.add(op_name)
+        return ops
+    except Exception as e:
+        print(f"Warning: Could not load TorchBench operators: {e}")
+        return set()
+
+
+def get_opinfo_operators() -> Set[str]:
+    """Get operators available in OpInfo suite."""
+    try:
+        import torch
+        from BackendBench.suite import OpInfoTestSuite
+
+        suite = OpInfoTestSuite("opinfo", "cuda", torch.bfloat16)
+        opinfo_ops = [str(optest.op) for optest in suite]
+        return set(extract_aten_ops(opinfo_ops))
+    except Exception as e:
+        print(f"Warning: Could not load OpInfo operators: {e}")
+        return set()
+
+
+def setup_operator_directories(
+    base_dir: str = "generated_kernels", verbose: bool = False, suite: str = "all"
+):
+    """
+    Set up directory structure for operators based on test suite selection.
+
+    Args:
+        base_dir: Base directory for operator implementations
+        verbose: Show verbose output for each directory created/skipped
+        suite: Which operators to include ('torchbench', 'opinfo', 'all')
     """
 
-    folder_names = get_all_operators_from_op_map()
-    print(f"Found {len(folder_names)} unique operators in op_map")
+    # Get all operators from op_map first
+    all_op_map_operators = set(get_all_operators_from_op_map())
+    print(f"Found {len(all_op_map_operators)} unique operators in op_map")
+
+    # Filter based on suite selection
+    if suite == "torchbench":
+        torchbench_ops = get_torchbench_operators()
+        selected_ops = all_op_map_operators & torchbench_ops
+        print(f"TorchBench operators in op_map: {len(selected_ops)} total")
+    elif suite == "opinfo":
+        opinfo_ops = get_opinfo_operators()
+        selected_ops = all_op_map_operators & opinfo_ops
+        print(f"OpInfo operators in op_map: {len(selected_ops)} total")
+    elif suite == "all":
+        selected_ops = all_op_map_operators
+        print(f"All operators from op_map: {len(selected_ops)} total")
+    else:
+        raise ValueError(f"Invalid suite '{suite}'. Must be one of: torchbench, opinfo, all")
+
+    folder_names = sorted(selected_ops)
+    print(f"Creating directories for {len(folder_names)} operators")
 
     base_path = Path(base_dir)
     base_path.mkdir(exist_ok=True)
@@ -73,17 +143,13 @@ def setup_operator_directories(base_dir: str = "generated_kernels", verbose: boo
     print("\nDirectory setup complete:")
     print(f"- Created {created_count} new directories")
     print(f"- Skipped {skipped_count} existing directories")
-    print(f"- Total unique operators from op_map: {len(folder_names)}")
+    print(f"- Total operators for {suite} suite: {len(folder_names)}")
     print(f"- Base directory: {base_path.absolute()}")
-
-    print("\nExample operators that will be handled:")
-    for folder in sorted(folder_names)[:10]:
-        print(f"  {folder}/  (handles all {folder}.* variants)")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Set up directory structure for PyTorch operators from op_map"
+        description="Set up directory structure for PyTorch operators based on test suite selection"
     )
     parser.add_argument(
         "--base-dir",
@@ -96,9 +162,15 @@ def main():
         action="store_true",
         help="Show verbose output for each directory created/skipped",
     )
+    parser.add_argument(
+        "--suite",
+        choices=["torchbench", "opinfo", "all"],
+        default="torchbench",
+        help="Which test suite operators to include (default: torchbench)",
+    )
 
     args = parser.parse_args()
-    setup_operator_directories(args.base_dir, verbose=args.verbose)
+    setup_operator_directories(args.base_dir, verbose=args.verbose, suite=args.suite)
 
 
 if __name__ == "__main__":
