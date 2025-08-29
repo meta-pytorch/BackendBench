@@ -9,9 +9,10 @@ import logging
 import os
 from typing import Callable, Dict
 
-import torch
 
 from .base import Backend
+from ..scripts.op_map import query
+from ..utils import get_pytorch_op
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,21 @@ class DirectoryBackend(Backend):
         self._load_kernels()
 
     def _load_kernels(self):
+        """
+        Discovers and loads kernel implementations from the operator directory structure.
+
+        This method scans the ops_dir for subdirectories named after PyTorch operators
+        (e.g., "add", "mul", "conv2d"). Each subdirectory should contain Python files
+        with kernel implementations following the naming pattern: {op_name}_implementation*.py
+
+        The loading process:
+        1. Finds implementation files in each operator directory
+        2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
+           that should map to this directory (e.g., add.Tensor, add_.Scalar, add.out)
+        3. Registers the same kernel implementation for all discovered variants
+        4. This ensures comprehensive coverage - a single "add" implementation handles
+           all add variants: functional (add.Tensor), in-place (add_.Tensor), out (add.out)
+        """
         if not os.path.exists(self.ops_dir):
             logger.warning(f"ops directory {self.ops_dir} does not exist")
             return
@@ -43,22 +59,24 @@ class DirectoryBackend(Backend):
                 logger.debug(f"No implementation files found in {op_dir}")
                 continue
 
-            # Use the first implementation file
-            impl_file = sorted(impl_files)[0]  # Sort to ensure consistent selection
+            impl_file = sorted(impl_files)[0]
             impl_path = os.path.join(op_dir, impl_file)
 
             try:
-                # Load the implementation and map to PyTorch operation
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                pytorch_ops = self._find_pytorch_ops(op_name)
+                op_variants = query(op_name)
 
-                if pytorch_ops:
-                    for pytorch_op in pytorch_ops:
-                        self.compiled_kernels[pytorch_op] = kernel_func
-                        logger.info(f"Loaded {op_name} from {impl_file} -> {pytorch_op}")
+                if op_variants:
+                    for variant_info in op_variants:
+                        op_full_name = variant_info["op"]
+                        pytorch_op = get_pytorch_op(op_full_name)
+                        if pytorch_op:
+                            self.compiled_kernels[pytorch_op] = kernel_func
+                            logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
+
                     loaded_count += 1
                 else:
-                    logger.warning(f"Could not map {op_name} to PyTorch operation")
+                    logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
@@ -66,6 +84,23 @@ class DirectoryBackend(Backend):
         logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
 
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+        """
+        Dynamically load a kernel implementation function from a Python file.
+
+        Each operator directory should contain implementation files that export a function
+        named {op_name}_kernel_impl. This function becomes the kernel implementation
+        that gets registered for all variants of the operator.
+
+        Args:
+            file_path: Path to the Python implementation file
+            op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
+
+        Returns:
+            Callable kernel implementation function
+
+        Raises:
+            ValueError: If the expected kernel function is not found in the file
+        """
         spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
@@ -76,48 +111,12 @@ class DirectoryBackend(Backend):
         else:
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
 
-    def _find_pytorch_ops(self, op_name: str):
-        """Map operation name to PyTorch operations.
-
-        Returns a list of PyTorch operations that match the directory name.
-        This handles the common case where a directory name like 'add' should map
-        to multiple overloads like add.default, add.Tensor, etc.
-        """
-        matched_ops = []
-
-        # Handle suffixed directory names (e.g., add_out -> add.out)
-        base_name = op_name
-        suffix = None
-        if "_" in op_name:
-            parts = op_name.rsplit("_", 1)
-            if parts[1] in ["out", "inplace", "scalar"]:
-                base_name = parts[0]
-                suffix = parts[1]
-
-        # Try to find the operation in torch.ops.aten
-        if hasattr(torch.ops.aten, base_name):
-            aten_op = getattr(torch.ops.aten, base_name)
-
-            # If we have a specific suffix, try to get that overload
-            if suffix and hasattr(aten_op, suffix):
-                matched_ops.append(getattr(aten_op, suffix))
-            else:
-                # Otherwise, try common overloads
-                for overload in ["default", "Tensor", "Scalar", "int", "float"]:
-                    if hasattr(aten_op, overload):
-                        op = getattr(aten_op, overload)
-                        matched_ops.append(op)
-
-        # Also check for operations that might be in other namespaces
-        # This could be extended based on actual usage patterns
-
-        return matched_ops
-
     def __getitem__(self, key):
         if key in self.compiled_kernels:
             return self.compiled_kernels[key]
-        # Fallback to original operation if not implemented
-        return key
+        raise KeyError(
+            f"Operator {key} not implemented in DirectoryBackend - add implementation to {self.ops_dir}/"
+        )
 
     def __contains__(self, key):
         return key in self.compiled_kernels
