@@ -17,7 +17,6 @@ import torch
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
-    CustomFilesystemTestSuite,
     CustomOpsTestSuite,
     FactoTestSuite,
     OpInfoTestSuite,
@@ -51,7 +50,7 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "custom_ops", "custom_fs"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "custom_ops"]),
     help="Which suite to run",
 )
 @click.option(
@@ -205,8 +204,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "custom_fs": lambda: CustomFilesystemTestSuite("custom_ops"),
-        "custom_ops": lambda: CustomOpsTestSuite,
+        "custom_ops": lambda: CustomOpsTestSuite("custom_ops"),
     }[suite]()
 
     # Determine log directory

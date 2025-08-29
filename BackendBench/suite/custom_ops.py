@@ -1,68 +1,146 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
-# This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
 
-import torch
+import importlib.util
+import logging
+from pathlib import Path
+from typing import List
 
 from .base import Test, OpTest, TestSuite
 
-
-def randn(*args, **kwargs):
-    return lambda: torch.randn(*args, **kwargs)
+logger = logging.getLogger(__name__)
 
 
-def tensor(*args, **kwargs):
-    return lambda: torch.tensor(*args, **kwargs)
+def _load_module_from_path(mod_name: str, file_path: Path):
+    spec = importlib.util.spec_from_file_location(mod_name, str(file_path))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Cannot import {file_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-# Define custom operations
-def copy_op(input):
-    """Reference implementation for copy operation."""
-    return input.clone()
+def _normalize_tests(raw_tests) -> List[Test]:
+    """Accept either already-constructed Test objects or raw (args, kwargs)."""
+    tests: List[Test] = []
+    if raw_tests is None:
+        return tests
+
+    for item in raw_tests:
+        if isinstance(item, Test):
+            tests.append(item)
+        else:
+            # Expect tuple/list forms: (arg1, arg2, ...), or ((args), {kwargs})
+            if isinstance(item, (list, tuple)):
+                if len(item) == 2 and isinstance(item[1], dict):
+                    args, kwargs = item  # type: ignore[assignment]
+                    # Allow single callable or single value as args
+                    if not isinstance(args, (list, tuple)):
+                        args = (args,)
+                    tests.append(Test(*args, **kwargs))
+                else:
+                    tests.append(Test(*item))
+            else:
+                # Single argument
+                tests.append(Test(item))
+    return tests
 
 
-def add_optimized_op(input, other, *, alpha=1):
-    """Reference implementation for optimized add operation."""
-    if isinstance(other, (int, float)):
-        return input + alpha * other
-    
-    if alpha != 1:
-        other = other * alpha
-    
-    return input + other
+class CustomOpsTestSuite(TestSuite):
+    """
+    Discover ops from ./custom_ops/<op>/gen_input.py and create tests.
 
+    gen_input.py contract (flexible):
+      - define get_correctness_tests() -> List[Test] or List[ (args...), or ( (args...), {kwargs}) ]
+      - define get_performance_tests() -> same as above (optional)
+    """
 
-CustomOpsTestSuite = TestSuite(
-    "custom_ops",
-    [
-        # Copy operation tests
-        OpTest(
-            copy_op,
-            [
-                Test(tensor([1.0, 2.0, 3.0, 4.0, 5.0])),
-                Test(tensor([[1.0, 2.0], [3.0, 4.0]])),
-                Test(randn(10, 10)),
-            ],
-            [
-                Test(randn(1000, 1000)),  # Performance test with large tensor
-                Test(randn(10000)),       # Performance test with large 1D tensor
-            ],
-        ),
-        # Add optimized operation tests
-        OpTest(
-            add_optimized_op,
-            [
-                Test(tensor([1.0, 2.0, 3.0]), tensor([4.0, 5.0, 6.0])),
-                Test(tensor([1.0, 2.0, 3.0]), lambda: 2.0),
-                Test(tensor([[1.0, 2.0], [3.0, 4.0]]), tensor([1.0, 2.0])),
-                Test(tensor([1.0, 2.0, 3.0]), tensor([1.0, 1.0, 1.0]), alpha=lambda: 2.0),
-            ],
-            [
-                Test(randn(1000, 1000), randn(1000, 1000)),
-                Test(randn(10000), randn(10000)),
-                Test(randn(100, 100), lambda: 1.5),
-            ],
-        ),
-    ],
-)
+    def __init__(self, root_dir: str = "custom_ops"):
+        optests: List[OpTest] = []
+        root = Path(root_dir)
+        if not root.exists():
+            logger.warning(f"custom ops dir not found: {root_dir}")
+        else:
+            for op_dir in sorted([d for d in root.iterdir() if d.is_dir()]):
+                op_name = op_dir.name
+                gen_file = op_dir / "gen_input.py"
+                if not gen_file.exists():
+                    logger.debug(f"skip {op_name}: no gen_input.py")
+                    continue
+                try:
+                    mod = _load_module_from_path(f"gen_input_{op_name}", gen_file)
+                    get_corr = getattr(mod, "get_correctness_tests", None)
+                    get_perf = getattr(mod, "get_performance_tests", None)
+
+                    corr = _normalize_tests(get_corr() if callable(get_corr) else [])
+                    perf = _normalize_tests(get_perf() if callable(get_perf) else [])
+
+                    # Choose a reference implementation to compare against.
+                    # Precedence:
+                    # 1) myop_reference.py with myop_reference()
+                    # 2) any myop_kernel_impl() found under <op>/<impl_name> (warn)
+                    # 3) identity passthrough (warn)
+
+                    ref_func = None
+                    ref_mod_path = op_dir / f"{op_name}_reference.py"
+                    if ref_mod_path.exists():
+                        try:
+                            ref_mod = _load_module_from_path(f"ref_{op_name}", ref_mod_path)
+                            if hasattr(ref_mod, f"{op_name}_reference"):
+                                ref_func = getattr(ref_mod, f"{op_name}_reference")
+                        except Exception as e:
+                            logger.warning(f"failed loading reference for {op_name}: {e}")
+
+                    if ref_func is None:
+                        # scan for any kernel_impl as fallback reference
+                        picked = None
+                        for impl_dir in sorted([d for d in op_dir.iterdir() if d.is_dir()]):
+                            for p in sorted(impl_dir.glob("*.py")):
+                                if p.name == "gen_input.py":
+                                    continue
+                                try:
+                                    impl_mod = _load_module_from_path(f"impl_{op_name}", p)
+                                    if hasattr(impl_mod, f"{op_name}_kernel_impl"):
+                                        picked = getattr(impl_mod, f"{op_name}_kernel_impl")
+                                        break
+                                except Exception:
+                                    continue
+                            if picked:
+                                break
+                        if picked:
+                            logger.warning(f"No explicit reference for {op_name}; using a kernel_impl as reference")
+                            ref_func = picked
+
+                    if ref_func is None:
+                        logger.warning(f"No reference and no kernel_impl found for {op_name}; using identity")
+                        def ref_func(*args, **kwargs):  # type: ignore[no-redef]
+                            return args[0]
+
+                    def _op_ref(*args, **kwargs):
+                        return ref_func(*args, **kwargs)
+
+                    # Create one OpTest per implementation so all impls are tested.
+                    # Implementations are registered as keys op__impl in the backend.
+                    impl_names = []
+                    for impl_dir in sorted([d for d in op_dir.iterdir() if d.is_dir()]):
+                        impl_names.append(impl_dir.name)
+
+                    if not impl_names:
+                        # legacy single op
+                        _op_ref.__name__ = op_name  # type: ignore[attr-defined]
+                        optests.append(OpTest(_op_ref, corr, perf))
+                    else:
+                        for impl in impl_names:
+                            def _op_ref_bound(*args, **kwargs):
+                                return ref_func(*args, **kwargs)
+                            _op_ref_bound.__name__ = f"{op_name}__{impl}"  # type: ignore[attr-defined]
+                            optests.append(OpTest(_op_ref_bound, corr, perf))
+                except Exception as e:
+                    logger.error(f"failed to load tests for {op_name}: {e}")
+
+        super().__init__("custom_ops", optests)
+
+ 
