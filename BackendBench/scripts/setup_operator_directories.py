@@ -23,12 +23,12 @@ from .op_map import query
 def get_folder_name_for_operator(op_name: str) -> str:
     """Get the proper folder name for an operator using authoritative op_map query."""
     clean_name = op_name[6:] if op_name.startswith("aten::") else op_name
-    
+
     results = query(clean_name)
     if results:
-        canonical = results[0]['canonical']
-        if '.' in canonical:
-            return canonical.split('.')[0]
+        canonical = results[0]["canonical"]
+        if "." in canonical:
+            return canonical.split(".")[0]
         return canonical
 
     print(
