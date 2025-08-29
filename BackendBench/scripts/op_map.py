@@ -1163,6 +1163,7 @@ for line in op_map_lines:
         if variant != "":
             assert variant not in op_map
             op_map[variant] = {
+                'op': variant,
                 'canonical': canonical,
                 'func': func,
                 'inplace': inplace,
@@ -1176,7 +1177,7 @@ for line in op_map_lines:
             base_name = variant.split('.')[0]
             if base_name not in base_map_sets:
                 base_map_sets[base_name] = set()
-            base_map_sets[base_name].add(canonical)
+            base_map_sets[base_name].add(variant)
 for base_name in base_map_sets:
     base_map[base_name] = sorted(list(base_map_sets[base_name]))
 
@@ -1188,13 +1189,14 @@ def query(op_name):
             entries.append(entry)
     else:
         if op_name in base_map:
-            for canonical in base_map[op_name]:
-                entry = op_map[canonical]
+            for variant in base_map[op_name]:
+                entry = op_map[variant]
                 entries.append(entry)
     return entries
 
 def print_entry(entry):
-    print(f"Canonical: {entry['canonical']}")
+    print(f"Op: {entry['op']}")
+    print(f"  Canonical: {entry['canonical']}")
     print(f"  Functional-Variant: {entry['func']}")
     print(f"  Out-Variant: {entry['out']}")
     print(f"  Inplace-Variant: {entry['inplace']}")
