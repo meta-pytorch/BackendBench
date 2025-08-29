@@ -11,7 +11,8 @@ from typing import Callable, Dict
 
 
 from .base import Backend
-from ..op_mapper import PyTorchOpMapper
+from ..scripts.op_map import query
+import torch
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,6 @@ class DirectoryBackend(Backend):
         super().__init__("directory")
         self.ops_dir = ops_dir
         self.compiled_kernels: Dict[str, Callable] = {}
-        self._op_mapper = PyTorchOpMapper()
         self._load_kernels()
 
     def _load_kernels(self):
@@ -49,22 +49,47 @@ class DirectoryBackend(Backend):
             impl_path = os.path.join(op_dir, impl_file)
 
             try:
-                # Load the implementation and map to PyTorch operation
+                # Load the implementation
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                pytorch_ops = self._op_mapper.find_pytorch_ops(op_name)
-
-                if pytorch_ops:
-                    for pytorch_op in pytorch_ops:
-                        self.compiled_kernels[pytorch_op] = kernel_func
-                        logger.info(f"Loaded {op_name} from {impl_file} -> {pytorch_op}")
+                
+                # Use query() to get all PyTorch operator variants for this folder
+                op_variants = query(op_name)
+                
+                if op_variants:
+                    # Register kernel for all operator variants
+                    for variant_info in op_variants:
+                        op_full_name = variant_info['op']
+                        
+                        # Convert op name to actual PyTorch operation object
+                        pytorch_op = self._get_pytorch_op(op_full_name)
+                        if pytorch_op:
+                            self.compiled_kernels[pytorch_op] = kernel_func
+                            logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
+                    
                     loaded_count += 1
                 else:
-                    logger.warning(f"Could not map {op_name} to PyTorch operation")
+                    logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
 
         logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
+
+    def _get_pytorch_op(self, op_name: str):
+        """Convert operator name to PyTorch operation object using standardized approach."""
+        try:
+            if '.' in op_name:
+                base_name, overload = op_name.split('.', 1)
+                # Handle special case for default overload
+                if overload == 'default':
+                    return getattr(torch.ops.aten, base_name).default
+                else:
+                    return getattr(getattr(torch.ops.aten, base_name), overload)
+            else:
+                return getattr(torch.ops.aten, op_name).default
+        except AttributeError:
+            logger.warning(f"Could not find PyTorch operation for {op_name}")
+            return None
 
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
         spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
