@@ -633,7 +633,7 @@ def sin_kernel_impl(*args, **kwargs):
         # Create model and input
         model = SimpleMatMulModel()
         batch_size, input_dim = 8, 64
-        x = torch.randn(batch_size, input_dim)
+        x = torch.randn(batch_size, input_dim).cuda()
 
         # Capture stdout to check for debug messages
         captured_output = io.StringIO()
