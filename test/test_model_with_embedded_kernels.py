@@ -629,6 +629,7 @@ def sin_kernel_impl(*args, **kwargs):
 
     def test_model_with_custom_implementations(self):
         """Test that the model runs and uses custom implementations."""
+        BackendBench.disable()  # In case it was enabled in a previous test
         # Create model and input
         model = SimpleMatMulModel()
         batch_size, input_dim = 8, 64

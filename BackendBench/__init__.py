@@ -9,14 +9,14 @@ BackendBench: A PyTorch backend evaluation framework.
 """
 
 import torch
-import os
-import warnings
 from typing import Optional, Union
 from pathlib import Path
+import logging
 
 # Import the existing DirectoryBackend implementation
 from BackendBench.backends.directory import DirectoryBackend
 
+logger = logging.getLogger(__name__)
 
 __version__ = "0.1.0"
 __all__ = ["enable", "disable"]
@@ -25,14 +25,17 @@ __all__ = ["enable", "disable"]
 _lib = None
 
 
-def _monkey_patch_operators(op_custom_impl):
+def _monkey_patch_operators(op_custom_impl, namespace="aten", dispatch_key="CUDA"):
     """
     Replace PyTorch operators with custom implementations using torch.library.
     """
     global _lib
 
+    assert dispatch_key in ["CPU", "CUDA"], "Only CPU and CUDA dispatch keys are supported"
+
     # Use torch.library to register custom implementations
-    _lib = torch.library.Library("aten", "IMPL", "CPU")
+    if _lib is None:
+        _lib = torch.library.Library(namespace, "IMPL", dispatch_key)
 
     patched_count = 0
     for op, custom_impl in op_custom_impl.items():
@@ -48,39 +51,37 @@ def _monkey_patch_operators(op_custom_impl):
                 full_name = op_name
 
             # Register the custom implementation
-            _lib.impl(full_name, custom_impl, "CPU")
+            _lib.impl(full_name, custom_impl, dispatch_key)
             patched_count += 1
 
         except Exception as e:
             # Some operators might not be patchable
-            warnings.warn(f"Could not register {op}: {e}")
+            logger.warning(f"Could not register {op}: {e}")
 
     if patched_count > 0:
         print(f"Successfully registered {patched_count} custom operators")
+    else:
+        print("No custom operators registered")
 
 
 def enable(
     kernel_dir: Optional[Union[str, Path]] = None,
-    verbose: bool = False,
+    namespace: str = "aten",
+    dispatch_key: str = "CUDA",
 ) -> None:
     """
     Enable the DirectoryBackend to use custom operator implementations.
     """
-    global _lib
-
-    if _lib is not None:
-        warnings.warn("DirectoryBackend is already enabled. Call disable() first.")
-        return
-
+    print("Enabling DirectoryBackend")
     # Set default kernel directory
     if kernel_dir is None:
-        kernel_dir = os.path.join(os.getcwd(), "generated_kernels")
+        kernel_dir = Path(__file__).parents[1] / "generated_kernels"
 
     kernel_dir = Path(kernel_dir)
 
     # Check if kernel directory exists
     if not kernel_dir.exists():
-        warnings.warn(
+        logger.warning(
             f"Kernel directory {kernel_dir} does not exist. Call"
             f"directory_backend.setup_operators('{kernel_dir}') manually."
         )
@@ -91,14 +92,9 @@ def enable(
         _current_backend = DirectoryBackend(str(kernel_dir))
 
         # Actually monkey-patch PyTorch operators
-        _monkey_patch_operators(_current_backend.compiled_kernels)
-
-        if verbose:
-            print(f"DirectoryBackend enabled with kernel directory: {kernel_dir}")
-            print(f"Loaded {len(_current_backend.compiled_kernels)} custom operators")
-
+        _monkey_patch_operators(_current_backend.compiled_kernels, namespace, dispatch_key)
     except Exception as e:
-        warnings.warn(f"Failed to enable DirectoryBackend: {e}")
+        logger.warn(f"Failed to enable DirectoryBackend: {e}")
         disable()
 
 
@@ -109,7 +105,7 @@ def disable() -> None:
     global _lib
 
     if _lib is None:
-        warnings.warn("DirectoryBackend is not currently enabled")
+        logger.warn("DirectoryBackend is not currently enabled")
         return
 
     # Restore original operators
