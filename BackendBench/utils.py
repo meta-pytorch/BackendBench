@@ -174,10 +174,10 @@ def deserialize_args(inps):
 
 
 def compute_errors(ref, res, eps=1e-10):
-    """Compute absolute and relative errors between reference and result tensors.
+    """Compute max absolute and relative errors between reference and result tensors.
 
     Returns:
-        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors or we cannot compute errors from ref and res
+        Tuple of (max_absolute_error, max_relative_error) or (None, None) if not tensors/list of tensors or we fail to compute errors from ref and res
     """
     if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
         if ref.shape != res.shape:
