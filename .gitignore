@@ -11,5 +11,5 @@ uv.lock
 .pre-commit-cache/
 logs/
 generated_kernels/
-# *.csv
-# backendbench_output*
+*.csv
+backendbench_output*
