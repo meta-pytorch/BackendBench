@@ -174,7 +174,7 @@ def compute_errors(ref, res, eps=1e-10):
     """Compute absolute and relative errors between reference and result tensors.
 
     Returns:
-        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors
+        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors or we cannot compute errors from ref and res
     """
     if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
         if ref.shape != res.shape:
