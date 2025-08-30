@@ -17,20 +17,15 @@ pip install .
 
 ## LLM Kernel Development Workflow
 
-1. **Generate operator mappings**:
-```bash
-python -m BackendBench.scripts.generate_operator_coverage_csv
-```
-
-2. **Create operator directories**:
+1. **Create operator directories**:
 ```bash
 python -m BackendBench.scripts.setup_operator_directories
 ```
 
-3. **Implement kernels** in each directory you'll see an empty op implementation. Please get your LLM to fill it out!
+2. **Implement kernels** in each directory you'll see an empty op implementation. Please get your LLM to fill it out!
 
-4. **Test your implementations**:
-```bashb
+3. **Test your implementations**:
+```bash
 # OpInfo correctness tests
 python BackendBench/scripts/main.py --suite opinfo --backend directory
 

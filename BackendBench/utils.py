@@ -7,12 +7,15 @@
 import ast
 import gc
 import inspect
+import logging
 import math
 import re
 import textwrap
 
 import torch
 from torch.testing import make_tensor
+
+logger = logging.getLogger(__name__)
 
 dtype_abbrs = {
     torch.bfloat16: "bf16",
@@ -235,3 +238,32 @@ def cleanup_memory_and_gpu():
     gc.collect()
     torch.cuda.synchronize()
     torch.cuda.empty_cache()
+
+
+def get_pytorch_op(op_name: str):
+    """
+    Convert an operator name string to the actual PyTorch operation object.
+
+    PyTorch operations are structured as torch.ops.aten.{base_name}.{overload}.
+    This method handles the conversion from string names like "add.Tensor" or "relu.default"
+    to the actual callable operation objects that can be used for dispatch registration.
+
+    Args:
+        op_name: String name like "add.Tensor", "relu.default", or just "relu"
+
+    Returns:
+        PyTorch operation object that can be used for dispatch registration,
+        or None if the operation doesn't exist in torch.ops.aten
+    """
+    try:
+        if "." in op_name:
+            base_name, overload = op_name.split(".", 1)
+            if overload == "default":
+                return getattr(torch.ops.aten, base_name).default
+            else:
+                return getattr(getattr(torch.ops.aten, base_name), overload)
+        else:
+            return getattr(torch.ops.aten, op_name).default
+    except AttributeError:
+        logger.warning(f"Could not find PyTorch operation for {op_name}")
+        return None

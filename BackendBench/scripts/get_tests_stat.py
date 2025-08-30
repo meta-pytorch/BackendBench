@@ -12,7 +12,7 @@ import statistics
 
 import torch
 from BackendBench.suite import OpInfoTestSuite, TorchBenchTestSuite, FactoTestSuite
-from BackendBench.scripts.pytorch_operators import extract_operator_name
+from .setup_operator_directories import extract_operator_name
 
 
 def analyze_test_suite(suite):
