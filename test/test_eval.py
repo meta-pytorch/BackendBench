@@ -161,11 +161,9 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        test_data = {}
-        score = eval_correctness(op, impl, tests, test_data)
+        score, correctness_results = eval_correctness(op, impl, tests)
         assert score == 1.0
-        # TODO: test_data is overwritten by tests with same args
-        # assert len(test_data) == len(tests)  # Should have data for each test
+        assert len(correctness_results) == len(tests)
 
 
 class TestEvalPerformance:
@@ -197,7 +195,7 @@ class TestEvalOneOp:
         correctness_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(3)]
         performance_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(2)]
 
-        correctness, performance, test_data = eval_one_op(
+        correctness, performance, correctness_results, performance_results = eval_one_op(
             op, impl, correctness_tests, performance_tests
         )
 
@@ -206,7 +204,8 @@ class TestEvalOneOp:
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0
         # Verbose data should be populated
-        assert len(test_data) > 0
+        assert len(correctness_results) == len(correctness_tests)
+        assert len(performance_results) == len(performance_tests)
 
 
 def fastp_kernel_bench(

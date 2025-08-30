@@ -5,13 +5,39 @@
 # LICENSE file in the root directory of this source tree.
 
 import csv
+from dataclasses import dataclass, asdict
 import json
 import logging
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
+import math
 
 import torch
+from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
+
+
+@dataclass
+class CorrectnessTestResult:
+    op_name: str
+    args: str
+    is_correct: bool = False
+    error_msg: str = ""
+    max_abs_error: float = -math.inf
+    max_rel_error: float = -math.inf
+    test_type: str = "correctness"
+
+
+@dataclass
+class PerformanceTestResult:
+    op_name: str
+    args: str
+    speedup: float
+    benchmark_time_ms: float
+    reference_time_ms: float
+    error_msg: str = ""
+    successfully_ran: bool = False
+    test_type: str = "performance"
 
 
 try:
@@ -23,8 +49,6 @@ try:
         TRITON_AVAILABLE = False
 except ImportError:
     TRITON_AVAILABLE = False
-
-from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +103,6 @@ def eval_correctness_test(
         res = impl(*args, **kwargs)
         is_correct = allclose(ref, res)
 
-        # Compute errors even if test passes (for verbose mode)
         abs_error, rel_error = compute_errors(ref, res)
 
         return is_correct, None, abs_error, rel_error
@@ -89,20 +112,25 @@ def eval_correctness_test(
         return False, str(e), None, None
 
 
-def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
+def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
+    test_results: List[CorrectnessTestResult] = []
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
         is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
 
-        test_data[args_str] = {
-            "is_correct": 1 if is_correct else 0,
-            "correctness_errors": error_msg or "",
-            "absolute_error": str(abs_error) if abs_error is not None else "",
-            "relative_error": str(rel_error) if rel_error is not None else "",
-        }
+        test_results.append(
+            CorrectnessTestResult(
+                op_name=op.__name__,
+                args=args_str,
+                is_correct=is_correct,
+                error_msg=error_msg,
+                max_abs_error=abs_error,
+                max_rel_error=rel_error,
+            )
+        )
 
         if is_correct:
             correct += 1
@@ -111,9 +139,9 @@ def eval_correctness(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     # Handle the case where no tests are available
     if total == 0:
         logger.warning(f"No correctness tests available for {str(op)}")
-        return 0.0
+        return 0.0, []
 
-    return correct / total
+    return correct / total, test_results
 
 
 def cpu_bench(fn, num_runs=100):
@@ -129,7 +157,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)):
+def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
@@ -137,6 +165,7 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
     base_times = []
     test_times = []
     args_strs = []
+    performance_results: List[PerformanceTestResult] = []
 
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
@@ -144,6 +173,8 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
         base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
         base_times.append(base_time)
+        # Note: If the test fails we consider the speedup to be 1.0
+        # TODO: We should make this more explicit, by having an if resolving it in the except and removing the finally block
         test_time = base_time
         try:
             ref = op(*test.args, **test.kwargs)
@@ -152,53 +183,87 @@ def eval_performance(op, impl, tests, test_data: defaultdict = defaultdict(dict)
                 ref,
                 res,
             ):
-                raise ValueError(f"Reference and result tensors are not close: {ref} vs {res}")
+                abs_error, rel_error = compute_errors(ref, res)
+                raise ValueError(
+                    f"Reference and result tensors are not close: max absolute error {abs_error}, max relative error {rel_error}"
+                )
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
-        except Exception:
-            pass
+            performance_results.append(
+                PerformanceTestResult(
+                    op_name=op.__name__,
+                    args=args_str,
+                    speedup=test_time / base_time,
+                    successfully_ran=True,
+                    benchmark_time_ms=test_time,
+                    reference_time_ms=base_time,
+                )
+            )
+        except Exception as e:
+            error_msg = format_exception(e, op, test.args, test.kwargs)
+            performance_results.append(
+                PerformanceTestResult(
+                    op_name=op.__name__,
+                    args=args_str,
+                    successfully_ran=False,
+                    speedup=None,
+                    benchmark_time_ms=None,
+                    reference_time_ms=base_time,
+                    error_msg=error_msg,
+                )
+            )
         finally:
             test_times.append(test_time)
-            test_data[args_str]["benchmark_time"] = str(test_time)
 
     speedups = torch.tensor(base_times) / torch.tensor(test_times)
 
-    # Update test_data with speedups from the tensor
-    for i, args_str in enumerate(args_strs):
-        test_data[args_str]["speedup"] = str(speedups[i].item())
-
-    return speedups.log().mean().exp()
+    return speedups.log().mean().exp(), performance_results
 
 
-def eval_one_op(op, impl, correctness_tests, performance_tests):
+def eval_one_op(
+    op, impl, correctness_tests, performance_tests
+) -> Tuple[float, float, List[CorrectnessTestResult], List[PerformanceTestResult]]:
     """Evaluate impl of op against correctness_tests and performance_tests.
 
     Returns:
-        Tuple of (correctness_score, performance_score, test_data)
+        Tuple of (correctness_score, performance_score, correctness_results, performance_results)
     """
-    test_data = defaultdict(dict)
 
     if uses_cuda_stream(impl):
         logger.warning(f"Skipping {op.__name__} because it uses CUDA stream")
-        for test in correctness_tests + performance_tests:
+        performance_results = []
+        correctness_results = []
+        for test in correctness_tests:
             args_str = serialize_args(test.args, test.kwargs)
-            test_data[args_str] = {
-                "is_correct": 0,
-                "benchmark_time": "",
-                "speedup": "",
-                "correctness_errors": "Skipped: uses CUDA stream",
-                "absolute_error": "",
-                "relative_error": "",
-            }
-        return 0, 1.0, test_data
+            correctness_results.append(
+                CorrectnessTestResult(
+                    op_name=op.__name__,
+                    args=args_str,
+                    is_correct=False,
+                    error_msg="Skipped: uses CUDA stream",
+                )
+            )
+        for test in performance_tests:
+            args_str = serialize_args(test.args, test.kwargs)
+            performance_results.append(
+                PerformanceTestResult(
+                    op_name=op.__name__,
+                    args=args_str,
+                    speedup=0,
+                    benchmark_time_ms=0,
+                    reference_time_ms=0,
+                    error_msg="Skipped: uses CUDA stream",
+                )
+            )
+        return 0, 1.0, correctness_results, performance_results
 
-    correctness_score = eval_correctness(op, impl, correctness_tests, test_data)
-    performance_score = eval_performance(op, impl, performance_tests, test_data)
-    test_data = dict(test_data)
-    return correctness_score, performance_score, test_data
+    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
+    performance_score, performance_results = eval_performance(op, impl, performance_tests)
+    return correctness_score, performance_score, correctness_results, performance_results
 
 
 def save_results(
-    results: List[Dict[str, Any]],
+    correctness_results: List[CorrectnessTestResult],
+    performance_results: List[PerformanceTestResult],
     output_path: Union[str, Path] = "backendbench_output",
     command: str = None,
     mean_correctness: float = None,
@@ -209,7 +274,8 @@ def save_results(
     """Save results without creating per-operator directories.
 
     Args:
-        results: List of test results, each containing op_name, args, and test metrics
+        correctness_results: List of correctness test results
+        performance_results: List of performance test results
         output_path: Base directory for saving results
 
     Structure created:
@@ -222,64 +288,73 @@ def save_results(
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
 
+    # Prep work: save all results as a list of dicts
+    all_results = [asdict(result) for result in correctness_results] + [
+        asdict(result) for result in performance_results
+    ]
+
+    # sort by op_name, then args
+    all_results.sort(key=lambda x: (x["op_name"], x["args"]))
+
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
     failed_ops_path = base_dir / "failed_ops.json"
     summary_csv_path = base_dir / "operator_summary.csv"
+
     with open(full_log_path, "w") as f:
-        json.dump(results, f, indent=2)
+        json.dump(all_results, f, indent=2)
     logger.info(f"Full results saved to {full_log_path}")
 
     # 2. Organize results by operator (without creating directories)
-    op_results = defaultdict(list)
+    op_all_results = defaultdict(list)
     op_summaries = {}
-    failed_ops = []
+    failed_tests = []
 
-    for result in results:
-        op_name = result["op_name"]
-        op_results[op_name].append(result)
+    for result in correctness_results:
+        op_all_results[result.op_name].append(result)
+    for result in performance_results:
+        op_all_results[result.op_name].append(result)
 
     # Process each operator for summary
-    for op_name, op_tests in op_results.items():
+    for op_name, op_tests in op_all_results.items():
+        correctness_results = [
+            result for result in op_tests if isinstance(result, CorrectnessTestResult)
+        ]
+        performance_results = [
+            result for result in op_tests if isinstance(result, PerformanceTestResult)
+        ]
+
         # Calculate operator-level summary
         total_tests = len(op_tests)
-        correct_tests = sum(1 for t in op_tests if t.get("Is_correct", 0) == 1)
-        failed_tests = []
-
+        correct_tests = sum(1 for result in correctness_results if result.is_correct)
         # Collect performance metrics
         speedups = []
-        benchmark_times = []
         abs_errors = []
         rel_errors = []
 
-        for test in op_tests:
+        for test in correctness_results:
             # Check for failures
-            if test.get("Is_correct", 0) == 0:
-                failed_tests.append(
-                    {
-                        "op_name": op_name,
-                        "args": test.get("args", ""),
-                        "error": test.get("correctness_errors", ""),
-                    }
-                )
+            if not test.is_correct:
+                failed_tests.append(asdict(test))
+
+            if test.max_abs_error and test.max_rel_error:
+                abs_errors.append(float(test.max_abs_error))
+                rel_errors.append(float(test.max_rel_error))
+
+        for test in performance_results:
+            if not test.successfully_ran:
+                failed_tests.append(asdict(test))
 
             # Collect metrics
-            if test.get("speedup") and test.get("benchmark_time"):
-                speedups.append(float(test["speedup"]))
-                benchmark_times.append(float(test["benchmark_time"]))
-
-            if test.get("absolute_error") and test.get("relative_error"):
-                abs_errors.append(float(test["absolute_error"]))
-                rel_errors.append(float(test["relative_error"]))
+            if test.speedup:
+                speedups.append(float(test.speedup))
 
         # Calculate summary statistics
         correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
         geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
-        mean_abs_error = sum(abs_errors) / len(abs_errors) if abs_errors else 0.0
-        mean_rel_error = sum(rel_errors) / len(rel_errors) if rel_errors else 0.0
-        max_rel_error = max(rel_errors) if rel_errors else 0.0
         max_abs_error = max(abs_errors) if abs_errors else 0.0
+        max_rel_error = max(rel_errors) if rel_errors else 0.0
 
         op_summaries[op_name] = {
             "operator": op_name,
@@ -289,15 +364,9 @@ def save_results(
             "correctness_rate": correctness_rate,
             "avg_speedup": avg_speedup,
             "geomean_speedup": geomean_speedup,
-            "mean_absolute_error": mean_abs_error,
-            "mean_relative_error": mean_rel_error,
-            "max_relative_error": max_rel_error,
             "max_absolute_error": max_abs_error,
+            "max_relative_error": max_rel_error,
         }
-
-        # Add to failed ops list if there were failures
-        if failed_tests:
-            failed_ops.extend(failed_tests)
 
     # 3. Create operator-level summary CSV
     if len(op_summaries) > 0:
@@ -313,10 +382,12 @@ def save_results(
         logger.info(f"Operator summary CSV saved to {summary_csv_path}")
 
     # 4. Save failed operations log
-    if failed_ops:
-        with open(failed_ops_path, "w") as f:
-            json.dump(failed_ops, f, indent=2)
-        logger.info(f"Failed operations log saved to {failed_ops_path}")
+    # sort failed_tests
+    failed_tests.sort(key=lambda x: (x["op_name"], x["args"]))
+
+    with open(failed_ops_path, "w") as f:
+        json.dump(failed_tests, f, indent=2)
+    logger.info(f"Failed operations log saved to {failed_ops_path}")
 
     # Save README if metrics are provided
     if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):

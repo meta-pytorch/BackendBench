@@ -78,7 +78,8 @@ class TestBackendEvaluation(unittest.TestCase):
             if op in backend:
                 impl = backend[op]
                 test = Test(*arg_generators)
-                correctness = eval_correctness(op, impl, [test])
+                correctness, correctness_results = eval_correctness(op, impl, [test])
+                assert len(correctness_results) == 1
                 total_tested += 1
                 if correctness == 0.0:
                     failed_count += 1
