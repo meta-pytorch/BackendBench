@@ -1,0 +1,6 @@
+Operation: sqrt
+Full op: aten.sqrt.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Failed - KernelAgent could not generate working kernel

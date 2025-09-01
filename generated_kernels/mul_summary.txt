@@ -1,0 +1,6 @@
+Operation: mul
+Full op: aten.mul.Tensor
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Failed - KernelAgent could not generate working kernel

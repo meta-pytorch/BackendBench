@@ -1,0 +1,6 @@
+Operation: div
+Full op: aten.div.Tensor
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Failed - KernelAgent could not generate working kernel

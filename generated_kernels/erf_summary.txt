@@ -1,0 +1,7 @@
+Operation: erf
+Full op: aten.erf.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Success
+Generated using: Parallel workers + iterative refinement

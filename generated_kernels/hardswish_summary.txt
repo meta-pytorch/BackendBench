@@ -1,0 +1,6 @@
+Operation: hardswish
+Full op: aten.hardswish.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Failed - KernelAgent could not generate working kernel
