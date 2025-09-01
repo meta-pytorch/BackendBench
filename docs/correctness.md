@@ -1,0 +1,225 @@
+## Introducing BackendBench
+
+Authors: 
+* Evaluation: Mark Saroufim, Sahan Paliskara, Jiannan Wang, Bert Maher, Manuel Candales
+* Science: Shahin Sefati, Laura Wang
+
+TODO
+* More generated examples kernels (Laura, Shahin)
+* Add some performance results on torchbench (Laura)
+* End to end benchmarks (Jiannan)
+* Counts of number of tests and shapes (Mark)
+
+BackendBench is an evaluation suite for testing how well LLMs and humans can write PyTorch backends. It lets developers add custom kernels in an organized directory structure and dynamically override PyTorch's core operators at runtime—resulting in a fully functional PyTorch backend you can pip install and use with existing models, no changes required.
+
+It features
+1. Comprehensive edge-case correctness testing via PyTorch's OpInfo and FACTO test suites
+2. Performance benchmarks using real tensor shapes from popular Hugging Face models
+3. Clean path to upstream your kernels to PyTorch (if it passes our tests, it's likely correct enough to merge)
+
+In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs.
+
+Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo can continue to improve the correctness of kernels.
+
+![scaling_law](img/scaling_law.png)
+## Why correctness in kernel generation is fundamentally hard
+
+PyTorch has been battle-tested by millions of users over 9 years. Many edge cases, numerical precision issues, and hardware quirks have been reported over the years and fixed.
+
+- **Operator variants**: Each operator like `torch.add()` supports multiple dtypes, broadcasting, in-place operations, pre-allocated outputs, and scaling factors
+- **Edge cases**: NaN, infinity, zero-sized tensors, extreme shapes, mixed precision
+- **Hardware differences**: Subtle floating-point behavior across different GPUs and drivers  
+- **Picking the right shapes**: Tensors from actual models, not just convenient test sizes
+- **Silent numerical errors**: Kernels that produce plausible but incorrect results, introducing subtle errors that compound through model layers
+
+## Why existing approaches struggle
+
+There's been a large and growing community of researchers interested in LLM kernel generation. This came about thanks to evaluation suites like [KernelBench](https://scalingintelligence.stanford.edu/blogs/kernelbench/) where the core paradigm is to view kernel generation as a translation task from some PyTorch reference implementation to an optimized implementation over randomized inputs.
+
+Unfortunately, many efforts have faced major correctness issues. Most notably, this thread by [main_horse on X](https://x.com/main_horse/status/1892446384910987718) pointed out that some claimed 150x speedups were not reproducible. And similar reports often require some domain knowledge on GPU programming to notice. Our goal isn't to pick on any individual effort but instead attempt to engineer away both with code and process many of the correctness issues in the subfield of Kernel LLM generation.
+
+## BackendBench's approach: Manual inspection + PyTorch focus
+
+Our belief is that many correctness issues in Kernel LLM generation are domain specific footguns, most can be engineered away and the trickiest issues need to rely on human audits of individual kernels as opposed to inspection of macro level correctness and performance metrics.
+
+### Directory based operators
+
+Very core to our early design is that LLMs can trick the most clever evaluation infrastructure so relying purely on macro level evaluations is bound to miss things. So what we did was make it so all the kernels an LLM researcher need to generate kernels for are clear in a directory based structure.
+
+```bash
+generated_kernels
+├── add
+│   └── add_implementation_v1.py
+├── bitwise_and
+│   └── bitwise_and_implementation_v1.py
+├── div
+│   └── div_implementation_v1.py
+├── fmod
+│   └── fmod_implementation_v1.py
+├── mul
+│   └── mul_implementation_v1.py
+└── relu
+    └── relu_implementation_v1.py
+```
+
+That way if you do get promising speedups you can zip that folder and send it to your favorite performance engineer to debug. This protects us against a whole class of issues ranging from claiming victory when speedups exceed speed of light, bugs in the evaluation structure to some rogue agent making changes to the evaluation structure itself.
+
+
+## PyTorch benchmarking footguns
+
+A very common n00b mistake when benchmarking PyTorch is doing something along the lines of
+
+```python
+import time
+tic = time.time()
+model(inp)
+toc = time.time()
+print(f"Duration is {toc - tic}")
+```
+
+The problem with the above kernel is it measures the time it takes to launch a kernel and not the time it takes to complete it but this is solvable with a simple `torch.cuda.synchronize()` and `torch.cuda.Event`.
+
+But a more subtle issue comes up with warmups and caching. Let's assume we're in the same domain where we first measure the time it takes for a reference implementation written in native PyTorch to run and then subsequently run an identical implementation written by an LLM that's trying to reward hack its way to a reasonable kernel then you'd expect the second implementation to run faster!
+
+```python
+reference = eval(lambda a, b : a @ b,  warmup=0)
+llm_generation = eval(lambda a, b : a @ b,  warmup=0) # Cheating! Will likely be faster!
+```
+
+This is why both both we and much of the performance engineering community has settled on leveraging `triton.testing.do_bench()`, it carefully measures launch overhead, warmups and finally clears the GPU L2 cache between runs but this is just the tip of the iceberg.
+
+### Not all shapes are created equal
+
+Another common mistake is to pick small shapes when benchmarking along the lines of `model.forward(torch.randn(4,4,4,4))` the problem being is in this regime we're neither memory bandwidth bound or compute bound but instead overhead bound and the only thing we're really measuring here is the time it takes to launch a CUDA kernel in PyTorch. Note that small shapes are crucial for correctness we don't generally expect PyTorch to crash on weirdly shaped inputs.
+
+So the simplest fix to this problem is to pick the largest shapes we can, we can exponentially increase the sizes of our input tensors until we OOM and then slowly back off until we find a reasonably large shape. The results here will be more interesting than those with tiny shapes but fundamentally what most customers of PyTorch actually care about is performance on specific shapes i.e performance on important models.
+
+So we end up with a dataset that looks like this
+
+```
+Operator: aten.add.Tensor
+cnt: 156, ((T([1, 512, 768], f16), T([1, 512, 768], f16)), {})
+cnt: 89, ((T([32, 128], f32), T([32, 128], f32)), {})
+```
+
+This shows `aten.add.Tensor` is called 156 times with 1×512×768 tensors (BERT embeddings). Hyperspecializing for these shapes matters more than generic optimization.
+
+### Edge case handling with OpInfo
+
+While large shapes matter for performance, correctness requires handling edge cases properly. PyTorch's [OpInfo infrastructure](https://pytorch.org/docs/stable/testing.html#module-torch.testing._internal.common_methods_invocations) provides comprehensive test cases that define clear semantics for what operators should do with:
+
+- Tensors of size 0 or 1
+- NaN and infinity values  
+- Mixed dtypes and broadcasting edge cases
+- Extreme shapes that stress memory allocation
+
+OpInfo represents 9 years of user bug reports crystallized into test cases. If your kernel passes OpInfo tests, it handles the edge cases that real PyTorch users depend on. BackendBench leverages this to ensure LLM-generated kernels are robust enough for production use.
+
+### Operator variants: One operator, many implementations
+
+One unfortunate wrench is that `torch.add()` isn't one function - it's many:
+
+```python
+torch.add(torch.tensor([1, 2, 3], dtype=torch.float32), 5.0) # tensor + scalar
+torch.add(torch.tensor([1, 2, 3]), torch.tensor([4, 5, 6])) # tensor + tensor
+torch.add(torch.randn(2, 3), torch.randn(2, 3), out=torch.empty(2, 3)) # preallocated output
+torch.add(torch.tensor([1.0, 2.0]), torch.tensor([[3.0], [4.0]]))  # broadcasting 
+torch.add(torch.randn(3, 4, dtype=torch.bfloat16), torch.randn(4, dtype=torch.bfloat16), alpha=2.0) # scaling factor
+```
+
+Here's how BackendBench maps operator variants to a single implementation:
+
+```
+                  ┌──────────────────┐
+                  │ generated_kernels│
+                  │    └── add/      │
+                  │         └── *.py │
+                  └────────┬─────────┘
+                           │
+                  ┌────────▼────────┐
+                  │   op_map.py     │
+                  │  Maps variants  │
+                  └────────┬────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         ▼                 ▼                 ▼
+    add.Tensor        add_.Tensor        add.out
+   (functional)       (in-place)      (pre-allocated)
+         │                 │                 │
+         └─────────────────┴─────────────────┘
+                           │
+                           ▼
+                 Single implementation
+                  handles all variants
+```
+
+### LLM cheating detection
+
+LLMs often give up and fall back to PyTorch:
+
+```python
+except:
+    # Fallback to PyTorch
+    output = torch.randint(low, high, (n_elements,), dtype=dtype, device=target_device, generator=generator)
+```
+
+BackendBench catches this by actually running the kernels. If we override `torch.relu()` with a custom implementation that calls `torch.relu()`, we get infinite recursion.
+
+## How BackendBench works
+
+### torch.library dispatch integration
+
+BackendBench uses PyTorch's official `torch.library` dispatch mechanism for operator registration:
+
+```python
+# BackendBench uses torch.library to register implementations
+lib = torch.library.Library("aten", "IMPL", dispatch_key)
+lib.impl("add.Tensor", custom_add_kernel_impl, "CUDA")
+```
+
+### What LLMs implement
+
+Every operator directory contains a stub that LLMs fill out:
+
+```python
+import torch
+
+def add_kernel_impl(*args, **kwargs):
+    # LLM must implement the actual computation here
+    # args[0]: first tensor
+    # args[1]: second tensor or scalar
+    # kwargs may contain 'alpha' scaling factor
+    # Must return: args[0] + alpha * args[1]
+    
+    # Example correct implementation:
+    x, y = args[0], args[1]
+    alpha = kwargs.get('alpha', 1.0)
+    # your custom_kernel here
+```
+
+This single implementation handles all variants (add.Tensor, add_.Tensor, add.out) through BackendBench's operator mapping.
+
+## Getting Started
+
+```bash
+# Install BackendBench
+pip install -e .
+
+# Setup operator directories
+python -m BackendBench.scripts.setup_operator_directories
+
+# Run correctness tests
+python BackendBench/scripts/main.py --suite opinfo --backend directory
+
+# Run performance benchmarks
+python BackendBench/scripts/main.py --suite torchbench --backend directory
+
+# Try with your own model
+import BackendBench
+BackendBench.enable(kernel_dir="generated_kernels")
+# Now run any PyTorch model - it will use your kernels!
+```
+
+We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations.
+
+We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
