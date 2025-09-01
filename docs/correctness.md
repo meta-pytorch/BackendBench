@@ -17,7 +17,7 @@ It features
 2. Performance benchmarks using real tensor shapes from popular Hugging Face models
 3. Clean path to upstream your kernels to PyTorch (if it passes our tests, it's likely correct enough to merge)
 
-In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs.
+In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs. The goal being that if new promising DSLs emerge that they can get get broad coverage for all of PyTorch.
 
 Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo can continue to improve the correctness of kernels.
 
@@ -169,7 +169,7 @@ BackendBench catches this by actually running the kernels. If we override `torch
 
 ### torch.library dispatch integration
 
-BackendBench uses PyTorch's official `torch.library` dispatch mechanism for operator registration:
+BackendBench uses PyTorch's `torch.library` dispatch mechanism for operator registration:
 
 ```python
 # BackendBench uses torch.library to register implementations
@@ -215,11 +215,18 @@ python BackendBench/scripts/main.py --suite opinfo --backend directory
 python BackendBench/scripts/main.py --suite torchbench --backend directory
 
 # Try with your own model
+import torch
+a = model()
 import BackendBench
 BackendBench.enable(kernel_dir="generated_kernels")
 # Now run any PyTorch model - it will use your kernels!
+model.forward(x)
 ```
 
 We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations.
 
 We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
+
+## Acknowledgements
+
+We'd like to thank Alban Desmaison, Nikita Shulga and Joe Isaacson for invaluable feedback at the inception of BackendBench and helping us connect the world of PyTorch backends with that of LLM evaluation suites.
