@@ -67,26 +67,23 @@ That way if you do get promising speedups you can zip that folder and send it to
 
 ## PyTorch benchmarking footguns
 
-A very common n00b mistake when benchmarking PyTorch is doing something along the lines of
+Common benchmarking mistakes:
 
-```python
-import time
-tic = time.time()
-model(inp)
-toc = time.time()
-print(f"Duration is {toc - tic}")
-```
+1. **Async execution**: Basic timing only measures kernel launch, not completion
+   ```python
+   # Wrong: doesn't wait for GPU completion
+   tic = time.time()
+   model(inp)
+   toc = time.time()
+   ```
 
-The problem with the above kernel is it measures the time it takes to launch a kernel and not the time it takes to complete it but this is solvable with a simple `torch.cuda.synchronize()` and `torch.cuda.Event`.
+2. **Warmup effects**: Running identical code sequentially gives misleading results due to caching
+   ```python
+   reference = eval(lambda a, b : a @ b, warmup=0)
+   llm_generation = eval(lambda a, b : a @ b, warmup=0)  # Faster due to cache!
+   ```
 
-But a more subtle issue comes up with warmups and caching. Let's assume we're in the same domain where we first measure the time it takes for a reference implementation written in native PyTorch to run and then subsequently run an identical implementation written by an LLM that's trying to reward hack its way to a reasonable kernel then you'd expect the second implementation to run faster!
-
-```python
-reference = eval(lambda a, b : a @ b,  warmup=0)
-llm_generation = eval(lambda a, b : a @ b,  warmup=0) # Cheating! Will likely be faster!
-```
-
-This is why both both we and much of the performance engineering community has settled on leveraging `triton.testing.do_bench()`, it carefully measures launch overhead, warmups and finally clears the GPU L2 cache between runs but this is just the tip of the iceberg.
+**Solution**: Use `triton.testing.do_bench()` which handles kernel synchronization, warmups, and L2 cache clearing between runs.
 
 ### Not all shapes are created equal
 
