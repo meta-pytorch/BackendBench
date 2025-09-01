@@ -34,7 +34,7 @@ PyTorch has been battle-tested by millions of users over 9 years. Many edge case
 
 ## Why existing approaches struggle
 
-There's been a large and growing community of researchers interested in LLM kernel generation. This came about thanks to evaluation suites like [KernelBench](https://scalingintelligence.stanford.edu/blogs/kernelbench/) where the core paradigm is to view kernel generation as a translation task from some PyTorch reference implementation to an optimized implementation over randomized inputs.
+There's been a large and growing community of researchers interested in LLM kernel generation. This came about thanks to evaluation suites like [KernelBench](https://scalingintelligence.stanford.edu/blogs/kernelbench/) where the core paradigm is to view kernel generation as a translation task from some PyTorch reference implementation to an optimized CUDA implementation over randomized inputs.
 
 Unfortunately, many efforts have faced major correctness issues. Most notably, this thread by [main_horse on X](https://x.com/main_horse/status/1892446384910987718) pointed out that some claimed 150x speedups were not reproducible. And similar reports often require some domain knowledge on GPU programming to notice. Our goal isn't to pick on any individual effort but instead attempt to engineer away both with code and process many of the correctness issues in the subfield of Kernel LLM generation.
 
