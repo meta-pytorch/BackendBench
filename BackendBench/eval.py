@@ -5,13 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import csv
-from dataclasses import dataclass, asdict
 import json
 import logging
-from collections import defaultdict
-from pathlib import Path
-from typing import List, Optional, Tuple, Union
 import math
+import traceback
+from collections import defaultdict
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import List, Tuple, Union
 
 import torch
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
@@ -23,6 +24,8 @@ class CorrectnessTestResult:
     args: str
     is_correct: bool = False
     error_msg: str = ""
+    error_type: str = ""
+    traceback: str = ""
     max_abs_error: float = -math.inf
     max_rel_error: float = -math.inf
     test_type: str = "correctness"
@@ -56,12 +59,13 @@ EXC_MSG = """
 Exception raised for {op}:
     args: {args}
     exc: {exc}
+    traceback: {traceback}
 """
 
 
-def format_exception(e, op, args, kwargs):
+def format_exception(e, op, args, kwargs, traceback=None):
     op_name = getattr(op, "__name__", str(op))
-    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e)
+    return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e, traceback=traceback)
 
 
 def _allclose(a, b, atol=1e-2, rtol=1e-2):
@@ -89,9 +93,7 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
         return False
 
 
-def eval_correctness_test(
-    op, impl, test
-) -> Tuple[bool, Optional[str], Optional[float], Optional[float]]:
+def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
     """Evaluate impl of op against test.
 
     Returns:
@@ -104,12 +106,26 @@ def eval_correctness_test(
         is_correct = allclose(ref, res)
 
         abs_error, rel_error = compute_errors(ref, res)
-
-        return is_correct, None, abs_error, rel_error
+        result = CorrectnessTestResult(
+            op_name=op.__name__,
+            args=serialize_args(args, kwargs),
+            is_correct=is_correct,
+            max_abs_error=abs_error,
+            max_rel_error=rel_error,
+        )
+        return result
     except Exception as e:
-        error_msg = format_exception(e, op, args, kwargs)
+        error_msg = format_exception(e, op, args, kwargs, traceback.format_exc())
+        result = CorrectnessTestResult(
+            op_name=op.__name__,
+            args=serialize_args(args, kwargs),
+            is_correct=False,
+            error_msg=error_msg,
+            error_type=str(type(e)),
+            traceback=traceback.format_exc(),
+        )
         logger.warning(error_msg)
-        return False, str(e), None, None
+        return result
 
 
 def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
@@ -119,20 +135,9 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
-
-        test_results.append(
-            CorrectnessTestResult(
-                op_name=op.__name__,
-                args=args_str,
-                is_correct=is_correct,
-                error_msg=error_msg,
-                max_abs_error=abs_error,
-                max_rel_error=rel_error,
-            )
-        )
-
-        if is_correct:
+        result = eval_correctness_test(op, impl, test)
+        test_results.append(result)
+        if result.is_correct:
             correct += 1
         total += 1
 
@@ -199,7 +204,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 )
             )
         except Exception as e:
-            error_msg = format_exception(e, op, test.args, test.kwargs)
+            error_msg = format_exception(e, op, test.args, test.kwargs, traceback.format_exc())
             performance_results.append(
                 PerformanceTestResult(
                     op_name=op.__name__,
@@ -258,7 +263,12 @@ def eval_one_op(
 
     correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
     performance_score, performance_results = eval_performance(op, impl, performance_tests)
-    return correctness_score, performance_score, correctness_results, performance_results
+    return (
+        correctness_score,
+        performance_score,
+        correctness_results,
+        performance_results,
+    )
 
 
 def save_results(
