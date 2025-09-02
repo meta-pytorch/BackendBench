@@ -14,7 +14,7 @@ It features
 
 In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs. The goal being that if new promising DSLs emerge that they can get get broad coverage for all of PyTorch.
 
-Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo op suite can continue to improve the correctness of kernels.
+Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo op suite can continue to improve the correctness of Triton kernels. 
 
 ![scaling_law](img/scaling_law.png)
 ## Why correctness in kernel generation is fundamentally hard
@@ -196,7 +196,7 @@ output_torch = x + y # This is the pytorch reference implementation
 output_triton = add(x, y) # This is the triton kernel implementation
 ```
 
-We don't expect memory allocation APIs to benefit from significant speedups, typically most kernel programs expect that their inputs and outputs will be PyTorch programs. Triton does a few nice things like ensure you're running on the same cuda device and stream as PyTorch to feel "native".
+We don't expect memory allocation APIs to benefit from significant speedups, typically most kernel programs expect that their inputs and outputs will be PyTorch programs. Triton does a few nice things like ensure you're running on the same cuda device and stream as PyTorch to feel "native" and we expect more kernel language authors to follow suit.
 
 That said we plan to version BackendBench releases to make it clear which ops we include and remove and we'll iterate with both the LLM research community and kernel engineers to make those decisions.
 
@@ -258,7 +258,7 @@ BackendBench.enable(kernel_dir="generated_kernels")
 model.forward(x)
 ```
 
-We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations.
+We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations. We mostly use it internally on Meta infra but we suspect it's a few simple changes to make it work in OSS.
 
 We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite especially when it comes to low bit tolerences. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
 
