@@ -200,7 +200,7 @@ We don't expect memory allocation APIs to benefit from significant speedups, typ
 
 That said we plan to version BackendBench releases to make it clear which ops we include and remove and we'll iterate with both the LLM research community and kernel engineers to make those decisions.
 
-## How BackendBench works
+## Operator registration
 
 ### torch.library dispatch integration
 
@@ -248,7 +248,9 @@ python BackendBench/scripts/main.py --suite opinfo --backend directory
 
 # Run performance benchmarks
 python BackendBench/scripts/main.py --suite torchbench --backend directory
+```
 
+```python
 # Try with your own model
 import torch
 a = model()
