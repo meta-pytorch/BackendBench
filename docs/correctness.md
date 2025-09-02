@@ -9,6 +9,9 @@ TODO
 * Add some performance results on torchbench (Laura)
 * End to end benchmarks (Jiannan)
 * Counts of number of tests and shapes (Mark)
+* Add details on OG datasets (Sahan)
+* Why we filter out tensor creation ops (Mark)
+* How input distributions can make some problems trivial (Mark)
 
 BackendBench is an evaluation suite for testing how well LLMs and humans can write PyTorch backends. It lets developers add custom kernels in an organized directory structure and dynamically override PyTorch's core operators at runtime—resulting in a fully functional PyTorch backend you can pip install and use with existing models, no changes required.
 
