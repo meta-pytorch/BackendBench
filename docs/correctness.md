@@ -266,4 +266,4 @@ We welcome contributions to support new DSLs, leaderboards, training support and
 
 ## Acknowledgements
 
-We'd like to thank Alban Desmaison, Nikita Shulga and Joe Isaacson for invaluable feedback at the inception of BackendBench and helping us connect the world of PyTorch backends with that of LLM evaluation suites. We'd also like to thank Anne Ouyang, Simon Guo and Alex Zhang for pushing us to think harder abouto what it might mean to merge LLM generated kernels into PyTorch.
+We'd like to thank Alban Desmaison, Nikita Shulga and Joe Isaacson for invaluable feedback at the inception of BackendBench and helping us connect the world of PyTorch backends with that of LLM evaluation suites. We'd also like to thank Anne Ouyang, Simon Guo and Alex Zhang for pushing us to think harder about what it might mean to merge LLM generated kernels into PyTorch.
