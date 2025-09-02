@@ -4,14 +4,6 @@ Authors:
 * Evaluation: Mark Saroufim, Sahan Paliskara, Jiannan Wang, Bert Maher, Manuel Candales
 * Science: Shahin Sefati, Laura Wang
 
-TODO
-* More generated examples kernels (Laura, Shahin)
-* Add some performance results on torchbench (Laura)
-* End to end benchmarks (Jiannan)
-* Counts of number of tests and shapes (Mark)
-* Add details on OG datasets (Sahan)
-* Why we filter out tensor creation ops (Mark)
-* How input distributions can make some problems trivial (Mark)
 
 BackendBench is an evaluation suite for testing how well LLMs and humans can write PyTorch backends. It lets developers add custom kernels in an organized directory structure and dynamically override PyTorch's core operators at runtime—resulting in a fully functional PyTorch backend you can pip install and use with existing models, no changes required.
 
@@ -87,6 +79,26 @@ Common benchmarking mistakes:
    ```
 
 **Solution**: Use `triton.testing.do_bench()` which handles kernel synchronization, warmups, and L2 cache clearing between runs.
+
+## Input distributions can render some solutions trivial
+
+Let's say you wanted to create the world's fastest vector mean kernel. A natural thing you might do is create some large vector and initialize it using `torch.randn()`
+
+```python
+import torch
+n = 1000000
+x = torch.randn(n)
+mean = x.mean()
+assert torch.allclose(mean, torch.tensor(0.0), atol=0.01) # This will pass
+```
+
+So a smart agent might just output
+
+```python
+def super_smart_mean_kernel(x):
+    return torch.tensor(0,0)
+```
+
 
 ### Not all shapes are created equal
 
