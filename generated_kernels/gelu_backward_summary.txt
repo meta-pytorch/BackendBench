@@ -1,0 +1,7 @@
+Operation: gelu_backward
+Full op: aten.gelu_backward.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Success
+Generated using: Parallel workers + iterative refinement

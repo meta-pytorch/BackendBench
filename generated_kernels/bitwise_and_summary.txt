@@ -1,0 +1,7 @@
+Operation: bitwise_and
+Full op: aten.bitwise_and.Tensor
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Success
+Generated using: Parallel workers + iterative refinement

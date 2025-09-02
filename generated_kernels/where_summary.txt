@@ -1,0 +1,7 @@
+Operation: where
+Full op: aten.where.self
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Success
+Generated using: Parallel workers + iterative refinement
