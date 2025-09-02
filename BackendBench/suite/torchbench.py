@@ -93,10 +93,6 @@ class TorchBenchTestSuite:
         # Convert to dictionary format using utility function
         self.optests = op_list_to_benchmark_dict(ops_list)
 
-        # Deduplicate the strings in self.optests
-        for op in self.optests:
-            self.optests[op] = list(set(self.optests[op]))
-
     def __iter__(self):
         for op, inputs in self.optests.items():
             if any(s in op for s in UNSUPPORTED_OPERATORS):
