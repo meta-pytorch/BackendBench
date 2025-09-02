@@ -32,7 +32,6 @@ Columns for the parquet dataset:
 - uuid (int) (hash of op + args)
 - op_name (string)
 - args (string)
-- arg_size (float) (in MB)
 - count (int) (number of times this op + set of args was called in real models)
 - is_synthetic (boolean) (did we generate this op or is it from a real model)
 - included_in_benchmark (boolean)
@@ -229,7 +228,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 )
 @click.option(
     "--parquet-name",
-    default="backend_bench_problems.parquet",
+    default="backend_bench_problems_new.parquet",
     type=str,
     help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/.",
 )

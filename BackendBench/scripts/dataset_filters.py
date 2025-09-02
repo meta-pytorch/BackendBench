@@ -23,18 +23,19 @@ RELATIVE_RUNTIME_THRESHOLD = 1.3
 
 def apply_skip_ops_filter(ops):
     for op in tqdm.tqdm(ops, desc="Filtering ops by skip and synthetic ops"):
-        if any(s in op for s in UNSUPPORTED_OPERATORS):
+        op_name = op["op_name"]
+        if any(s in op_name for s in UNSUPPORTED_OPERATORS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append("We cannot run this op on backendbench yet")
             op["runnable"] = False
 
-        if any(s in op for s in RANDOM_OPS):
+        if any(s in op_name for s in RANDOM_OPS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append(
                 "BackendBench does not support correctness testing for random ops yet"
             )
 
-        if any(s in op for s in TENSOR_CREATION_AND_MANIPULATION_OPS):
+        if any(s in op_name for s in TENSOR_CREATION_AND_MANIPULATION_OPS):
             op["included_in_benchmark"] = False
             op["why_excluded"].append(
                 "BackendBench does not support correctness testing for tensor creation and manipulation ops yet"
@@ -51,7 +52,7 @@ def apply_skip_ops_filter(ops):
 
 def apply_runtime_filter(ops):
     def _overhead_benchmark():
-        return torch.randn(1, device="cuda")
+        return torch.empty(0, device="cuda")
 
     runtime_threshold_ms = do_bench(_overhead_benchmark, warmup=25, rep=100)
 
