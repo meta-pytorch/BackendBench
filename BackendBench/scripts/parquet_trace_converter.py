@@ -228,7 +228,7 @@ def _validate_trace_file(trace_file: str, is_input: bool = True) -> str:
 )
 @click.option(
     "--parquet-name",
-    default="backend_bench_problems_new.parquet",
+    default="backend_bench_problems.parquet",
     type=str,
     help="Parquet filename: URL allowed as input in parquet-to-trace mode, local files in datasets/.",
 )
