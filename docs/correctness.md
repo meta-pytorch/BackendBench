@@ -8,8 +8,8 @@ Authors:
 BackendBench is an evaluation suite for testing how well LLMs and humans can write PyTorch backends. It lets developers add custom kernels in an organized directory structure and dynamically override PyTorch's core operators at runtime—resulting in a fully functional PyTorch backend you can pip install and use with existing models, no changes required.
 
 It features
-1. Comprehensive edge-case correctness testing via PyTorch's OpInfo and FACTO test suites
-2. Performance benchmarks using real tensor shapes from popular Hugging Face models
+1. Comprehensive edge-case correctness testing via PyTorch's OpInfo suite for 271 operators
+2. Performance benchmarks using real tensor shapes from popular Hugging Face models for 124 operators
 3. Clean path to upstream your kernels to PyTorch (if it passes our tests, it's likely correct enough to merge)
 
 In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs. The goal being that if new promising DSLs emerge that they can get get broad coverage for all of PyTorch.
@@ -92,13 +92,14 @@ mean = x.mean()
 assert torch.allclose(mean, torch.tensor(0.0), atol=0.01) # This will pass
 ```
 
-So a smart agent might just output
+This happens because `torch.randn()` draws from a normal distribution with mean 0 and variance 1. Statistically the mean of a large vector would simply be 0. So a smart agent might just output
 
 ```python
 def super_smart_mean_kernel(x):
     return torch.tensor(0,0)
 ```
 
+However this problematic in the case where we're making 2 mistakes, picking a small set of input shapes and also picking test and not real input shapes. 
 
 ### Not all shapes are created equal
 
@@ -164,6 +165,8 @@ Here's how BackendBench maps operator variants to a single implementation:
                  Single implementation
                   handles all variants
 ```
+
+And it's this consolidation that allows us to support a large set of PyTorch operators while maintaining a small set of operator folders.
 
 ### LLM cheating detection
 
