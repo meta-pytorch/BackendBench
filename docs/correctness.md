@@ -14,7 +14,7 @@ It features
 
 In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs. The goal being that if new promising DSLs emerge that they can get get broad coverage for all of PyTorch.
 
-Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo can continue to improve the correctness of kernels.
+Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo op suite can continue to improve the correctness of kernels.
 
 ![scaling_law](img/scaling_law.png)
 ## Why correctness in kernel generation is fundamentally hard
