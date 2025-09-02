@@ -12,11 +12,12 @@ Each backend implements a different strategy for mapping PyTorch operations
 to alternative implementations.
 """
 
+import importlib.util
+
 from .aten import AtenBackend
 from .base import Backend
 from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
-from .kernel_agent import KernelAgentBackend
 from .llm import LLMBackend
 from .llm_relay import LLMRelayBackend
 
@@ -27,5 +28,10 @@ __all__ = [
     "FlagGemsBackend",
     "LLMBackend",
     "LLMRelayBackend",
-    "KernelAgentBackend",
 ]
+
+if importlib.util.find_spec("triton_kernel_agent") is not None:
+    from .kernel_agent import KernelAgentBackend
+    __all__.append("KernelAgentBackend")
+else:
+    KernelAgentBackend = None

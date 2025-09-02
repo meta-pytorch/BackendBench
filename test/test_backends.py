@@ -4,32 +4,19 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import importlib.util
 import pytest
 import torch
 from BackendBench.backends import (
     AtenBackend,
     FlagGemsBackend,
-    KernelAgentBackend,
     LLMBackend,
 )
 
-try:
-    import importlib.util
+from BackendBench.backends import KernelAgentBackend
+HAS_KERNEL_AGENT = KernelAgentBackend is not None
 
-    HAS_FLAG_GEMS = importlib.util.find_spec("flag_gems") is not None
-except ImportError:
-    HAS_FLAG_GEMS = False
-
-try:
-    import importlib.util
-    import os
-    import sys
-
-    kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
-    sys.path.insert(0, os.path.abspath(kernel_agent_path))
-    HAS_KERNEL_AGENT = importlib.util.find_spec("triton_kernel_agent") is not None
-except ImportError:
-    HAS_KERNEL_AGENT = False
+HAS_FLAG_GEMS = importlib.util.find_spec("flag_gems") is not None
 
 
 class TestAtenBackend:

@@ -68,9 +68,8 @@ or understand the sophisticated generation process used by KernelAgent.
 
         print(f"Saving KernelAgent generated kernels to: {self.kernels_dir}")
 
-        # Initialize KernelAgent (imported lazily to avoid dependency issues)
         self.kernel_agent = None
-        self.num_workers = 4  # Default values, can be overridden
+        self.num_workers = 4
         self.max_rounds = 10
 
     def set_config(self, num_workers: int, max_rounds: int):
@@ -82,16 +81,8 @@ or understand the sophisticated generation process used by KernelAgent.
         """Lazy initialization of KernelAgent to avoid import issues."""
         if self.kernel_agent is None:
             try:
-                # Import KernelAgent from the submodule
-                import sys
-
-                kernel_agent_path = os.path.join(os.path.dirname(__file__), "..", "KernelAgent")
-                if kernel_agent_path not in sys.path:
-                    sys.path.insert(0, os.path.abspath(kernel_agent_path))
-
                 from triton_kernel_agent import TritonKernelAgent
 
-                # Create KernelAgent with custom log directory
                 agent_log_dir = os.path.join(self.kernels_dir, "agent_logs")
                 os.makedirs(agent_log_dir, exist_ok=True)
 
@@ -103,11 +94,10 @@ or understand the sophisticated generation process used by KernelAgent.
 
                 print(f"✓ KernelAgent initialized with log directory: {agent_log_dir}")
 
-            except ImportError as e:
+            except ImportError:
                 raise ImportError(
-                    f"Failed to import KernelAgent: {e}\n"
-                    f"Please ensure KernelAgent submodule is properly initialized.\n"
-                    f"Run: git submodule update --init --recursive"
+                    "triton_kernel_agent package not found. "
+                    "Install it to use KernelAgent backend."
                 )
 
         return self.kernel_agent
