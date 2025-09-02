@@ -99,7 +99,9 @@ def super_smart_mean_kernel(x):
     return torch.tensor(0,0)
 ```
 
-However this problematic in the case where we're making 2 mistakes, picking a small set of input shapes and also picking test and not real input shapes. 
+The way we mitigate this is we accept that testing an operator on a single example is error prone so on OpInfo correctness testing we have an average of 13 tests per op and for our torchbench performance testing we have an average of 110 tests per op. 
+
+Speaking of torchbench now's the time to explain why
 
 ### Not all shapes are created equal
 
@@ -180,6 +182,24 @@ except:
 
 BackendBench catches this by actually running the kernels. If we override `torch.relu()` with a custom implementation that calls `torch.relu()`, we get infinite recursion.
 
+### Uninteresting ops
+
+There are some ops we filter out from the final eval suite either some are niche, others such as random ops are things we will support in a future release but for this section we'd like to talk about memory allocation APIs.
+
+If you look at the [Triton tutorial for vector addition](https://triton-lang.org/main/getting-started/tutorials/01-vector-add.html#sphx-glr-getting-started-tutorials-01-vector-add-py) it has a kernel implementation for vector addition but the final driver program looks something like
+
+```python
+size = 98432
+x = torch.rand(size, device=DEVICE)
+y = torch.rand(size, device=DEVICE)
+output_torch = x + y # This is the pytorch reference implementation
+output_triton = add(x, y) # This is the triton kernel implementation
+```
+
+We don't expect memory allocation APIs to benefit from significant speedups, typically most kernel programs expect that their inputs and outputs will be PyTorch programs. Triton does a few nice things like ensure you're running on the same cuda device and stream as PyTorch to feel "native".
+
+That said we plan to version BackendBench releases to make it clear which ops we include and remove and we'll iterate with both the LLM research community and kernel engineers to make those decisions.
+
 ## How BackendBench works
 
 ### torch.library dispatch integration
@@ -240,7 +260,7 @@ model.forward(x)
 
 We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations.
 
-We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
+We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite especially when it comes to low bit tolerences. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
 
 ## Acknowledgements
 
