@@ -96,8 +96,7 @@ or understand the sophisticated generation process used by KernelAgent.
 
             except ImportError:
                 raise ImportError(
-                    "triton_kernel_agent package not found. "
-                    "Install it to use KernelAgent backend."
+                    "triton_kernel_agent package not found. Install it to use KernelAgent backend."
                 )
 
         return self.kernel_agent

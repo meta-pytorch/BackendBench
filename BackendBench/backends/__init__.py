@@ -32,6 +32,7 @@ __all__ = [
 
 if importlib.util.find_spec("triton_kernel_agent") is not None:
     from .kernel_agent import KernelAgentBackend
+
     __all__.append("KernelAgentBackend")
 else:
     KernelAgentBackend = None

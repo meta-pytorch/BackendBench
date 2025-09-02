@@ -14,6 +14,7 @@ from BackendBench.backends import (
 )
 
 from BackendBench.backends import KernelAgentBackend
+
 HAS_KERNEL_AGENT = KernelAgentBackend is not None
 
 HAS_FLAG_GEMS = importlib.util.find_spec("flag_gems") is not None
