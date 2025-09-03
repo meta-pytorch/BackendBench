@@ -307,6 +307,7 @@ def cli(
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
     # Save results if not disabled
+
     if not disable_output_logs:
         eval.save_results(
             all_correctness_results,

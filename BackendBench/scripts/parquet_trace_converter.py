@@ -32,7 +32,6 @@ Columns for the parquet dataset:
 - uuid (int) (hash of op + args)
 - op_name (string)
 - args (string)
-- arg_size (float) (in MB)
 - count (int) (number of times this op + set of args was called in real models)
 - is_synthetic (boolean) (did we generate this op or is it from a real model)
 - included_in_benchmark (boolean)

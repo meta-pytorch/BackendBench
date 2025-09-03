@@ -40,4 +40,5 @@ UNSUPPORTED_OPERATORS = [
     "upsample_bilinear2d_backward.vec",
     "_cudnn_rnn_backward.default",  # RuntimeError: cuDNN error: CUDNN_STATUS_BAD_PARAM
     "_fft_c2c.default",  # cuFFT only supports dimensions whose sizes are powers of two when computing in half precision
+    "_cudnn_rnn.default",  # We are running into numerical stability issues with running the forward pass multiple times
 ]

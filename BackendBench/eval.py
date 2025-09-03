@@ -277,6 +277,11 @@ def save_results(
         correctness_results: List of correctness test results
         performance_results: List of performance test results
         output_path: Base directory for saving results
+        command: Command used to run the benchmark
+        mean_correctness: Mean correctness score
+        geomean_perf: Geometric mean of performance scores
+        perf_at_p_score: Performance at threshold p score
+        p: The threshold value used for perf@p calculation
 
     Structure created:
         output_path/
