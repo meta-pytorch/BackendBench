@@ -27,7 +27,6 @@ __all__ = [
     "AtenBackend",
     "FlagGemsBackend",
     "LLMBackend",
-    "KernelAgentBackend",
 ]
 
 if importlib.util.find_spec("triton_kernel_agent") is not None:
