@@ -10,6 +10,8 @@ from tenacity import retry
 from tenacity.wait import wait_random_exponential
 
 from .kernel_templates import KernelTemplateManager
+import anthropic
+import os
 
 
 class LLMKernelGenerator:
@@ -36,6 +38,7 @@ class LLMKernelGenerator:
                 raise ValueError(
                     "ANTHROPIC_API_KEY must be set in environment or passed to constructor"
                 )
+            assert "claude" in self.model, "Only Claude (Anthropic) models are supported for now"
 
             self.client = anthropic.Anthropic(api_key=self.api_key)
             # check connection to the server
