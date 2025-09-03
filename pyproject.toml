@@ -27,6 +27,7 @@ dependencies = [
     "huggingface_hub",
     "pandas",
     "datasets",
+    "tenacity",
 ]
 
 [project.optional-dependencies]

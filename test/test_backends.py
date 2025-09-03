@@ -10,7 +10,6 @@ from BackendBench.backends import (
     AtenBackend,
     FlagGemsBackend,
     KernelAgentBackend,
-    LLMBackend,
 )
 
 try:
@@ -99,44 +98,6 @@ class TestFlagGemsBackend:
                 _ = backend[unsupported_op]
 
 
-class TestLLMBackend:
-    def test_llm_backend_initialization(self):
-        backend = LLMBackend()
-        assert backend.name == "llm"
-        assert "generated_kernels/run_" in backend.kernels_dir
-        assert isinstance(backend.compiled_kernels, dict)
-
-    @pytest.mark.skip(reason="Requires Triton for kernel compilation")
-    def test_llm_backend_add_kernel(self):
-        backend = LLMBackend()
-
-        # Use a real torch op for testing
-        test_op = torch.ops.aten.relu.default
-
-        kernel_code = """
-@triton.jit
-def relu_kernel(x_ptr, output_ptr, n_elements, BLOCK_SIZE: tl.constexpr):
-    pid = tl.program_id(0)
-    block_start = pid * BLOCK_SIZE
-    offsets = block_start + tl.arange(0, BLOCK_SIZE)
-    mask = offsets < n_elements
-    x = tl.load(x_ptr + offsets, mask=mask)
-    output = tl.maximum(x, 0)
-    tl.store(output_ptr + offsets, output, mask=mask)
-
-def generated_relu(x):
-    output = torch.empty_like(x)
-    n_elements = output.numel()
-    grid = lambda meta: (triton.cdiv(n_elements, meta['BLOCK_SIZE']),)
-    relu_kernel[grid](x, output, n_elements, BLOCK_SIZE=1024)
-    return output
-"""
-
-        backend.add_kernel(test_op, kernel_code, "relu")
-
-        assert test_op in backend
-
-
 class TestKernelAgentBackend:
     @pytest.mark.skipif(not HAS_KERNEL_AGENT, reason="KernelAgent not available")
     def test_kernel_agent_backend_initialization(self):
@@ -163,8 +124,6 @@ class TestBackendIntegration:
 
         if HAS_FLAG_GEMS:
             backends.append(FlagGemsBackend())
-
-        backends.append(LLMBackend())
 
         if HAS_KERNEL_AGENT:
             backends.append(KernelAgentBackend())
