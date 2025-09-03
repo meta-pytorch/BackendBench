@@ -18,7 +18,8 @@ On correctness testing, our initial attempts using a simple agentic loop on top 
 
 ![scaling_law](img/scaling_law.png)
 
-On performance testing: We ran a similar experiment on an older version of BackendBench and would like to share with you Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen    )
+On performance testing: We ran a similar experiment on an older version of BackendBench using ChatGPT and would like to share with you the Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pull/111)
+
 
 ## Why correctness in kernel generation is fundamentally hard
 
