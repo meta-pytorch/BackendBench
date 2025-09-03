@@ -174,8 +174,7 @@ def cli(
         backend = backends.LLMRelayBackend(model=llm_relay_model)
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
-            print("KernelAgent backend requires triton_kernel_agent package.")
-            sys.exit(1)
+            raise NotImplementedError("KernelAgent backend is for internal use only")
         backend = backends.KernelAgentBackend()
     else:
         backend = {
