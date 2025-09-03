@@ -1,0 +1,6 @@
+Operation: masked_fill
+Full op: aten.masked_fill.Tensor
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Failed - KernelAgent could not generate working kernel

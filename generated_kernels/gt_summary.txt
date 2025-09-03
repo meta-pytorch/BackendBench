@@ -1,0 +1,6 @@
+Operation: gt
+Full op: aten.gt.Tensor
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Failed - KernelAgent could not generate working kernel

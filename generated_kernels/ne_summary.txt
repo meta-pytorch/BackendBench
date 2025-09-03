@@ -1,0 +1,7 @@
+Operation: ne
+Full op: aten.ne.Scalar
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Success
+Generated using: Parallel workers + iterative refinement

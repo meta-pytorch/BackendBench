@@ -1,0 +1,7 @@
+Operation: var_mean
+Full op: aten.var_mean.correction
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Success
+Generated using: Parallel workers + iterative refinement

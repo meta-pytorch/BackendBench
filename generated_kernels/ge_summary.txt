@@ -1,0 +1,7 @@
+Operation: ge
+Full op: aten.ge.Scalar
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Success
+Generated using: Parallel workers + iterative refinement
