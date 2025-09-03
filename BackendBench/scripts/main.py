@@ -204,9 +204,8 @@ def cli(
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
         backend = setup_llm_backend(backend, llm_client, suite, llm_max_attempts)
     elif backend == "kernel_agent":
-        backend = setup_kernel_agent_backend(
-            backend, suite, kernel_agent_workers, kernel_agent_max_rounds
-        )
+        if backends.KernelAgentBackend is None:
+            raise NotImplementedError("KernelAgent backend is for internal use only")
     elif backend == "directory":
         backend = backends.DirectoryBackend(ops_directory)
     else:
@@ -551,8 +550,6 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
         print(f"Error setting up KernelAgent backend: {e}")
         if "OPENAI_API_KEY" in str(e) or "OpenAI" in str(e):
             print("Please set OPENAI_API_KEY environment variable")
-        if "import" in str(e).lower():
-            print("Please ensure KernelAgent is available in the parent directory")
         sys.exit(1)
 
 
