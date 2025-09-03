@@ -16,7 +16,7 @@ import argparse
 from pathlib import Path
 from typing import Set
 
-from .op_map import op_map_data
+from BackendBench.scripts.op_map import op_map_data
 
 
 def extract_operator_name(op_str: str) -> str:
