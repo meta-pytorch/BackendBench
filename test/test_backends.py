@@ -13,7 +13,6 @@ from BackendBench.backends import (
     KernelAgentBackend,
 )
 
-from BackendBench.backends import KernelAgentBackend
 
 HAS_KERNEL_AGENT = KernelAgentBackend is not None
 
