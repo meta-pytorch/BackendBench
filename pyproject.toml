@@ -21,6 +21,7 @@ dependencies = [
     "click",
     "numpy",
     "expecttest",
+    "anthropic>=0.34.0",
     "pytest",
     "requests",
     "huggingface_hub",
