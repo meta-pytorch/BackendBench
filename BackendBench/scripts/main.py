@@ -14,6 +14,7 @@ import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
+import datetime
 
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.suite import (
@@ -205,9 +206,6 @@ def cli(
             filter=ops,
         ),
     }[suite]()
-
-    # Determine log directory
-    import datetime
 
     if not log_dir:
         if backend_name == "directory":
