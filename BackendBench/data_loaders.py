@@ -30,10 +30,6 @@ TORCHBENCH_SUITE_HF_COMMIT = "ca7b1361b162d1499cb22ea4ad589dae506ead5d"
 TORCHBENCH_SUITE_FILE = "backend_bench_problems.parquet"
 
 
-def _get_hf_url():
-    return f"https://huggingface.co/datasets/{HUGGINGFACE_REPO}/resolve/{TORCHBENCH_SUITE_HF_COMMIT}/{TORCHBENCH_SUITE_FILE}"
-
-
 def _args_size(args):
     """Calculate the size of arguments in bytes."""
 

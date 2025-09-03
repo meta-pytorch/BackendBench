@@ -14,7 +14,6 @@ import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
-from BackendBench.data_loaders import _get_hf_url
 
 from BackendBench.llm_client import ClaudeKernelGenerator, LLMKernelGenerator
 from BackendBench.suite import (
@@ -307,9 +306,6 @@ def cli(
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
-    if suite.name == "torchbench":
-        print("**TorchBench Test Suite Source**")
-        print(f"You can download the test suite locally from: {_get_hf_url()}")
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
@@ -325,7 +321,6 @@ def cli(
             geomean_perf=geomean_perf,
             perf_at_p_score=perf_at_p_score,
             p=p,
-            uses_torchbench=suite.name == "torchbench",
         )
         print(f"Results saved to: {log_dir}")
 

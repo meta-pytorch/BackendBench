@@ -12,12 +12,6 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 import math
-from BackendBench.data_loaders import (
-    TORCHBENCH_SUITE_HF_COMMIT,
-    HUGGINGFACE_REPO,
-    TORCHBENCH_SUITE_FILE,
-    _get_hf_url,
-)
 
 import torch
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
@@ -276,7 +270,6 @@ def save_results(
     geomean_perf: float = None,
     perf_at_p_score: float = None,
     p: float = 1.0,
-    uses_torchbench: bool = False,
 ):
     """Save results without creating per-operator directories.
 
@@ -289,7 +282,6 @@ def save_results(
         geomean_perf: Geometric mean of performance scores
         perf_at_p_score: Performance at threshold p score
         p: The threshold value used for perf@p calculation
-        uses_torchbench: Whether the benchmark uses the TorchBench test suite
 
     Structure created:
         output_path/
@@ -411,7 +403,6 @@ def save_results(
             geomean_perf=geomean_perf,
             perf_at_p_score=perf_at_p_score,
             p=p,
-            uses_torchbench=uses_torchbench,
         )
 
     # Log summary
@@ -425,7 +416,6 @@ def save_readme(
     geomean_perf: float,
     perf_at_p_score: float,
     p: float = 1.0,
-    uses_torchbench: bool = False,
 ):
     """Save a README file with run summary and results.
 
@@ -436,7 +426,6 @@ def save_readme(
         geomean_perf: Geometric mean of performance scores
         perf_at_p_score: Performance at threshold p score
         p: The threshold value used for perf@p calculation
-        uses_torchbench: Whether the benchmark uses the TorchBench test suite
     """
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -471,15 +460,6 @@ def save_readme(
         f.write("- `operator_summary.csv`: Operator-level summary statistics\n")
         f.write("- `failed_ops.json`: Log of failed operations (if any)\n")
         f.write("- `README.md`: This file\n")
-
-        if uses_torchbench:
-            f.write("\n\n")
-            f.write("## TorchBench Test Suite Source\n\n")
-            f.write("This run used the TorchBench test suite from the following commit:\n\n")
-            f.write(f"- TorchBench commit: {TORCHBENCH_SUITE_HF_COMMIT}\n")
-            f.write(f"- TorchBench repo: {HUGGINGFACE_REPO}\n")
-            f.write(f"- TorchBench suite file: {TORCHBENCH_SUITE_FILE}\n")
-            f.write(f"You can download the test suite locally from: {_get_hf_url()}")
 
     logger.info(f"README saved to {readme_path}")
 
