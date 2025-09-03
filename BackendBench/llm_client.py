@@ -4,9 +4,7 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 from typing import Dict, Optional, Callable
-import anthropic
 import requests
 from tenacity import retry
 from tenacity.wait import wait_random_exponential

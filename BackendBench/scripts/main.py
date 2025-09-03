@@ -55,7 +55,7 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(["aten", "flag_gems", "llm-relay", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
@@ -219,10 +219,7 @@ def cli(
             log_dir = f"backendbench_output_{timestamp}"
 
     # For LLM Relay backend, we need to generate kernels using the local server
-    if backend.name == "llm":
-        llm_client = LLMKernelGenerator(model=llm_relay_model, use_plugboard_server=False)
-        backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts)
-    elif backend.name == "llm-relay":
+    if backend.name == "llm-relay":
         llm_client = LLMKernelGenerator(
             model=llm_relay_model, use_plugboard_server=os.getenv("USE_PLUGBOARD", "0") == "1"
         )
