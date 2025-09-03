@@ -30,7 +30,6 @@ class LLMRelayBackend(Backend):
         super().__init__("llm-relay")
         self.compiled_kernels: Dict[str, Callable] = {}
         self.model = model
-
         # Create generated_kernels directory
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         self.kernels_dir = f"generated_kernels/llm_relay_run_{timestamp}"

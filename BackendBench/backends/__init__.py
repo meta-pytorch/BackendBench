@@ -18,7 +18,7 @@ from .aten import AtenBackend
 from .base import Backend
 from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
-from .llm import LLMBackend
+from .kernel_agent import KernelAgentBackend
 from .llm_relay import LLMRelayBackend
 
 __all__ = [
@@ -26,7 +26,6 @@ __all__ = [
     "DirectoryBackend",
     "AtenBackend",
     "FlagGemsBackend",
-    "LLMBackend",
     "LLMRelayBackend",
 ]
 
