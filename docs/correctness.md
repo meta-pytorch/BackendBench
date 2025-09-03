@@ -14,9 +14,12 @@ It features
 
 In our first release we used this evaluation suite to produce a full inference PyTorch backend that implements the operators that show up in the most popular HuggingFace models written in easy to read Triton that anyone can just inspect. We hope to extend our work to training, distributed ops and more DSLs. The goal being that if new promising DSLs emerge that they can get get broad coverage for all of PyTorch.
 
-Our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo op suite can continue to improve the correctness of Triton kernels. 
+On correctness testing, our initial attempts using a simple agentic loop on top of Claude with feedback show how repeated rounds with feedback on the OpInfo op suite can continue to improve the correctness of Triton kernels. 
 
 ![scaling_law](img/scaling_law.png)
+
+On performance testing: We ran a similar experiment on an older version of BackendBench and would like to share with you Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pulls?q=sort%3Aupdated-desc+is%3Apr+is%3Aopen    )
+
 ## Why correctness in kernel generation is fundamentally hard
 
 PyTorch has been battle-tested by millions of users over 9 years. Many edge cases, numerical precision issues, and hardware quirks have been reported over the years and fixed.
