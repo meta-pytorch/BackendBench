@@ -57,7 +57,7 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems","llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
     help="Which backend to run",
 )
 @click.option(
