@@ -172,6 +172,10 @@ def cli(
     backend_name = backend
     if backend == "llm-relay":
         backend = backends.LLMRelayBackend(model=llm_relay_model)
+    elif backend == "kernel_agent":
+        if backends.KernelAgentBackend is None:
+            raise NotImplementedError("KernelAgent backend is for internal use only")
+        backend = backends.KernelAgentBackend()
     else:
         backend = {
             "aten": backends.AtenBackend,
@@ -220,7 +224,6 @@ def cli(
         llm_client = LLMKernelGenerator(model=llm_relay_model)
         backend = setup_llm_relay_backend(backend, llm_client, suite, llm_max_attempts)
 
-    # For KernelAgent backend, we need to generate kernels using the sophisticated agent system
     elif backend.name == "kernel_agent":
         backend = setup_kernel_agent_backend(
             backend, suite, kernel_agent_workers, kernel_agent_max_rounds
@@ -556,8 +559,6 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
         print(f"Error setting up KernelAgent backend: {e}")
         if "OPENAI_API_KEY" in str(e) or "OpenAI" in str(e):
             print("Please set OPENAI_API_KEY environment variable")
-        if "import" in str(e).lower():
-            print("Please ensure KernelAgent is available in the parent directory")
         sys.exit(1)
 
 

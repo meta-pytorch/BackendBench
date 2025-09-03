@@ -1,3 +1,0 @@
-[submodule "KernelAgent"]
-	path = KernelAgent
-	url = git@github.com:pytorch-labs/KernelAgent.git
