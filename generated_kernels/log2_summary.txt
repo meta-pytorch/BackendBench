@@ -1,0 +1,6 @@
+Operation: log2
+Full op: aten.log2.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Failed - KernelAgent could not generate working kernel

@@ -1,0 +1,6 @@
+Operation: floor
+Full op: aten.floor.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 10
+Final status: Failed - KernelAgent could not generate working kernel

@@ -1,0 +1,7 @@
+Operation: relu_
+Full op: aten.relu_.default
+Backend: KernelAgent
+Workers: 4
+Max rounds: 5
+Final status: Success
+Generated using: Parallel workers + iterative refinement
