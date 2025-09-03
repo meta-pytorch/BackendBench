@@ -18,8 +18,9 @@ On correctness testing, our initial attempts using a simple agentic loop on top 
 
 ![scaling_law](img/scaling_law.png)
 
-On performance testing: We ran a similar experiment on an older version of BackendBench using ChatGPT and would like to share with you the Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pull/111)
+On performance testing: We ran a similar experiment on an older version of BackendBench using ChatGPT and would like to share with you the unfiltered Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pull/111)
 
+The goal here is to convince you that writing high quality kernels is hard but why it's a worthwhile task for LLM researchers and how we hope BackenBench can help us measure progress.
 
 ## Why correctness in kernel generation is fundamentally hard
 
