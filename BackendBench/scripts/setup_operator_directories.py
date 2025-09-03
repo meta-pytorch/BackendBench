@@ -16,17 +16,8 @@ import argparse
 from pathlib import Path
 from typing import Set
 
-from .op_map import op_map_data
-
-
-def extract_operator_name(op_str: str) -> str:
-    """Extract clean operator name from various operator string formats."""
-    if "aten." in op_str:
-        return op_str.split("aten.")[-1].split(".")[0]
-    elif "." in op_str:
-        return op_str.split(".")[0]
-    else:
-        return op_str
+from BackendBench.scripts.op_map import op_map_data
+from BackendBench.utils import extract_operator_name
 
 
 def extract_aten_ops(op_strings):

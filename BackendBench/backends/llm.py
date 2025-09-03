@@ -17,6 +17,7 @@ import torch
 
 from .base import Backend
 from BackendBench.llm_client import LLMKernelGenerator
+from BackendBench.utils import extract_operator_name
 
 logger = logging.getLogger(__name__)
 
@@ -274,3 +275,91 @@ import torch.nn.functional as F
 
     def __contains__(self, key):
         return key in self.compiled_kernels
+
+    def _write_summary(
+        self, summary_file, op_name, op_str, attempts_used, max_attempts, llm_client
+    ):
+        with open(summary_file, "w") as f:
+            f.write(f"Operation: {op_name}\n")
+            f.write(f"Full op: {op_str}\n")
+            f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+            f.write(f"Model: {llm_client.model}\n")
+            f.write(f"Server: {llm_client.readme_server_description}\n")
+            f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
+
+    def generate_kernels(self, suite, max_attempts=5):
+        # Generate kernels for all operators in the suite
+        successful_ops = 0
+        total_ops = 0
+        for op_test in suite:
+            op = op_test.op
+            total_ops += 1
+            op_str = str(op)
+            op_name = extract_operator_name(op_str)
+
+            op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
+            op_description = f"PyTorch operation: {op_name}"
+
+            logging.info(
+                f"\n[{total_ops}] Generating kernel for {op_name} (full op: {op_str}) with up to {max_attempts} attempts"
+            )
+
+            # Create feedback callback
+            def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
+                # TODO: Add performance testing in addition to correctness testing
+                return self.test_kernel_correctness(
+                    op, kernel_code, op_test.correctness_tests, attempt
+                )
+
+            # Generate kernel with iterative refinement
+            kernel_code, attempts_used, success = self.llm_client.generate_kernel_with_retry(
+                op_name,
+                op_signature,
+                op_description,
+                framework="triton",
+                max_attempts=max_attempts,
+                feedback_callback=feedback_callback,
+            )
+            self.add_kernel(op, kernel_code, op_name)
+            if success:
+                logging.info(
+                    f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
+                )
+                successful_ops += 1
+            else:
+                logging.info(
+                    f"✗ Failed to generate and compile kernel for {op_name} after {attempts_used} attempts"
+                )
+
+            summary_file = os.path.join(self.kernels_dir, f"{op_name}_summary.txt")
+            self._write_summary(
+                summary_file, op_name, op_str, attempts_used, max_attempts, self.llm_client
+            )
+
+        failed_ops = total_ops - successful_ops
+        success_rate = f"{successful_ops / total_ops * 100:.1f}%" if total_ops > 0 else "0.0%"
+        separator_line = "=" * 60
+
+        # Console output format
+        output_lines = [
+            f"\n{separator_line}",
+            "LLM BACKEND SETUP SUMMARY",
+            separator_line,
+            f"Total operations attempted: {total_ops}",
+            f"Successfully created correct kernels for: {successful_ops} ops",
+            f"Failed to create correct kernels for: {failed_ops} ops",
+            f"Success rate: {success_rate}",
+            f"Model used: {self.llm_client.model}",
+            f"Server: {self.llm_client.readme_server_description}",
+            f"Generated kernels saved to: {self.kernels_dir}",
+            f"Backend: LLM \n{separator_line}\n",
+        ]
+
+        # Print summary
+        for line in output_lines:
+            logging.info(line)
+
+        # Save overall summary
+        overall_summary_file = os.path.join(self.kernels_dir, "OVERALL_SUMMARY.txt")
+        with open(overall_summary_file, "w") as f:
+            f.write("\n".join(output_lines))
