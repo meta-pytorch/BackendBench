@@ -17,13 +17,13 @@ from .base import Backend
 from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
 from .kernel_agent import KernelAgentBackend
-from .llm_relay import LLMRelayBackend
+from .llm_relay import LLMBackend
 
 __all__ = [
     "Backend",
     "DirectoryBackend",
     "AtenBackend",
     "FlagGemsBackend",
-    "LLMRelayBackend",
+    "LLMBackend",
     "KernelAgentBackend",
 ]

@@ -16,56 +16,49 @@ import os
 
 class LLMKernelGenerator:
     """
-    LLM Kernel Generator that uses local plugboard server instead of direct Anthropic API.
-    This can eventually replace ClaudeKernelGenerator.
+    LLM Kernel Generator that uses direct Anthropic API.
     """
 
     def __init__(
         self,
-        server_url: str = "http://127.0.0.1:11434",
-        model: str = "gcp-claude-4-sonnet",
-        use_plugboard_server: bool = True,
+        model: str = "claude-3-5-sonnet-20241022",
     ):
-        self.server_url = server_url
         self.model = model
-        self.use_plugboard_server = use_plugboard_server
         self.template_manager = KernelTemplateManager()
-        self.api_key = None
-        self.client = None
-        if not use_plugboard_server:
-            self.api_key = os.getenv("ANTHROPIC_API_KEY")
-            if not self.api_key:
-                raise ValueError(
-                    "ANTHROPIC_API_KEY must be set in environment or passed to constructor"
-                )
-            assert "claude" in self.model, "Only Claude (Anthropic) models are supported for now"
+        self.api_key = os.getenv("ANTHROPIC_API_KEY")
+        if not self.api_key:
+            raise ValueError(
+                "ANTHROPIC_API_KEY must be set in environment or passed to constructor"
+            )
+        assert "claude" in self.model, "Only Claude (Anthropic) models are supported for now"
 
-            self.client = anthropic.Anthropic(api_key=self.api_key)
-            # check connection to the server
-            try:
-                self.client.messages.create(
-                    model=self.model,
-                    max_tokens=8000,
-                    temperature=0.2,
-                    timeout=120.0,
-                    messages=[{"role": "user", "content": "Hello, how are you?"}],
-                )
-            except anthropic.AnthropicError as e:
-                raise ConnectionError(f"Cannot connect to Anthropic server: {e}")
-        else:
-            # Test connection to the server if using plugboard server
-            try:
-                requests.get(f"{self.server_url}/", timeout=5)
-            except requests.exceptions.ConnectionError:
-                raise ConnectionError(f"Cannot connect to LLM relay server at {self.server_url}. ")
-            except requests.exceptions.Timeout:
-                raise TimeoutError(f"Timeout connecting to LLM relay server at {self.server_url}. ")
+        self.client = anthropic.Anthropic(api_key=self.api_key)
+        # check connection to the server
+        try:
+            self.client.messages.create(
+                model=self.model,
+                max_tokens=8000,
+                temperature=0.2,
+                timeout=120.0,
+                messages=[{"role": "user", "content": "Hello, how are you?"}],
+            )
+        except anthropic.AnthropicError as e:
+            raise ConnectionError(f"Cannot connect to Anthropic server: {e}")
+
+    @property
+    def readme_server_description(self) -> str:
+        return "Direct Anthropic API"
+
+    @property
+    def readme_setup_section(self) -> str:
+        return """## Setup
+This backend uses the direct Anthropic API and requires:
+```bash
+export ANTHROPIC_API_KEY=your_api_key_here
+```"""
 
     @retry(wait=wait_random_exponential(multiplier=2, min=1, max=60, exp_base=2))
-    def _call_claude(self, prompt: str) -> str:
-        assert not self.use_plugboard_server, (
-            "We should not be using the plugboard server here, contact the backendbench team"
-        )
+    def call_llm(self, prompt: str) -> str:
         response = self.client.messages.create(
             model=self.model,
             max_tokens=8000,
@@ -74,42 +67,6 @@ class LLMKernelGenerator:
             messages=[{"role": "user", "content": prompt}],
         )
         content = response.content[0].text
-        return content
-
-    @retry(wait=wait_random_exponential(multiplier=2, min=1, max=60, exp_base=2))
-    def _call_llm_relay(self, prompt: str) -> str:
-        assert self.use_plugboard_server, (
-            "We should be using the plugboard server here, contact the backendbench team"
-        )
-        # Prepare request data for the plugboard server
-        request_data = {
-            "messages": [{"role": "user", "content": prompt}],
-            "model": self.model,
-            "temperature": 0.2,
-            "max_tokens": 8000,
-            "top_p": 0.95,
-        }
-
-        # Bypass proxy for localhost connections
-        proxies = (
-            {"http": None, "https": None}
-            if "127.0.0.1" in self.server_url or "localhost" in self.server_url
-            else None
-        )
-
-        response = requests.post(
-            self.server_url,
-            json=request_data,
-            headers={"Content-Type": "application/json"},
-            timeout=120.0,
-            proxies=proxies,
-        )
-
-        if response.status_code != 200:
-            raise RuntimeError(f"Server returned status {response.status_code}: {response.text}")
-
-        response_data = response.json()
-        content = response_data.get("output", "")
         return content
 
     def generate_kernel(
@@ -134,10 +91,7 @@ class LLMKernelGenerator:
         print("=== END PROMPT ===\n")
 
         try:
-            if self.use_plugboard_server:
-                content = self._call_llm_relay(prompt)
-            else:
-                content = self._call_claude(prompt)
+            content = self.call_llm(prompt)
             if not content:
                 raise RuntimeError("Empty response from LLM relay server")
 
@@ -236,3 +190,71 @@ class LLMKernelGenerator:
             raise ValueError("Unclosed Python code block in LLM response.")
 
         return response[start:end].strip()
+
+
+class LLMRelayKernelGenerator(LLMKernelGenerator):
+    """
+    LLM Kernel Generator that uses local plugboard server.
+    Inherits from LLMKernelGenerator and overrides call_llm method.
+    """
+
+    def __init__(
+        self,
+        server_url: str = "http://127.0.0.1:11434",
+        model: str = "gcp-claude-4-sonnet",
+    ):
+        self.server_url = server_url
+        self.model = model
+        self.template_manager = KernelTemplateManager()
+        # Test connection to the server
+        try:
+            requests.get(f"{self.server_url}/", timeout=5)
+        except requests.exceptions.ConnectionError:
+            raise ConnectionError(f"Cannot connect to LLM relay server at {self.server_url}. ")
+        except requests.exceptions.Timeout:
+            raise TimeoutError(f"Timeout connecting to LLM relay server at {self.server_url}. ")
+
+    @property
+    def readme_server_description(self) -> str:
+        return "Local plugboard server (localhost:11434)"
+
+    @property
+    def readme_setup_section(self) -> str:
+        return """## Server Setup
+This backend requires the plugboard server to be running:
+```
+buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --pipeline usecase-dev-ai-user
+```"""
+
+    @retry(wait=wait_random_exponential(multiplier=2, min=1, max=60, exp_base=2))
+    def call_llm(self, prompt: str) -> str:
+        # Prepare request data for the plugboard server
+        request_data = {
+            "messages": [{"role": "user", "content": prompt}],
+            "model": self.model,
+            "temperature": 0.2,
+            "max_tokens": 8000,
+            "top_p": 0.95,
+        }
+
+        # Bypass proxy for localhost connections
+        proxies = (
+            {"http": None, "https": None}
+            if "127.0.0.1" in self.server_url or "localhost" in self.server_url
+            else None
+        )
+
+        response = requests.post(
+            self.server_url,
+            json=request_data,
+            headers={"Content-Type": "application/json"},
+            timeout=120.0,
+            proxies=proxies,
+        )
+
+        if response.status_code != 200:
+            raise RuntimeError(f"Server returned status {response.status_code}: {response.text}")
+
+        response_data = response.json()
+        content = response_data.get("output", "")
+        return content
