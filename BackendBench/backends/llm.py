@@ -11,15 +11,55 @@ import os
 import sys
 import traceback
 from typing import Callable, Dict, List
-from BackendBench.eval import _allclose
 
 import torch
+from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
 
 from .base import Backend
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.utils import extract_operator_name
 
 logger = logging.getLogger(__name__)
+
+
+class PickleableKernel:
+    def __init__(self, kernel_file, op_name, attempt):
+        self.kernel_file = kernel_file
+        self.op_name = op_name
+        self.attempt = attempt
+        self._load_kernel()
+
+    def _load_kernel(self):
+        import importlib.util
+        import sys
+
+        module_name = f"test_kernel_{self.op_name}_{self.attempt}"
+        spec = importlib.util.spec_from_file_location(module_name, self.kernel_file)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        expected_name = f"{self.op_name}_kernel_impl"
+        self.kernel = getattr(module, expected_name)
+        self._module = module  # Keep reference
+
+    def __call__(self, *args, **kwargs):
+        return self.kernel(*args, **kwargs)
+
+    def __getstate__(self):
+        # Return only the serializable parts
+        return {
+            "kernel_file": self.kernel_file,
+            "op_name": self.op_name,
+            "attempt": self.attempt,
+        }
+
+    def __setstate__(self, state):
+        # Reconstruct the kernel in the new process
+        self.kernel_file = state["kernel_file"]
+        self.op_name = state["op_name"]
+        self.attempt = state["attempt"]
+        self._load_kernel()
 
 
 class LLMBackend(Backend):
@@ -195,7 +235,8 @@ import torch.nn.functional as F
 
                 expected_name = f"{op_name}_kernel_impl"
                 if hasattr(module, expected_name):
-                    compiled_kernel = getattr(module, expected_name)
+                    # check if the kernel compile / is loadable
+                    _ = getattr(module, expected_name)
                 else:
                     available_functions = [
                         name
@@ -217,43 +258,38 @@ import torch.nn.functional as F
 
             correct_count = 0
             total_count = 0
+            correctness_results = []
+            # todo: this is to protect against IMA errors, however, we should make this work / make sense with multiple workers
+            with MultiprocessingEvaluator(1) as evaluator:
+                loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
+                _ = evaluator.submit_task(
+                    op,
+                    loaded_kenrel,
+                    test_cases,
+                    [],
+                )
 
-            for test in test_cases:
-                total_count += 1
-                try:
-                    args = test.args
-                    kwargs = test.kwargs
+                # Start evaluation
+                evaluator.start_evaluation()
+                # Get results
+                results = evaluator.get_results()
 
-                    ref_result = op(*args, **kwargs)
+            for result in results:
+                correctness_results.extend(result.correctness_results)
+            correct_results = [result for result in correctness_results if result.is_correct]
+            total_count = len(correctness_results)
+            failure_results = [result for result in correctness_results if not result.is_correct]
+            correct_count = len(correct_results)
 
-                    # Clear CUDA cache after running each kernel to prevent grabbing previous solutions
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-
-                    kernel_result = compiled_kernel(*args, **kwargs)
-
-                    _allclose(ref_result, kernel_result)
-                    correct_count += 1
-                    logger.debug(f"    ✓ Test passed: {ref_result.shape} {ref_result.dtype}")
-
-                except Exception as e:
-                    logger.debug(f"    ✗ Test failed: {str(e)}")
-
-                    feedback_info["test_errors"].append(
-                        {
-                            "test_input": f"args={[arg.shape if hasattr(arg, 'shape') else arg for arg in args]}, kwargs={kwargs}",
-                            "error": str(e),
-                            "error_type": type(e).__name__,
-                            "traceback": traceback.format_exc(),
-                        }
-                    )
-
-                finally:
-                    # Clean up memory by deleting args and kwargs if they exist
-                    if "args" in locals():
-                        del args
-                    if "kwargs" in locals():
-                        del kwargs
+            for result in failure_results:
+                feedback_info["test_errors"].append(
+                    {
+                        "test_input": result.args,
+                        "error": result.error_msg,
+                        "error_type": result.error_type,
+                        "traceback": result.traceback,
+                    }
+                )
 
             is_correct = correct_count == total_count and total_count > 0
             feedback_info["summary"] = f"{correct_count}/{total_count} tests passed"
@@ -263,6 +299,8 @@ import torch.nn.functional as F
         except Exception as e:
             logger.error("    ✗ Compilation failed:")
             logger.error(f"      Error: {str(e)}")
+            logger.error("      Traceback:")
+            logger.error(traceback.format_exc())
 
             feedback_info["compilation_error"] = str(e)
             feedback_info["summary"] = "Compilation failed"

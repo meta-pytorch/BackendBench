@@ -250,22 +250,19 @@ def cli(
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
         with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-            # Submit all tasks and track op names
-            task_to_op_name = {}
+            # Submit all tasks
             for test in suite:
                 if test.op not in backend:
                     continue
 
                 logger.debug(test.op)
 
-                task_id = evaluator.submit_task(
+                _ = evaluator.submit_task(
                     test.op,
                     backend[test.op],
                     test.correctness_tests,
                     test.performance_tests,
                 )
-                op_name = getattr(test.op, "__name__", str(test.op))
-                task_to_op_name[task_id] = op_name
 
             # Start evaluation
             evaluator.start_evaluation()
@@ -297,6 +294,7 @@ def cli(
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
     # Save results if not disabled
+
     if not disable_output_logs:
         eval.save_results(
             all_correctness_results,

@@ -18,17 +18,17 @@
 #     results = evaluator.get_results()
 
 import logging
-from dataclasses import dataclass
 import multiprocessing as mp
-import time
 import queue
+import time
 import traceback
+from dataclasses import dataclass
 from typing import Any, List, Optional
 
 import torch
 
-from BackendBench.eval import eval_one_op, CorrectnessTestResult, PerformanceTestResult
-from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
+from BackendBench.eval import CorrectnessTestResult, eval_one_op, PerformanceTestResult
+from BackendBench.opregistry import _extract_spec_name_from_op, get_operator
 
 logger = logging.getLogger(__name__)
 
@@ -66,8 +66,8 @@ class ProcessDeathSignal:
 
 
 def is_pickleable(obj):
-    import pickle
     import io
+    import pickle
 
     try:
         with io.BytesIO() as stream:
@@ -151,7 +151,8 @@ def _worker_process(worker_id, task_queue, result_queue):
                             op_name=op.__name__,
                             args=test.args,
                             speedup=None,
-                            benchmark_time=None,
+                            benchmark_time_ms=None,
+                            reference_time_ms=None,
                             error_msg=error_msg,
                             successfully_ran=False,
                         )
@@ -241,7 +242,6 @@ class MultiprocessingEvaluator:
     def submit_task(self, op, impl, correctness_tests, performance_tests) -> int:
         task_id = self.next_task_id
         self.next_task_id += 1
-
         if not is_pickleable(op):
             op = _extract_spec_name_from_op(op)
         if not is_pickleable(impl):
