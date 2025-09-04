@@ -13,11 +13,11 @@ import traceback
 from typing import Callable, Dict, List
 
 import torch
+from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
+from BackendBench.utils import extract_operator_name
 
 from .base import Backend
-from BackendBench.llm_client import LLMKernelGenerator
-from BackendBench.utils import extract_operator_name
 
 logger = logging.getLogger(__name__)
 
@@ -315,12 +315,20 @@ import torch.nn.functional as F
         return key in self.compiled_kernels
 
     def _write_summary(
-        self, summary_file, op_name, op_str, attempts_used, max_attempts, llm_client
+        self,
+        summary_file,
+        op_name,
+        op_str,
+        attempts_used,
+        max_attempts,
+        llm_client,
+        success,
     ):
         with open(summary_file, "w") as f:
             f.write(f"Operation: {op_name}\n")
             f.write(f"Full op: {op_str}\n")
             f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+            f.write(f"Final Status: {'✓ Success' if success else '✗ Failure'}\n")
             f.write(f"Model: {llm_client.model}\n")
             f.write(f"Server: {llm_client.readme_server_description}\n")
             f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
@@ -371,7 +379,13 @@ import torch.nn.functional as F
 
             summary_file = os.path.join(self.kernels_dir, f"{op_name}_summary.txt")
             self._write_summary(
-                summary_file, op_name, op_str, attempts_used, max_attempts, self.llm_client
+                summary_file,
+                op_name,
+                op_str,
+                attempts_used,
+                max_attempts,
+                self.llm_client,
+                success,
             )
 
         failed_ops = total_ops - successful_ops
