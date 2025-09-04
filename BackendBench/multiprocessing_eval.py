@@ -18,17 +18,17 @@
 #     results = evaluator.get_results()
 
 import logging
-from dataclasses import dataclass
 import multiprocessing as mp
-import time
 import queue
+import time
 import traceback
+from dataclasses import dataclass
 from typing import Any, List, Optional
 
 import torch
 
-from BackendBench.eval import eval_one_op
-from BackendBench.opregistry import get_operator, _extract_spec_name_from_op
+from BackendBench.eval import CorrectnessTestResult, eval_one_op, PerformanceTestResult
+from BackendBench.opregistry import _extract_spec_name_from_op, get_operator
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,8 @@ class EvalResult:
     task_id: int
     correctness_score: float
     performance_score: float
-    test_data: Optional[dict] = None
+    correctness_results: List[CorrectnessTestResult]
+    performance_results: List[PerformanceTestResult]
     error: Optional[str] = None
 
 
@@ -65,8 +66,8 @@ class ProcessDeathSignal:
 
 
 def is_pickleable(obj):
-    import pickle
     import io
+    import pickle
 
     try:
         with io.BytesIO() as stream:
@@ -110,17 +111,21 @@ def _worker_process(worker_id, task_queue, result_queue):
                     correctness_tests = test_to_device_iterator(task.correctness_tests, device)
                     performance_tests = test_to_device_iterator(task.performance_tests, device)
 
-                    correctness_score, performance_score, test_data = eval_one_op(
-                        op, impl, correctness_tests, performance_tests
-                    )
+                    (
+                        correctness_score,
+                        performance_score,
+                        correctness_results,
+                        performance_results,
+                    ) = eval_one_op(op, impl, correctness_tests, performance_tests)
                     result = EvalResult(
                         task_id=task.task_id,
                         correctness_score=correctness_score,
                         performance_score=performance_score,
-                        test_data=test_data,
+                        correctness_results=correctness_results,
+                        performance_results=performance_results,
                     )
                 except Exception as e:
-                    error_msg = f"Error in eval_one_op: {str(e)}\n{traceback.format_exc()}"
+                    error_msg = f"Error in eval_one_op (please contact the developers): {str(e)}\n{traceback.format_exc()}"
                     logger.warning(f"Worker {worker_id} task {task.task_id} failed: {error_msg}")
                     if "cuda" in str(e).lower():  # CUDA error
                         error_msg = (
@@ -131,18 +136,35 @@ def _worker_process(worker_id, task_queue, result_queue):
                         torch.cuda.synchronize()
                         torch.cuda.empty_cache()
                         break
+
+                    errored_correctness_results = [
+                        CorrectnessTestResult(
+                            op_name=op.__name__,
+                            args=test.args,
+                            is_correct=False,
+                            error_msg=error_msg,
+                        )
+                        for test in correctness_results
+                    ]
+                    errored_performance_results = [
+                        PerformanceTestResult(
+                            op_name=op.__name__,
+                            args=test.args,
+                            speedup=None,
+                            benchmark_time_ms=None,
+                            reference_time_ms=None,
+                            error_msg=error_msg,
+                            successfully_ran=False,
+                        )
+                        for test in performance_results
+                    ]
+
                     result = EvalResult(
                         task_id=task.task_id,
                         correctness_score=0.0,
                         performance_score=1.0,
-                        test_data={
-                            "is_correct": 0,
-                            "benchmark_time": "",
-                            "speedup": "",
-                            "correctness_errors": f"{error_msg}",
-                            "absolute_error": "",
-                            "relative_error": "",
-                        },
+                        correctness_results=errored_correctness_results,
+                        performance_results=errored_performance_results,
                         error=error_msg,
                     )
 
@@ -220,7 +242,6 @@ class MultiprocessingEvaluator:
     def submit_task(self, op, impl, correctness_tests, performance_tests) -> int:
         task_id = self.next_task_id
         self.next_task_id += 1
-
         if not is_pickleable(op):
             op = _extract_spec_name_from_op(op)
         if not is_pickleable(impl):

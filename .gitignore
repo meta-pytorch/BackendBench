@@ -13,3 +13,4 @@ logs/
 generated_kernels/
 *.csv
 backendbench_output*
+.DS_Store

@@ -554,9 +554,9 @@ class TestComputeErrors:
         ref = torch.tensor([2.0, 4.0, 6.0, 8.0])
         res = torch.tensor([2.2, 4.4, 6.6, 8.8])  # 10% error
         abs_err, rel_err = compute_errors(ref, res)
-        # Absolute error: mean([0.2, 0.4, 0.6, 0.8]) = 0.5
-        assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.5), rtol=1e-5)
-        # Relative error: all have 10% error, so mean is 0.1
+        # Absolute error: max([0.2, 0.4, 0.6, 0.8]) = 0.8
+        assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.8), rtol=1e-5)
+        # Relative error: all have 10% error, so max is 0.1
         assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.1), rtol=1e-5)
 
         # Test 3: Multi-dimensional tensors
@@ -576,10 +576,10 @@ class TestComputeErrors:
         ref = torch.tensor([0.0, 1.0])
         res = torch.tensor([0.1, 1.1])
         abs_err, rel_err = compute_errors(ref, res, eps=1.0)
-        # Absolute error: mean([0.1, 0.1]) = 0.1
-        # Relative: [0.1/(0+1), 0.1/(1+1)] = [0.1, 0.05], mean = 0.075
+        # Absolute error: max([0.1, 0.1]) = 0.1
+        # Relative: [0.1/(0+1), 0.1/(1+1)] = [0.1, 0.05], max = 0.1
         assert torch.allclose(torch.tensor(abs_err), torch.tensor(0.1), rtol=1e-5)
-        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.075), rtol=1e-5)
+        assert torch.allclose(torch.tensor(rel_err), torch.tensor(0.1), rtol=1e-5)
 
     def test_list_and_edge_cases(self):
         """Test list/tuple handling and edge cases"""
@@ -587,8 +587,10 @@ class TestComputeErrors:
         ref = [torch.tensor([1.0, 2.0]), torch.tensor([3.0, 4.0])]
         res = [torch.tensor([1.1, 2.2]), torch.tensor([3.3, 4.4])]
         abs_err, rel_err = compute_errors(ref, res)
-        # Each has 0.1, 0.2, 0.3, 0.4 absolute errors
-        expected_abs = (0.15 + 0.35) / 2  # Mean of means
+        # Each tensor has absolute errors [0.1, 0.2] and [0.3, 0.4]
+        # Max of first tensor: 0.2, max of second tensor: 0.4
+        # Max across all: 0.4
+        expected_abs = 0.4  # Max of maxes
         assert torch.allclose(torch.tensor(abs_err), torch.tensor(expected_abs), rtol=1e-5)
 
         # Test 2: Non-tensor inputs return None

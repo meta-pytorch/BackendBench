@@ -18,7 +18,6 @@ import pyarrow.parquet as pq
 
 import requests
 import torch
-from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from datasets import load_dataset
 from tqdm import tqdm
 
@@ -27,7 +26,7 @@ from tqdm import tqdm
 # you can explore the dataset here
 # https://huggingface.co/datasets/GPUMODE/backendbench_tests
 HUGGINGFACE_REPO = "GPUMODE/backendbench_tests"
-TORCHBENCH_SUITE_HF_COMMIT = "25a7c56b0a4029b192b61e32fd403e19258487e1"
+TORCHBENCH_SUITE_HF_COMMIT = "ca7b1361b162d1499cb22ea4ad589dae506ead5d"
 TORCHBENCH_SUITE_FILE = "backend_bench_problems.parquet"
 
 
@@ -80,11 +79,6 @@ def _parse_trace_file(
                 cnt = int(m.group(0).split(",")[0].split(":")[1])
 
                 if filter is None or any(f in op for f in filter):
-                    args, kwargs = deserialize_args(args_str)
-                    size = _args_size(args) + _args_size(list(kwargs.values()))
-                    size = size / (1024 * 1024)  # Convert to MB
-                    del args, kwargs
-                    cleanup_memory_and_gpu()
                     is_synthetic = cnt == 0
 
                     op_inputs.append(
@@ -92,7 +86,6 @@ def _parse_trace_file(
                             "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
                             "op_name": op,
                             "args": args_str,
-                            "arg_size": size,
                             "count": cnt,
                             "is_synthetic": is_synthetic,
                         }
@@ -139,11 +132,6 @@ def _parse_trace_stream(
             cnt = int(m.group(0).split(",")[0].split(":")[1])
 
             if filter is None or any(f in op for f in filter):
-                args, kwargs = deserialize_args(args_str)
-                size = _args_size(args) + _args_size(list(kwargs.values()))
-                del args, kwargs
-                cleanup_memory_and_gpu()
-                size = size / (1024 * 1024)  # Convert to MB
                 is_synthetic = cnt == 0
 
                 op_inputs.append(
@@ -151,7 +139,6 @@ def _parse_trace_stream(
                         "uuid": hashlib.sha256(args_str.encode() + op.encode()).hexdigest(),
                         "op_name": op,
                         "args": args_str,
-                        "arg_size": size,
                         "count": cnt,
                         "is_synthetic": is_synthetic,
                     }

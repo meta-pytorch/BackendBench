@@ -4,19 +4,18 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import importlib.util
+
+import numpy as np
 import pytest
 import torch
-import numpy as np
-
-
-import importlib.util
 from BackendBench.eval import (
-    format_exception,
     allclose,
-    eval_correctness_test,
-    eval_correctness,
-    eval_one_op,
     cpu_bench,
+    eval_correctness,
+    eval_correctness_test,
+    eval_one_op,
+    format_exception,
     perf_at_p,
 )
 
@@ -107,8 +106,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([-1.0, 0.0, 1.0])], {})
 
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
-        assert is_correct is True
+        result = eval_correctness_test(op, impl, test)
+        assert result.is_correct is True
 
     def test_eval_correctness_test_fail(self):
         # Use different operations that produce different results
@@ -124,8 +123,8 @@ class TestEvalCorrectness:
 
         test = TestCase([torch.tensor([1.0, 2.0, 3.0])], {})
 
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(op, impl, test)
-        assert is_correct is False
+        result = eval_correctness_test(op, impl, test)
+        assert result.is_correct is False
 
     def test_eval_correctness_test_exception(self):
         op = torch.relu
@@ -141,11 +140,9 @@ class TestEvalCorrectness:
         test = TestCase([torch.tensor([1.0])], {})
 
         # Just test that it returns False on exception
-        is_correct, error_msg, abs_error, rel_error = eval_correctness_test(
-            op, impl_with_error, test
-        )
-        assert is_correct is False
-        assert error_msg is not None  # Should have an error message
+        result = eval_correctness_test(op, impl_with_error, test)
+        assert result.is_correct is False
+        assert result.error_msg is not None  # Should have an error message
 
     def test_eval_correctness_multiple_tests(self):
         op = torch.abs
@@ -161,11 +158,9 @@ class TestEvalCorrectness:
             test = TestCase([torch.tensor([float(i) - 2.5])], {})
             tests.append(test)
 
-        test_data = {}
-        score = eval_correctness(op, impl, tests, test_data)
+        score, correctness_results = eval_correctness(op, impl, tests)
         assert score == 1.0
-        # TODO: test_data is overwritten by tests with same args
-        # assert len(test_data) == len(tests)  # Should have data for each test
+        assert len(correctness_results) == len(tests)
 
 
 class TestEvalPerformance:
@@ -197,7 +192,7 @@ class TestEvalOneOp:
         correctness_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(3)]
         performance_tests = [TestCase([torch.tensor([-1.0, 0.0, 1.0])], {}) for _ in range(2)]
 
-        correctness, performance, test_data = eval_one_op(
+        correctness, performance, correctness_results, performance_results = eval_one_op(
             op, impl, correctness_tests, performance_tests
         )
 
@@ -206,11 +201,16 @@ class TestEvalOneOp:
         # Performance should be around 1.0 (same speed)
         assert performance.item() > 0
         # Verbose data should be populated
-        assert len(test_data) > 0
+        assert len(correctness_results) == len(correctness_tests)
+        assert len(performance_results) == len(performance_tests)
 
 
 def fastp_kernel_bench(
-    is_correct: np.ndarray, baseline_speed: np.ndarray, actual_speed: np.ndarray, n: int, p: float
+    is_correct: np.ndarray,
+    baseline_speed: np.ndarray,
+    actual_speed: np.ndarray,
+    n: int,
+    p: float,
 ) -> float:
     """
     Original fastp implementation from kernelBench

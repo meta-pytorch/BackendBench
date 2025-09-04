@@ -33,18 +33,19 @@ class TestSmoke:
             if test.op not in aten_backend:
                 pytest.skip(f"Operation {test.op} not in backend")
 
-            correctness, perf, op_test_data = eval_one_op(
+            correctness, perf, correctness_results, performance_results = eval_one_op(
                 test.op,
                 aten_backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
             )
 
-            is_correct = all(
-                data["is_correct"] for data in op_test_data.values() if "is_correct" in data.keys()
-            )
+            is_correct = all(result.is_correct for result in correctness_results)
             overall_correctness.append(is_correct)
             overall_performance.append(perf)
+
+            assert len(correctness_results) == len(test.correctness_tests)
+            assert len(performance_results) == len(test.performance_tests)
 
             assert correctness > 0, f"Operation {test.op} failed all correctness tests"
             assert perf > 0.1, f"Operation {test.op} is more than 10x slower than reference"

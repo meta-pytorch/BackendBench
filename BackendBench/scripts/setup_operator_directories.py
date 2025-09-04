@@ -7,191 +7,140 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Setup script to create directory structure for all PyTorch operators.
-This creates empty directories that LLM researchers can fill with generated kernels.
+Setup script to create directory structure for PyTorch operators in op_map.
+This creates directories for operators that are actually used in evaluation suites
+(opinfo, torchbench) so LLM researchers can fill them with generated kernels.
 """
 
-import os
-import csv
 import argparse
 from pathlib import Path
+from typing import Set
 
-# Import the generate_coverage_csv functionality
-from .generate_operator_coverage_csv import generate_coverage_csv
-
-
-def clean_op_name_for_directory(op_name: str) -> str:
-    """Convert operator name to valid directory name.
-
-    Examples:
-    - aten::add.Tensor -> add
-    - aten::add.out -> add_out
-    - aten::native_batch_norm -> native_batch_norm
-    - torch.ops.aten.add.default -> add
-    """
-    # Remove aten:: prefix
-    if op_name.startswith("aten::"):
-        op_name = op_name[6:]
-
-    # Remove torch.ops.aten. prefix
-    if op_name.startswith("torch.ops.aten."):
-        op_name = op_name[15:]
-
-    # Handle .default, .Tensor, .out suffixes
-    if "." in op_name:
-        parts = op_name.split(".")
-        base = parts[0]
-        suffix = parts[1] if len(parts) > 1 else ""
-
-        # For common suffixes, we might want to keep them to distinguish overloads
-        if suffix in ["out", "inplace", "scalar"]:
-            op_name = f"{base}_{suffix}"
-        else:
-            # For .default, .Tensor, etc., just use the base name
-            op_name = base
-
-    # Replace any remaining invalid characters
-    op_name = op_name.replace(":", "_").replace("/", "_").replace("\\", "_")
-
-    return op_name
+from BackendBench.scripts.op_map import op_map_data
+from BackendBench.utils import extract_operator_name
 
 
-def create_readme_for_op(
-    op_dir: Path, op_name: str, is_core: bool, is_opinfo: bool, is_torchbench: bool
+def extract_aten_ops(op_strings):
+    """Extract unique aten operator names from a list of operation strings."""
+    return [extract_operator_name(op_str) for op_str in op_strings]
+
+
+def get_all_operators_from_op_map():
+    """Extract all unique folder names from the authoritative op_map."""
+    folder_names = set()
+
+    for line in op_map_data.strip().split("\n"):
+        if line.startswith("canonical:"):
+            # Extract canonical name from line like "canonical:add.Tensor func:add.Tensor ..."
+            canonical_part = line.split()[0]  # Get "canonical:add.Tensor"
+            canonical_name = canonical_part.split(":", 1)[1]  # Get "add.Tensor"
+
+            # Extract folder name (base name without overload)
+            if "." in canonical_name:
+                folder_name = canonical_name.split(".")[0]
+            else:
+                folder_name = canonical_name
+
+            folder_names.add(folder_name)
+
+    return sorted(folder_names)
+
+
+def get_torchbench_operators() -> Set[str]:
+    """Get operators used in TorchBench suite."""
+    try:
+        from BackendBench.suite import TorchBenchTestSuite
+
+        suite = TorchBenchTestSuite("torchbench", None)
+        ops = set()
+        for optest in suite:
+            op_str = str(optest.op)
+            op_name = extract_operator_name(op_str)
+            ops.add(op_name)
+        return ops
+    except Exception as e:
+        print(f"Warning: Could not load TorchBench operators: {e}")
+        return set()
+
+
+def get_opinfo_operators() -> Set[str]:
+    """Get operators available in OpInfo suite."""
+    try:
+        import torch
+        from BackendBench.suite import OpInfoTestSuite
+
+        suite = OpInfoTestSuite("opinfo", "cpu", torch.float32)
+        opinfo_ops = [str(optest.op) for optest in suite]
+        return set(extract_aten_ops(opinfo_ops))
+    except Exception as e:
+        print(f"Warning: Could not load OpInfo operators: {e}")
+        return set()
+
+
+def setup_operator_directories(
+    base_dir: str = "generated_kernels", verbose: bool = False, suite: str = "all"
 ):
-    """Create a README.md file for each operator directory."""
-    readme_path = op_dir / "README.md"
+    """
+    Set up directory structure for operators based on test suite selection.
 
-    status = []
-    if is_core:
-        status.append("Core PyTorch operator")
-    if is_opinfo:
-        status.append("Has OpInfo tests")
-    if is_torchbench:
-        status.append("Used in TorchBench")
+    Args:
+        base_dir: Base directory for operator implementations
+        verbose: Show verbose output for each directory created/skipped
+        suite: Which operators to include ('torchbench', 'opinfo', 'all')
+    """
 
-    content = f"""# {op_name}
+    # Get all operators from op_map first
+    all_op_map_operators = set(get_all_operators_from_op_map())
+    print(f"Found {len(all_op_map_operators)} unique operators in op_map")
 
-Status: {", ".join(status) if status else "Regular operator"}
+    # Filter based on suite selection
+    if suite == "torchbench":
+        torchbench_ops = get_torchbench_operators()
+        selected_ops = all_op_map_operators & torchbench_ops
+        print(f"TorchBench operators in op_map: {len(selected_ops)} total")
+    elif suite == "opinfo":
+        opinfo_ops = get_opinfo_operators()
+        selected_ops = all_op_map_operators & opinfo_ops
+        print(f"OpInfo operators in op_map: {len(selected_ops)} total")
+    elif suite == "all":
+        selected_ops = all_op_map_operators
+        print(f"All operators from op_map: {len(selected_ops)} total")
+    else:
+        raise ValueError(f"Invalid suite '{suite}'. Must be one of: torchbench, opinfo, all")
 
-## Implementation
+    folder_names = sorted(selected_ops)
+    print(f"Creating directories for {len(folder_names)} operators")
 
-Place your generated kernel implementation in this directory as:
-- `{clean_op_name_for_directory(op_name)}_implementation_v1.py`
-- `{clean_op_name_for_directory(op_name)}_implementation_v2.py`
-- etc.
-
-Each implementation file should contain a function named:
-```python
-def {clean_op_name_for_directory(op_name)}_kernel_impl(*args, **kwargs):
-    # Your implementation here
-    pass
-```
-
-## Testing
-
-The DirectoryBackend will automatically load the first implementation file found in this directory.
-"""
-
-    readme_path.write_text(content)
-
-
-def setup_operator_directories(base_dir: str = "generated_kernels", include_all: bool = False):
-    """Set up directory structure for PyTorch operators."""
-
-    # First, generate the coverage CSV if it doesn't exist
-    csv_path = "pytorch_operator_coverage.csv"
-    if not os.path.exists(csv_path):
-        print("Generating operator coverage CSV...")
-        csv_path = generate_coverage_csv()
-
-    # Create base directory
     base_path = Path(base_dir)
     base_path.mkdir(exist_ok=True)
 
-    # Read operator data from CSV
-    operators = []
-    with open(csv_path, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            operators.append(
-                {
-                    "name": row["op_name"],
-                    "is_core": row["is_core"] == "True",
-                    "is_opinfo": row["is_in_opinfo"] == "True",
-                    "is_torchbench": row["is_in_torchbench"] == "True",
-                }
-            )
-
-    # Filter operators based on criteria
-    if not include_all:
-        # By default, only include operators that are in TorchBench
-        operators = [op for op in operators if op["is_torchbench"]]
-        print(f"Setting up directories for {len(operators)} TorchBench operators")
-    else:
-        print(f"Setting up directories for all {len(operators)} operators")
-
-    # Create directories
     created_count = 0
     skipped_count = 0
 
-    for op in operators:
-        op_name = op["name"]
-        dir_name = clean_op_name_for_directory(op_name)
-
-        if not dir_name:  # Skip if we couldn't clean the name
-            print(f"Skipping operator with invalid name: {op_name}")
-            skipped_count += 1
-            continue
-
-        op_dir = base_path / dir_name
+    for folder_name in folder_names:
+        op_dir = base_path / folder_name
 
         if op_dir.exists():
+            if verbose:
+                print(f"Directory already exists: {folder_name}")
             skipped_count += 1
             continue
 
         op_dir.mkdir(exist_ok=True)
-        create_readme_for_op(op_dir, op_name, op["is_core"], op["is_opinfo"], op["is_torchbench"])
+        if verbose:
+            print(f"Created directory: {folder_name}")
         created_count += 1
 
     print("\nDirectory setup complete:")
     print(f"- Created {created_count} new directories")
     print(f"- Skipped {skipped_count} existing directories")
+    print(f"- Total operators for {suite} suite: {len(folder_names)}")
     print(f"- Base directory: {base_path.absolute()}")
-
-    # Create a main README
-    main_readme = base_path / "README.md"
-    main_readme.write_text("""# Generated Kernels Directory
-
-This directory contains subdirectories for PyTorch operators that need kernel implementations.
-
-## Structure
-
-Each subdirectory corresponds to a PyTorch operator and should contain:
-- Implementation files: `{op_name}_implementation_*.py`
-- README.md with operator information
-
-## Usage
-
-1. Navigate to the operator directory you want to implement
-2. Create your kernel implementation following the template in the README
-3. Test with DirectoryBackend: `python -m BackendBench.scripts.main --backend directory --ops {op_name}`
-
-## Operator Mapping
-
-The DirectoryBackend maps directory names to PyTorch operations as follows:
-- Directory `add` → `torch.ops.aten.add.default`
-- Directory `mul` → `torch.ops.aten.mul.default`
-- etc.
-
-For operators with multiple overloads (e.g., add.out), use suffixes:
-- Directory `add_out` → `torch.ops.aten.add.out`
-""")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Set up directory structure for PyTorch operator implementations"
+        description="Set up directory structure for PyTorch operators based on test suite selection"
     )
     parser.add_argument(
         "--base-dir",
@@ -199,24 +148,20 @@ def main():
         help="Base directory for operator implementations (default: generated_kernels)",
     )
     parser.add_argument(
-        "--include-all",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Include all operators, not just TorchBench operators",
+        help="Show verbose output for each directory created/skipped",
     )
     parser.add_argument(
-        "--regenerate-csv",
-        action="store_true",
-        help="Force regeneration of the operator coverage CSV",
+        "--suite",
+        choices=["torchbench", "opinfo", "all"],
+        default="torchbench",
+        help="Which test suite operators to include (default: torchbench)",
     )
 
     args = parser.parse_args()
-
-    # Remove existing CSV if regeneration is requested
-    if args.regenerate_csv and os.path.exists("pytorch_operator_coverage.csv"):
-        os.remove("pytorch_operator_coverage.csv")
-        print("Removed existing CSV, will regenerate...")
-
-    setup_operator_directories(args.base_dir, args.include_all)
+    setup_operator_directories(args.base_dir, verbose=args.verbose, suite=args.suite)
 
 
 if __name__ == "__main__":

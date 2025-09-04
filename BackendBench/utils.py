@@ -7,12 +7,15 @@
 import ast
 import gc
 import inspect
+import logging
 import math
 import re
 import textwrap
 
 import torch
 from torch.testing import make_tensor
+
+logger = logging.getLogger(__name__)
 
 dtype_abbrs = {
     torch.bfloat16: "bf16",
@@ -171,10 +174,10 @@ def deserialize_args(inps):
 
 
 def compute_errors(ref, res, eps=1e-10):
-    """Compute absolute and relative errors between reference and result tensors.
+    """Compute max absolute and relative errors between reference and result tensors.
 
     Returns:
-        Tuple of (absolute_error, relative_error) or (None, None) if not tensors/list of tensors
+        Tuple of (max_absolute_error, max_relative_error) or (None, None) if not tensors/list of tensors or we fail to compute errors from ref and res
     """
     if isinstance(ref, torch.Tensor) and isinstance(res, torch.Tensor):
         if ref.shape != res.shape:
@@ -184,16 +187,20 @@ def compute_errors(ref, res, eps=1e-10):
             # todo: create note that we don't calculate errors for sparse tensors / results
             return None, None
 
+        if ref.numel() == 0 and res.numel() == 0:
+            # if both are empty tensors, we consider them equal
+            return 0.0, 0.0
+
         # Convert to float for error calculation
         ref_float = ref.float()
         res_float = res.float()
 
         # Absolute error
-        abs_error = (ref_float - res_float).abs().mean().item()
+        abs_error = (ref_float - res_float).abs().max().item()
 
         # Relative error (avoid division by zero)
         ref_abs = ref_float.abs()
-        rel_error = ((ref_float - res_float).abs() / (ref_abs + eps)).mean().item()
+        rel_error = ((ref_float - res_float).abs() / (ref_abs + eps)).max().item()
 
         return abs_error, rel_error
     elif isinstance(ref, (list, tuple)) and isinstance(res, (list, tuple)):
@@ -206,19 +213,22 @@ def compute_errors(ref, res, eps=1e-10):
         ):
             return None, None
 
-        # For lists/tuples, compute mean error across all elements.
-        # We will return the mean of these means
-        mean_abs_error = 0.0
-        mean_rel_error = 0.0
+        # For lists/tuples, compute max error across all elements.
+        # We will return the maximum of these maxima
+        max_abs_error = -math.inf
+        max_rel_error = -math.inf
 
         for r, s in zip(ref, res):
             abs_err, rel_err = compute_errors(r, s)
             if abs_err is None or rel_err is None:
                 continue
-            mean_abs_error += abs_err
-            mean_rel_error += rel_err
+            max_abs_error = max(max_abs_error, abs_err)
+            max_rel_error = max(max_rel_error, rel_err)
 
-        return mean_abs_error / len(ref), mean_rel_error / len(ref)
+        if max_abs_error == -math.inf:
+            return None, None
+
+        return max_abs_error, max_rel_error
     else:
         return None, None
 
@@ -228,3 +238,42 @@ def cleanup_memory_and_gpu():
     gc.collect()
     torch.cuda.synchronize()
     torch.cuda.empty_cache()
+
+
+def get_pytorch_op(op_name: str):
+    """
+    Convert an operator name string to the actual PyTorch operation object.
+
+    PyTorch operations are structured as torch.ops.aten.{base_name}.{overload}.
+    This method handles the conversion from string names like "add.Tensor" or "relu.default"
+    to the actual callable operation objects that can be used for dispatch registration.
+
+    Args:
+        op_name: String name like "add.Tensor", "relu.default", or just "relu"
+
+    Returns:
+        PyTorch operation object that can be used for dispatch registration,
+        or None if the operation doesn't exist in torch.ops.aten
+    """
+    try:
+        if "." in op_name:
+            base_name, overload = op_name.split(".", 1)
+            if overload == "default":
+                return getattr(torch.ops.aten, base_name).default
+            else:
+                return getattr(getattr(torch.ops.aten, base_name), overload)
+        else:
+            return getattr(torch.ops.aten, op_name).default
+    except AttributeError:
+        logger.warning(f"Could not find PyTorch operation for {op_name}")
+        return None
+
+
+def extract_operator_name(op_str: str) -> str:
+    """Extract clean operator name from various operator string formats."""
+    if "aten." in op_str:
+        return op_str.split("aten.")[-1].split(".")[0]
+    elif "." in op_str:
+        return op_str.split(".")[0]
+    else:
+        return op_str
