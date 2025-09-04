@@ -86,6 +86,17 @@ export OPENAI_API_KEY=<your_api_key_here>
 uv run python BackendBench/scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
 
+## Custom Ops (non-ATen) – Python/Triton
+
+See docs/custom_ops.md for a quick guide.
+
+Quickstart:
+```bash
+uv run python -m BackendBench.scripts.main \
+  --suite custom_ops --backend custom_ops \
+  --custom-ops-root test/custom_ops
+```
+
 ## Directory-Based Kernel Development
 
 BackendBench supports a simple directory structure for manually adding kernel implementations. This is perfect for researchers who want to contribute optimized kernels without dealing with complex generation systems.

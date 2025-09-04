@@ -109,6 +109,12 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
+    "--custom-ops-root",
+    default="custom_ops",
+    type=str,
+    help="Root directory for custom_ops backend and suite (for testing different locations)",
+)
+@click.option(
     "--log-dir",
     default=None,
     type=str,
@@ -154,6 +160,7 @@ def cli(
     kernel_agent_max_rounds,
     alternative_torchbench_data_path,
     ops_directory,
+    custom_ops_root,
     log_dir,
     disable_output_logs,
     num_workers,
@@ -204,7 +211,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "custom_ops": lambda: CustomOpsTestSuite("custom_ops"),
+        "custom_ops": lambda: CustomOpsTestSuite(custom_ops_root),
     }[suite]()
 
     # Determine log directory
@@ -239,8 +246,8 @@ def cli(
     elif backend.name == "directory":
         backend = backends.DirectoryBackend(ops_directory)
     elif backend.name == "custom_ops":
-        # Switch to filesystem-based custom ops under ./custom_ops
-        backend = backends.CustomOpsBackend("custom_ops")
+        # Filesystem-based custom ops; allow overriding root for testing
+        backend = backends.CustomOpsBackend(custom_ops_root)
 
     overall_correctness = []
     overall_performance = []

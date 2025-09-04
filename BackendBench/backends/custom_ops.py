@@ -26,8 +26,6 @@ class CustomOpsBackend(Backend):
     - <impl> can be:
         - a .py file exporting `{op}_kernel_impl`
         - a directory containing an entry .py file exporting `{op}_kernel_impl`
-        - a .cu CUDA file (optional). If CuPy is available, will JIT with NVRTC
-          and wrap a callable for PyTorch tensors.
 
     Notes:
       - The associated inputs live in ./custom_ops/<op>/gen_input.py
@@ -61,14 +59,13 @@ class CustomOpsBackend(Backend):
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {op_dir}: {e}")
 
-        logger.info(f"CustomOpsBackend loaded {loaded_count} kernels from {self.ops_dir}/")
+        logger.info(f"CustomOpsBackend loaded {loaded_count} ops from {self.ops_dir}/")
 
     def _load_one_op(self, op_dir: Path, op_name: str) -> Optional[Callable]:
         """Load first valid implementation within <op_dir>.
 
         New structure: <op>/<impl_name>/<op_impl_file>
         - any .py file exporting `{op_name}_kernel_impl`
-        - any .cu file containing kernel `{op_name}_kernel_impl` (via CuPy NVRTC)
         """
         # Search subdirectories (impl_name) first
         for impl_dir in sorted([d for d in op_dir.iterdir() if d.is_dir()]):
@@ -98,11 +95,6 @@ class CustomOpsBackend(Backend):
             if func:
                 self.compiled_kernels[f"{op_name}__default"] = func
                 return func
-        for cu in sorted(op_dir.glob("*.cu")):
-            func = self._load_kernel_from_cuda(cu, op_name)
-            if func:
-                self.compiled_kernels[f"{op_name}__default"] = func
-                return func
 
         return None
 
@@ -117,73 +109,6 @@ class CustomOpsBackend(Backend):
             return getattr(module, kernel_func_name)
         return None
 
-    def _load_kernel_from_cuda(self, cu_path: Path, op_name: str) -> Optional[Callable]:
-        """Try to JIT compile with CuPy RawModule (NVRTC) if available.
-
-        Expected kernel function name inside CUDA source: `{op_name}_kernel_impl`.
-        We'll wrap a callable: (input_tensors..., **kwargs) -> output_tensor(s).
-        For simplicity, we demonstrate a unary elementwise kernel signature.
-        Users can customize wrappers per op as needed.
-        """
-        try:
-            import cupy as cp  # type: ignore
-        except Exception:
-            logger.warning(f"CuPy not available; skipping CUDA impl at {cu_path}")
-            return None
-
-        code = cu_path.read_text()
-        try:
-            module = cp.RawModule(code=code, options=("--use_fast_math",))
-            kernel = module.get_function(f"{op_name}_kernel_impl")
-        except Exception as e:
-            logger.error(f"Failed to compile CUDA kernel {cu_path}: {e}")
-            return None
-
-        def wrapper(*args, **kwargs):
-            # Minimal example: assume single input tensor -> single output tensor, same shape
-            # Use DLPack for zero-copy when on CUDA
-            torch_input = args[0]
-            assert isinstance(torch_input, torch.Tensor)
-
-            orig_device = torch_input.device
-            orig_dtype = torch_input.dtype
-
-            # Ensure CUDA tensor for kernel; cast to float32 for this demo kernel
-            if not torch_input.is_cuda:
-                if not torch.cuda.is_available():
-                    raise RuntimeError("CUDA is required for CUDA kernels but no CUDA device is available")
-                torch_input = torch_input.to("cuda")
-            if torch_input.dtype != torch.float32:
-                torch_input = torch_input.to(torch.float32)
-
-            # DLPack zero-copy into CuPy
-            try:
-                import torch.utils.dlpack as torch_dlpack  # local import to avoid overhead
-                x_cp = cp.from_dlpack(torch_dlpack.to_dlpack(torch_input.contiguous()))
-            except Exception as e:
-                # Fallback (should rarely happen): go through CPU
-                x_cp = cp.asarray(torch_input.detach().contiguous().cpu().numpy())
-
-            y_cp = cp.empty_like(x_cp)
-            n = x_cp.size
-            threads = 256
-            blocks = (n + threads - 1) // threads
-            kernel((blocks,), (threads,), (x_cp, y_cp, n))
-
-            # Convert back to torch via DLPack (zero-copy)
-            try:
-                y_torch = torch_dlpack.from_dlpack(y_cp)
-            except Exception:
-                y_torch = torch.from_numpy(cp.asnumpy(y_cp)).to(torch_input.device)
-
-            # Cast back to original dtype and device
-            if orig_dtype != torch.float32:
-                y_torch = y_torch.to(orig_dtype)
-            if orig_device.type == "cpu":
-                y_torch = y_torch.to("cpu")
-            return y_torch
-
-        return wrapper
 
     def _register_impl(self, op_name: str, impl_name: str, func: Callable) -> None:
         key = f"{op_name}__{impl_name}"
@@ -226,8 +151,7 @@ class PythonImplLoader(BaseImplLoader):
     enabled = True
 
     def supports(self, impl_dir: Path) -> bool:
-        # Support if directory contains any .py file (excluding gen_input.py)
-        return any(p.suffix == ".py" and p.name != "gen_input.py" for p in impl_dir.iterdir())
+        return any(p.suffix == ".py" for p in impl_dir.iterdir())
 
     def load(self, op_name: str, impl_dir: Path) -> Optional[Callable]:
         # Prefer <op_name>.py, else first .py containing <op_name>_kernel_impl
@@ -244,10 +168,46 @@ class PythonImplLoader(BaseImplLoader):
                 spec.loader.exec_module(module)
                 kernel_name = f"{op_name}_kernel_impl"
                 if hasattr(module, kernel_name):
+                    return getattr(module, kernel_name)
+            except Exception as e:
+                logger.warning(f"Failed to load python impl from {p}: {e}")
+        return None
+
+
+def _triton_available() -> bool:
+    try:
+        import triton  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+class TritonImplLoader(BaseImplLoader):
+    name = "triton"
+    enabled = _triton_available() and torch.cuda.is_available()
+
+    def supports(self, impl_dir: Path) -> bool:
+        if not self.enabled or "triton" not in impl_dir.name.lower():
+            return False
+        return any(p.suffix == ".py" for p in impl_dir.iterdir())
+
+    def load(self, op_name: str, impl_dir: Path) -> Optional[Callable]:
+        # Prefer <op_name>.py
+        primary = impl_dir / f"{op_name}.py"
+        candidates = [primary] if primary.exists() else []
+        if not candidates:
+            candidates = sorted(impl_dir.glob("*.py"))
+        for p in candidates:
+            try:
+                spec = importlib.util.spec_from_file_location(f"op_{op_name}", str(p))
+                module = importlib.util.module_from_spec(spec)
+                assert spec and spec.loader
+                spec.loader.exec_module(module)
+                kernel_name = f"{op_name}_kernel_impl"
+                if hasattr(module, kernel_name):
                     triton_impl = getattr(module, kernel_name)
 
                     def _wrapped_triton_impl(*args, **kwargs):
-                        # Framework wrapper: ensure CUDA + dtype, then call triton kernel impl
                         if len(args) == 0 or not isinstance(args[0], torch.Tensor):
                             raise ValueError("Triton impl expects first arg as torch.Tensor")
                         x = args[0]
@@ -260,12 +220,10 @@ class PythonImplLoader(BaseImplLoader):
                             if not torch.cuda.is_available():
                                 raise RuntimeError("CUDA required for Triton impl but not available")
                             x = x.to("cuda")
-
-                        # Use float32 for the kernel unless already float32
                         x_kernel = x.contiguous().to(torch.float32)
+
                         y_kernel = triton_impl(x_kernel, alpha)
 
-                        # y_kernel is expected to be CUDA tensor; cast back
                         y = y_kernel.to(orig_dtype)
                         if orig_device.type == "cpu":
                             y = y.to("cpu")
@@ -273,68 +231,12 @@ class PythonImplLoader(BaseImplLoader):
 
                     return _wrapped_triton_impl
             except Exception as e:
-                logger.warning(f"Failed to load python impl from {p}: {e}")
+                logger.warning(f"Failed to load triton impl from {p}: {e}")
         return None
-
-
-class CudaImplLoader(BaseImplLoader):
-    name = "cuda"
-
-    def __init__(self, compile_cuda_fn):
-        # Enable only if cupy and torch cuda available
-        try:
-            import cupy as _cp  # noqa: F401
-            enabled_cuda = torch.cuda.is_available()
-        except Exception:
-            enabled_cuda = False
-        self.enabled = enabled_cuda
-        self._compile = compile_cuda_fn
-
-    def supports(self, impl_dir: Path) -> bool:
-        return any(p.suffix == ".cu" for p in impl_dir.iterdir())
-
-    def load(self, op_name: str, impl_dir: Path) -> Optional[Callable]:
-        # Prefer <op_name>.cu else first .cu
-        primary = impl_dir / f"{op_name}.cu"
-        candidates = [primary] if primary.exists() else []
-        if not candidates:
-            candidates = sorted(impl_dir.glob("*.cu"))
-        for cu in candidates:
-            try:
-                func = self._compile(cu, op_name)
-                if func:
-                    return func
-            except Exception as e:
-                logger.warning(f"Failed to load cuda impl from {cu}: {e}")
-        return None
-
-    enabled: bool = False
-
-
-def _dlpack_available() -> bool:
-    try:
-        import torch.utils.dlpack  # noqa: F401
-        return True
-    except Exception:
-        return False
-
-def _cupy_available() -> bool:
-    try:
-        import cupy  # noqa: F401
-        return True
-    except Exception:
-        return False
-
-def _triton_available() -> bool:
-    try:
-        import triton  # noqa: F401
-        return True
-    except Exception:
-        return False
 
 def _env_summary() -> str:
     return (
-        f"env: cupy={_cupy_available()} dlpack={_dlpack_available()} triton={_triton_available()} cuda={torch.cuda.is_available()}"
+        f"env: triton={_triton_available()} cuda={torch.cuda.is_available()}"
     )
 
 def _log_env_once():
@@ -357,44 +259,12 @@ def _log_loaders(loaders: List[BaseImplLoader]):
 def _init_impl_loaders(self: "CustomOpsBackend") -> None:
     _maybe_log_env()
     loaders: List[BaseImplLoader] = []
-    py_loader = PythonImplLoader()
-    loaders.append(py_loader)
-    cuda_loader = CudaImplLoader(self._load_kernel_from_cuda)
-    loaders.append(cuda_loader)
     if _triton_available() and torch.cuda.is_available():
         loaders.append(TritonImplLoader())
+    loaders.append(PythonImplLoader())
     _log_loaders(loaders)
     self.impl_loaders = loaders
 
-
-class TritonImplLoader(BaseImplLoader):
-    name = "triton"
-    enabled = _triton_available() and torch.cuda.is_available()
-
-    def supports(self, impl_dir: Path) -> bool:
-        # Support if there is a .py containing a triton kernel or simply any .py under a 'triton' dir
-        if impl_dir.name.lower() == "triton":
-            return any(p.suffix == ".py" for p in impl_dir.iterdir())
-        return any(p.suffix == ".py" for p in impl_dir.iterdir())
-
-    def load(self, op_name: str, impl_dir: Path) -> Optional[Callable]:
-        # Prefer <op_name>.py
-        primary = impl_dir / f"{op_name}.py"
-        candidates = [primary] if primary.exists() else []
-        if not candidates:
-            candidates = sorted(impl_dir.glob("*.py"))
-        for p in candidates:
-            try:
-                spec = importlib.util.spec_from_file_location(f"op_{op_name}", str(p))
-                module = importlib.util.module_from_spec(spec)
-                assert spec and spec.loader
-                spec.loader.exec_module(module)
-                kernel_name = f"{op_name}_kernel_impl"
-                if hasattr(module, kernel_name):
-                    return getattr(module, kernel_name)
-            except Exception as e:
-                logger.warning(f"Failed to load triton impl from {p}: {e}")
-        return None
 
 # Ensure loaders are initialized when module is imported and backend instantiated
 _ORIG_INIT = CustomOpsBackend.__init__
