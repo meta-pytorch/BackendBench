@@ -38,6 +38,7 @@ class CustomOpsBackend(Backend):
         self.compiled_kernels: Dict[str, Callable] = {}
         # Implementation importers (order defines priority when multiple match a dir)
         self.impl_loaders: List[BaseImplLoader] = []  # type: ignore[name-defined]
+        _init_impl_loaders(self)
         self._load_all_ops()
 
     def _load_all_ops(self) -> None:
@@ -266,14 +267,4 @@ def _init_impl_loaders(self: "CustomOpsBackend") -> None:
     self.impl_loaders = loaders
 
 
-# Ensure loaders are initialized when module is imported and backend instantiated
-_ORIG_INIT = CustomOpsBackend.__init__
-
-def _patched_init(self, ops_dir: str = "custom_ops"):
-    _ORIG_INIT(self, ops_dir)
-    _init_impl_loaders(self)
-    # reload ops after loaders available
-    self.compiled_kernels.clear()
-    self._load_all_ops()
-
-CustomOpsBackend.__init__ = _patched_init  # type: ignore[assignment]
+ # (init is now responsible for initializing loaders; no monkey patch required)
