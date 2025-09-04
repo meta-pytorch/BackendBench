@@ -267,3 +267,13 @@ def get_pytorch_op(op_name: str):
     except AttributeError:
         logger.warning(f"Could not find PyTorch operation for {op_name}")
         return None
+
+
+def extract_operator_name(op_str: str) -> str:
+    """Extract clean operator name from various operator string formats."""
+    if "aten." in op_str:
+        return op_str.split("aten.")[-1].split(".")[0]
+    elif "." in op_str:
+        return op_str.split(".")[0]
+    else:
+        return op_str
