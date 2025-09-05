@@ -245,12 +245,23 @@ def cli(
 
             logger.debug(test.op)
 
-            _, perf, correctness_results, performance_results = eval.eval_one_op(
-                backend[test.op],  # Use implementation as both op and impl
-                backend[test.op],
-                test.correctness_tests,
-                test.performance_tests,
-            )
+            # For directory backend, use PyTorch's original operator as reference
+            if backend_name == "directory":
+                # test.op is already a PyTorch OpOverload object, use it directly
+                _, perf, correctness_results, performance_results = eval.eval_one_op(
+                    test.op,
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
+                )
+            else:
+                # For custom_ops backend, use implementation as both op and impl
+                _, perf, correctness_results, performance_results = eval.eval_one_op(
+                    backend[test.op],
+                    backend[test.op],
+                    test.correctness_tests,
+                    test.performance_tests,
+                )
 
             overall_correctness.append(all(result.is_correct for result in correctness_results))
             overall_performance.append(perf)
