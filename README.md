@@ -90,7 +90,7 @@ uv run python BackendBench/scripts/main.py --suite opinfo --backend kernel_agent
 
 BackendBench supports a simple directory structure for manually adding kernel implementations. This is perfect for researchers who want to contribute optimized kernels without dealing with complex generation systems.
 
-### Two Backend Types
+### Backend Types
 
 **Directory Backend** - For PyTorch ATen operations:
 - Replaces existing PyTorch operations with your implementations
