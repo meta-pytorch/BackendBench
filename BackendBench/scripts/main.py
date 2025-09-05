@@ -316,7 +316,6 @@ def cli(
             perf_at_p_score=perf_at_p_score,
             p=p,
         )
-        print(f"Results saved to: {log_dir}")
 
 
 def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_rounds=10):

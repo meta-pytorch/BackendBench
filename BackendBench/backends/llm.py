@@ -13,11 +13,11 @@ import traceback
 from typing import Callable, Dict, List
 
 import torch
+from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
+from BackendBench.utils import extract_operator_name
 
 from .base import Backend
-from BackendBench.llm_client import LLMKernelGenerator
-from BackendBench.utils import extract_operator_name
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class PickleableKernel:
         import importlib.util
         import sys
 
-        module_name = f"test_kernel_{self.op_name}_{self.attempt}"
+        module_name = f"{self.op_name}_implementation_v{self.attempt}"
         spec = importlib.util.spec_from_file_location(module_name, self.kernel_file)
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
@@ -120,13 +120,18 @@ You can inspect these files to debug kernel generation, manually test implementa
             else:
                 full_code = self._prepare_torch_code(kernel_code)
 
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            # create directory / file in the directory bench format
+            op_dir = os.path.join(self.kernels_dir, op_name)
+            os.makedirs(op_dir, exist_ok=True)
+            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
             with open(kernel_file, "w") as f:
                 f.write(full_code)
 
             logger.debug(f"Saved kernel to: {kernel_file}")
 
-            spec = importlib.util.spec_from_file_location(f"kernel_{op_name}", kernel_file)
+            spec = importlib.util.spec_from_file_location(
+                f"{op_name}_implementation_v{attempt}", kernel_file
+            )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -209,7 +214,9 @@ import torch.nn.functional as F
         }
 
         try:
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            op_dir = os.path.join(self.kernels_dir, op_name)
+            os.makedirs(op_dir, exist_ok=True)
+            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
 
             if not os.path.exists(kernel_file):
                 is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
@@ -223,12 +230,12 @@ import torch.nn.functional as F
                 logger.debug(f"Saved kernel to: {kernel_file}")
 
             spec = importlib.util.spec_from_file_location(
-                f"test_kernel_{op_name}_{attempt}", kernel_file
+                f"{op_name}_implementation_v{attempt}", kernel_file
             )
             module = importlib.util.module_from_spec(spec)
 
             # Add to sys.modules so triton can find it
-            sys.modules[f"test_kernel_{op_name}_{attempt}"] = module
+            sys.modules[f"{op_name}_implementation_v{attempt}"] = module
 
             try:
                 spec.loader.exec_module(module)
@@ -315,12 +322,20 @@ import torch.nn.functional as F
         return key in self.compiled_kernels
 
     def _write_summary(
-        self, summary_file, op_name, op_str, attempts_used, max_attempts, llm_client
+        self,
+        summary_file,
+        op_name,
+        op_str,
+        attempts_used,
+        max_attempts,
+        llm_client,
+        success,
     ):
         with open(summary_file, "w") as f:
             f.write(f"Operation: {op_name}\n")
             f.write(f"Full op: {op_str}\n")
             f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+            f.write(f"Final Status: {'✓ Success' if success else '✗ Failure'}\n")
             f.write(f"Model: {llm_client.model}\n")
             f.write(f"Server: {llm_client.readme_server_description}\n")
             f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
@@ -369,9 +384,15 @@ import torch.nn.functional as F
                     f"✗ Failed to generate and compile kernel for {op_name} after {attempts_used} attempts"
                 )
 
-            summary_file = os.path.join(self.kernels_dir, f"{op_name}_summary.txt")
+            summary_file = os.path.join(self.kernels_dir, op_name, f"{op_name}_summary.txt")
             self._write_summary(
-                summary_file, op_name, op_str, attempts_used, max_attempts, self.llm_client
+                summary_file,
+                op_name,
+                op_str,
+                attempts_used,
+                max_attempts,
+                self.llm_client,
+                success,
             )
 
         failed_ops = total_ops - successful_ops
