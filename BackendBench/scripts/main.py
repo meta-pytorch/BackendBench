@@ -10,6 +10,7 @@ import sys
 
 import BackendBench.backends as backends
 import BackendBench.eval as eval
+from BackendBench.output import save_results
 import BackendBench.multiprocessing_eval as multiprocessing_eval
 import click
 import torch
@@ -296,7 +297,7 @@ def cli(
     # Save results if not disabled
 
     if not disable_output_logs:
-        eval.save_results(
+        save_results(
             all_correctness_results,
             all_performance_results,
             log_dir,
