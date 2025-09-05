@@ -36,10 +36,18 @@ def _normalize_tests(raw_tests) -> List[Test]:
         elif isinstance(item, (list, tuple)) and len(item) == 2 and isinstance(item[1], dict):
             # (args, kwargs) format
             args, kwargs = item
-            tests.append(Test(args if isinstance(args, (list, tuple)) else (args,), **kwargs))
+            # Ensure args is a tuple of callables
+            if isinstance(args, (list, tuple)):
+                args_tuple = tuple(args)
+            else:
+                args_tuple = (args,)
+            tests.append(Test(*args_tuple, **kwargs))
         else:
             # Single argument or tuple of arguments
-            tests.append(Test(*item) if isinstance(item, (list, tuple)) else Test(item))
+            if isinstance(item, (list, tuple)):
+                tests.append(Test(*item))
+            else:
+                tests.append(Test(item))
     return tests
 
 
@@ -94,7 +102,7 @@ class CustomOpsTestSuite(TestSuite):
             op_name = op_dir.name
             if filter and op_name not in filter:
                 continue
-                
+
             gen_file = op_dir / "gen_input.py"
             if not gen_file.exists():
                 logger.debug(f"skip {op_name}: no gen_input.py")
@@ -112,21 +120,29 @@ class CustomOpsTestSuite(TestSuite):
                 # Create OpTest for each implementation
                 impl_files = [p for p in sorted(op_dir.glob("*.py")) 
                              if p.name not in ["gen_input.py", f"{op_name}_reference.py"]]
-                
-                if not impl_files:
-                    # Legacy single op
-                    ref_func.__name__ = op_name  # type: ignore[attr-defined]
-                    optests.append(OpTest(ref_func, corr, perf))
-                else:
-                    # Multiple implementations
-                    for impl_file in impl_files:
-                        impl_name = impl_file.stem
-                        def create_op_ref():
-                            def _op_ref(*args, **kwargs):
-                                return ref_func(*args, **kwargs)
-                            _op_ref.__name__ = f"{op_name}__{impl_name}"  # type: ignore[attr-defined]
-                            return _op_ref
-                        optests.append(OpTest(create_op_ref(), corr, perf))
+
+                for impl_file in impl_files:
+                    impl_name = impl_file.stem
+                    try:
+                        # Load the actual implementation
+                        impl_mod = _load_module_from_path(f"impl_{op_name}_{impl_name}", impl_file)
+                        if hasattr(impl_mod, f"{op_name}_kernel_impl"):
+                            impl_func = getattr(impl_mod, f"{op_name}_kernel_impl")
+                            
+                            # Create a wrapper function with the correct name for backend matching
+                            def create_op_wrapper(func, name):
+                                def _op_wrapper(*args, **kwargs):
+                                    return func(*args, **kwargs)
+                                _op_wrapper.__name__ = name  # type: ignore[attr-defined]
+                                return _op_wrapper
+                            
+                            # Store the backend key as a string for matching
+                            backend_key = f"{op_name}__{impl_name}"
+                            optests.append(OpTest(backend_key, corr, perf))
+                        else:
+                            logger.warning(f"No {op_name}_kernel_impl found in {impl_file}")
+                    except Exception as e:
+                        logger.error(f"Failed to load implementation from {impl_file}: {e}")
                         
             except Exception as e:
                 logger.error(f"failed to load tests for {op_name}: {e}")
