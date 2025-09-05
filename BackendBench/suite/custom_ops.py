@@ -138,7 +138,8 @@ class CustomOpsTestSuite(TestSuite):
                             
                             # Store the backend key as a string for matching
                             backend_key = f"{op_name}__{impl_name}"
-                            optests.append(OpTest(backend_key, corr, perf))
+                            # Store reference function in the OpTest for later use
+                            optests.append(OpTest(backend_key, corr, perf, ref_func))
                         else:
                             logger.warning(f"No {op_name}_kernel_impl found in {impl_file}")
                     except Exception as e:

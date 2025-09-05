@@ -255,13 +255,23 @@ def cli(
                     test.performance_tests,
                 )
             else:
-                # For custom_ops backend, use implementation as both op and impl
-                _, perf, correctness_results, performance_results = eval.eval_one_op(
-                    backend[test.op],
-                    backend[test.op],
-                    test.correctness_tests,
-                    test.performance_tests,
-                )
+                # For custom_ops backend, use reference function as op and implementation as impl
+                ref_func = getattr(test, 'ref_func', None)
+                if ref_func is not None:
+                    _, perf, correctness_results, performance_results = eval.eval_one_op(
+                        ref_func,
+                        backend[test.op],
+                        test.correctness_tests,
+                        test.performance_tests,
+                    )
+                else:
+                    # Fallback: use implementation as both op and impl
+                    _, perf, correctness_results, performance_results = eval.eval_one_op(
+                        backend[test.op],
+                        backend[test.op],
+                        test.correctness_tests,
+                        test.performance_tests,
+                    )
 
             overall_correctness.append(all(result.is_correct for result in correctness_results))
             overall_performance.append(perf)
