@@ -197,7 +197,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "custom_ops": lambda: CustomOpsTestSuite(custom_ops_root),
+        "custom_ops": lambda: CustomOpsTestSuite(custom_ops_root, filter=ops),
     }[suite]()
 
     backend_name = backend

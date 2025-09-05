@@ -86,112 +86,113 @@ export OPENAI_API_KEY=<your_api_key_here>
 uv run python BackendBench/scripts/main.py --suite opinfo --backend kernel_agent --ops "add"
 ```
 
-## Custom Ops (non-ATen) – Python/Triton
-
-See docs/custom_ops.md for a quick guide.
-
-Quickstart:
-```bash
-uv run python -m BackendBench.scripts.main \
-  --suite custom_ops --backend custom_ops \
-  --custom-ops-root test/custom_ops
-```
-
 ## Directory-Based Kernel Development
 
 BackendBench supports a simple directory structure for manually adding kernel implementations. This is perfect for researchers who want to contribute optimized kernels without dealing with complex generation systems.
 
+### Two Backend Types
+
+**Directory Backend** - For PyTorch ATen operations:
+- Replaces existing PyTorch operations with your implementations
+- Uses `--backend directory` with `--ops-directory <path>`
+- Tests against PyTorch's built-in test suites
+
+**Custom Ops Backend** - For non-ATen operations:
+- Tests custom operations not in PyTorch
+- Uses `--backend custom_ops` with `--custom-ops-root <path>`
+- Requires custom test definitions
+
 ### Directory Structure
 
-Create kernels in the following structure:
+Both backends follow the same discovery pattern:
+
 ```
-generated_kernels/
-├── relu/
-│   └── relu_implementation_1.py
-├── add/  
-│   └── add_implementation_1.py
-├── mul/
-│   └── mul_implementation_1.py
+<ops_directory or custom_ops_root>/
+├── <op_name>/
+│   ├── gen_input.py                     # Custom ops: Test definitions
+│   ├── <op_name>_reference.py           # Custom ops: Optional reference implementation
+│   ├── <op_name>_py_impl_1.py           # Python implementation
+│   ├── <op_name>_triton_impl_1.py       # Triton implementation
+│   └── <op_name>_<any_name>.py          # Other implementations
 └── ...
 ```
 
-### How to Add Your Kernels
+### Implementation Template
 
-1. **Create the operation directory:**
-   ```bash
-   mkdir generated_kernels/{op_name}
-   ```
+Python (PyTorch/Triton/...) implementations must export a function named `{op_name}_kernel_impl`:
 
-2. **Create your implementation file:**
-   ```bash
-   # Example: generated_kernels/relu/relu_implementation_1.py
-   ```
+### Directory Backend (ATen Operations)
 
-3. **Write your kernel following this template:**
-   ```python
-   import torch
-   
-   def {op_name}_kernel_impl(*args, **kwargs):
-       """
-       Your kernel implementation.
-       Must match the PyTorch operation signature exactly.
-       """
-       # Your implementation here
-       return result
-   
-   # Optional: Add a test
-   if __name__ == "__main__":
-       pass
-   ```
-
-### Operation Name Mapping
-
-Use these exact directory names for common operations:
+For PyTorch ATen operations, use these exact directory names:
 - `relu` → `torch.ops.aten.relu.default`  
 - `add` → `torch.ops.aten.add.Tensor`
 - `mul` → `torch.ops.aten.mul.Tensor` 
 - `div` → `torch.ops.aten.div.Tensor`
 
-To find the correct name for other operations:
+Find the correct name for other operations:
 ```python
-# Find operation name
 import torch
 op = torch.ops.aten.some_op.some_variant
 print(str(op).split('aten.')[-1].split('.')[0])  # Use this as directory name
 ```
 
-### Example Implementation
-
-Here's a complete example for ReLU:
-
+**Example:**
 ```python
 # generated_kernels/relu/relu_implementation_1.py
 import torch
 
 def relu_kernel_impl(input_tensor):
     return torch.maximum(input_tensor, torch.zeros_like(input_tensor))
-
-if __name__ == "__main__":
-    # Test on CPU
-    x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
-    result = relu_kernel_impl(x)
-    expected = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
-    print(f"Test passed: {torch.allclose(result, expected)}")
 ```
 
-### Testing Your Kernels
-
-Test individual implementations:
+**Testing:**
 ```bash
-uv run python generated_kernels/relu/relu_implementation_1.py
-```
-
-Test with BackendBench:
-```bash
+# Test with BackendBench
 uv run python BackendBench/scripts/main.py --suite smoke --backend directory
+uv run python BackendBench/scripts/main.py --suite torchbench --backend directory
+```
 
-# TorchBench performance tests  
-python BackendBench/scripts/main.py --suite torchbench --backend directory
+### Custom Ops Backend (Non-ATen Operations)
+
+For custom operations, you need to define tests in `gen_input.py`:
+
+```python
+# <custom_ops_root>/<op>/gen_input.py
+import torch
+from BackendBench.suite.base import Test
+
+def get_correctness_tests():
+    return [
+        Test(lambda: torch.ones(8, device="cuda")),
+        Test(lambda: torch.randn(4, 4, device="cuda")),
+    ]
+
+def get_performance_tests():
+    return [
+        Test(lambda: torch.randn(1024, 1024, device="cuda")),
+    ]
+```
+
+**Example:**
+```python
+# <custom_ops_root>/myop/myop_py.py
+import torch
+
+def myop_kernel_impl(x, alpha=1.0):
+    return x * alpha
+```
+
+**Testing:**
+```bash
+# Test all custom ops
+uv run python -m BackendBench.scripts.main \
+  --suite custom_ops --backend custom_ops \
+  --custom-ops-root test/custom_ops
+
+# Test specific op
+uv run python -m BackendBench.scripts.main \
+  --suite custom_ops --backend custom_ops \
+  --custom-ops-root test/custom_ops --ops myop
 ```
 
 ## License

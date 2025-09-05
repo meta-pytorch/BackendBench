@@ -58,7 +58,7 @@ class CustomOpsTestSuite(TestSuite):
       - define get_performance_tests() -> same as above (optional)
     """
 
-    def __init__(self, root_dir: str = "custom_ops"):
+    def __init__(self, root_dir: str = "custom_ops", filter=None):
         optests: List[OpTest] = []
         root = Path(root_dir)
         if not root.exists():
@@ -66,6 +66,8 @@ class CustomOpsTestSuite(TestSuite):
         else:
             for op_dir in sorted([d for d in root.iterdir() if d.is_dir()]):
                 op_name = op_dir.name
+                if filter and op_name not in filter:
+                    continue
                 gen_file = op_dir / "gen_input.py"
                 if not gen_file.exists():
                     logger.debug(f"skip {op_name}: no gen_input.py")
@@ -97,19 +99,16 @@ class CustomOpsTestSuite(TestSuite):
                     if ref_func is None:
                         # scan for any kernel_impl as fallback reference
                         picked = None
-                        for impl_dir in sorted([d for d in op_dir.iterdir() if d.is_dir()]):
-                            for p in sorted(impl_dir.glob("*.py")):
-                                if p.name == "gen_input.py":
-                                    continue
-                                try:
-                                    impl_mod = _load_module_from_path(f"impl_{op_name}", p)
-                                    if hasattr(impl_mod, f"{op_name}_kernel_impl"):
-                                        picked = getattr(impl_mod, f"{op_name}_kernel_impl")
-                                        break
-                                except Exception:
-                                    continue
-                            if picked:
-                                break
+                        for p in sorted(op_dir.glob("*.py")):
+                            if p.name in ["gen_input.py", f"{op_name}_reference.py"]:
+                                continue
+                            try:
+                                impl_mod = _load_module_from_path(f"impl_{op_name}", p)
+                                if hasattr(impl_mod, f"{op_name}_kernel_impl"):
+                                    picked = getattr(impl_mod, f"{op_name}_kernel_impl")
+                                    break
+                            except Exception:
+                                continue
                         if picked:
                             logger.warning(f"No explicit reference for {op_name}; using a kernel_impl as reference")
                             ref_func = picked
@@ -123,20 +122,23 @@ class CustomOpsTestSuite(TestSuite):
                         return ref_func(*args, **kwargs)
 
                     # Create one OpTest per implementation so all impls are tested.
-                    # Implementations are registered as keys op__impl in the backend.
-                    impl_names = []
-                    for impl_dir in sorted([d for d in op_dir.iterdir() if d.is_dir()]):
-                        impl_names.append(impl_dir.name)
+                    # Implementations are registered as keys op__impl_name in the backend.
+                    impl_files = []
+                    for p in sorted(op_dir.glob("*.py")):
+                        if p.name in ["gen_input.py", f"{op_name}_reference.py"]:
+                            continue
+                        impl_files.append(p)
 
-                    if not impl_names:
+                    if not impl_files:
                         # legacy single op
                         _op_ref.__name__ = op_name  # type: ignore[attr-defined]
                         optests.append(OpTest(_op_ref, corr, perf))
                     else:
-                        for impl in impl_names:
+                        for impl_file in impl_files:
+                            impl_name = impl_file.stem  # filename without .py extension
                             def _op_ref_bound(*args, **kwargs):
                                 return ref_func(*args, **kwargs)
-                            _op_ref_bound.__name__ = f"{op_name}__{impl}"  # type: ignore[attr-defined]
+                            _op_ref_bound.__name__ = f"{op_name}__{impl_name}"  # type: ignore[attr-defined]
                             optests.append(OpTest(_op_ref_bound, corr, perf))
                 except Exception as e:
                     logger.error(f"failed to load tests for {op_name}: {e}")
