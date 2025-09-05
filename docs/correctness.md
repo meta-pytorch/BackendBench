@@ -18,7 +18,12 @@ On correctness testing, our initial attempts using a simple agentic loop on top 
 
 ![scaling_law](img/scaling_law.png)
 
-On performance testing: We ran a similar experiment on an older version of BackendBench using ChatGPT and would like to share with you the unfiltered Triton implementations for 43 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pull/111)
+We even took nano-gpt, registered our custom LLM kernels for the forward pass only and the numerics change. There's still some work to be done for correct backwards kernels which are hard for LLMs and to get the performance to be better, right now we're about twice as slow as PyTorch eager.
+
+![loss](img/loss.png)
+
+
+On performance testing: We ran a similar experiment on an older version of BackendBench using ChatGPT and would like to share with you the unfiltered Triton implementations for 84 operators which we've implemented in Triton using LLMs in [this PR](https://github.com/meta-pytorch/BackendBench/pull/111). We got all the interesting kernels correct. Most kernels run at 70–100% of PyTorch; a few are up to ~1.2× faster
 
 The goal here is to convince you that writing high quality kernels is hard but why it's a worthwhile task for LLM researchers and how we hope BackenBench can help us measure progress.
 
@@ -265,7 +270,7 @@ BackendBench.enable(kernel_dir="generated_kernels")
 model.forward(x)
 ```
 
-We also provide an example of a [toy LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations. We mostly use it internally on Meta infra but we suspect it's a few simple changes to make it work in OSS.
+We also provide an example of a [LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations with `--backend llm` where all you need is a Claude token. It has some rough edges so let us know if you have any feedback.
 
 We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite especially when it comes to low bit tolerences. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
 
