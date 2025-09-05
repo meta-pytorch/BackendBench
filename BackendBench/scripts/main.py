@@ -238,9 +238,6 @@ def cli(
     all_correctness_results = []
     all_performance_results = []
 
-    for test in suite:
-        print(test.op, test.op in backend, backend.compiled_kernels)
-
     if num_workers is None:
         for test in suite:
             if test.op not in backend:

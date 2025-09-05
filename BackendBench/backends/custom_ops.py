@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Callable, List
 
-from .directory_backend_abs import BaseDirectoryBackendABS
+from .base_directory_backend import BaseDirectoryBackendABS
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
         Registers the implementation as op__impl_name where impl_name is the filename
         without the .py extension.
         """
-        impl_name = impl_file[:-3]  # Remove .py extension
+        impl_name = os.path.splitext(impl_file)[0]
         key = f"{op_name}__{impl_name}"
         self.compiled_kernels[key] = kernel_func
         return [key]
