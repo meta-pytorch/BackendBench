@@ -295,7 +295,7 @@ def save_results(
 
     Structure created:
         output_path/
-        ├── overall_summary.md         # Top level summary of results
+        ├── OVERALL_SUMMARY.md         # Top level summary of results
         ├── full_results.json          # Complete results log
         ├── operator_summary.csv       # Operator-level summary
         └── failed_ops.json            # Log of failed operations
@@ -508,7 +508,7 @@ def save_overall_summary(
         f.write("- `full_results.json`: Complete test results for all operators\n")
         f.write("- `operator_summary.csv`: Operator-level summary statistics\n")
         f.write("- `failed_ops.json`: Log of failed operations (if any)\n")
-        f.write("- `overall_summary.md`: This file\n")
+        f.write("- `OVERALL_SUMMARY.md`: This file\n")
 
         f.write("### Operator Speedups vs Eager in Descending Order\n\n")
         f.write("| Operator | Correctness Ratio | Speedup vs Eager |\n")
