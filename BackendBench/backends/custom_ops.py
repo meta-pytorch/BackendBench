@@ -21,15 +21,15 @@ if TYPE_CHECKING:
 class CustomOpsBackend(BaseDirectoryBackendABS):
     """
     Directory-based backend for non-ATen custom operators.
-    
+
     Discovers and loads kernel implementations from the custom ops directory structure.
     Each operator directory should contain Python files with kernel implementations
     following the naming pattern: {op_name}_*.py (excluding gen_input.py and reference files).
-    
+
     The backend registers each implementation as op__impl_name for testing.
     """
 
-    def __init__(self, suite: 'CustomOpsTestSuite' = None, ops_dir: str = "custom_ops"):
+    def __init__(self, suite: "CustomOpsTestSuite" = None, ops_dir: str = "custom_ops"):
         self.suite = suite
         super().__init__("custom_ops", ops_dir)
 
@@ -38,15 +38,14 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
         Load all kernel implementations from the operations directory.
         """
 
-        inputs = op_dir / 'gen_input.py'
+        inputs = op_dir / "gen_input.py"
         if not inputs.exists():
             return []
 
         impl_files = [
-            f for f in op_dir.iterdir()
-            if f.is_file()
-            and f.suffix == ".py"
-            and f.name != "gen_input.py"
+            f
+            for f in op_dir.iterdir()
+            if f.is_file() and f.suffix == ".py" and f.name != "gen_input.py"
         ]
 
         ref_impl = None
@@ -57,7 +56,9 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
                 impl_files.remove(f)
                 break
         else:
-            logger.warning(f"No reference implementation found for {op_name}, using first implementation as reference")
+            logger.warning(
+                f"No reference implementation found for {op_name}, using first implementation as reference"
+            )
             ref_impl = impl_files[0]
 
         # For custom backend, each implementation is consider a seperate op to be tested.

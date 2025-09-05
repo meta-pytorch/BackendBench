@@ -21,11 +21,11 @@ logger = logging.getLogger(__name__)
 class BaseDirectoryBackendABS(Backend, ABC):
     """
     Abstract base class for directory-based backends.
-    
+
     Provides common functionality for discovering and loading kernel implementations
     from filesystem directories. Subclasses can customize the discovery and loading
     behavior by implementing abstract methods.
-    
+
     This is an abstract class that cannot be instantiated directly. Use concrete
     implementations like DirectoryBackend or CustomOpsBackend instead.
     """
@@ -68,14 +68,14 @@ class BaseDirectoryBackendABS(Backend, ABC):
 
         Each python file should contain implementation files that export a function
         named {op_name}_kernel_impl.
-        
+
         Args:
             file_path: Path to the Python implementation file
             op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
-            
+
         Returns:
             Callable kernel implementation function
-            
+
         Raises:
             ValueError: If the expected kernel function is not found in the file
         """
@@ -90,7 +90,7 @@ class BaseDirectoryBackendABS(Backend, ABC):
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
 
     def __getitem__(self, key):
-        dict_key = getattr(key, '__name__', key)
+        dict_key = getattr(key, "__name__", key)
         if dict_key in self.compiled_kernels:
             return self.compiled_kernels[dict_key]
         raise KeyError(
@@ -98,5 +98,5 @@ class BaseDirectoryBackendABS(Backend, ABC):
         )
 
     def __contains__(self, key):
-        dict_key = getattr(key, '__name__', key)
+        dict_key = getattr(key, "__name__", key)
         return dict_key in self.compiled_kernels

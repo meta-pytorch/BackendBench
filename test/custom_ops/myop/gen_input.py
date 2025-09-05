@@ -15,5 +15,3 @@ def get_performance_tests():
         (lambda: torch.randn(1024, 1024, device="cuda"),),
         (lambda: torch.randn(1_000_000, device="cuda"),),
     ]
-
-

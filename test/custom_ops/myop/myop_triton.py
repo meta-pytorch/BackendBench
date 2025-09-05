@@ -1,6 +1,7 @@
 import torch
 import triton
 import triton.language as tl
+
 BLOCK_SIZE = 1024
 
 
@@ -27,5 +28,3 @@ def myop_kernel_impl(x: torch.Tensor, alpha: float = 1.0) -> torch.Tensor:
     grid = (triton.cdiv(n, BLOCK_SIZE),)
     _myop_triton_kernel[grid](x, y, alpha, N=n, BLOCK=BLOCK_SIZE)
     return y
-
-

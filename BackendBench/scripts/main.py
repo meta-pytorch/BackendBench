@@ -56,7 +56,9 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory", "custom_ops"]),
+    type=click.Choice(
+        ["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory", "custom_ops"]
+    ),
     help="Which backend to run",
 )
 @click.option(
@@ -238,13 +240,16 @@ def cli(
     all_correctness_results = []
     all_performance_results = []
 
-
     suite = [test for test in suite if test.op in backend]
 
     if not suite:
         logger.warning("No ops to run")
 
-    with multiprocessing_eval.SyncEvaluator() if num_workers is None else multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+    with (
+        multiprocessing_eval.SyncEvaluator()
+        if num_workers is None
+        else multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator
+    ):
         # Submit all tasks
         for test in suite:
             logger.debug(test.op)

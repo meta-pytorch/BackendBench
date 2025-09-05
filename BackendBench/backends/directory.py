@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 class DirectoryBackend(BaseDirectoryBackendABS):
     """
     Directory-based backend for PyTorch ATen operations.
-    
+
     Discovers and loads kernel implementations from the operator directory structure.
     Each operator directory should contain Python files with kernel implementations
     following the naming pattern: {op_name}_implementation*.py
-    
+
     The loading process:
     1. Finds implementation files in each operator directory
     2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
@@ -39,11 +39,7 @@ class DirectoryBackend(BaseDirectoryBackendABS):
         """
         Load all kernel implementations from the operations directory.
         """
-        impl_files = [
-            f for f in op_dir.iterdir()
-            if f.is_file()
-            and f.suffix == ".py"
-        ]
+        impl_files = [f for f in op_dir.iterdir() if f.is_file() and f.suffix == ".py"]
 
         op_variants = query(op_name)
         registered_keys = []
@@ -57,7 +53,7 @@ class DirectoryBackend(BaseDirectoryBackendABS):
                 if pytorch_op:
                     self.compiled_kernels[pytorch_op] = kernel_func
                     registered_keys.append(str(pytorch_op))
-        
+
         if not registered_keys:
             logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
