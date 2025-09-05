@@ -264,7 +264,10 @@ def op_list_to_benchmark_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
 
 
 def _load_from_trace(
-    source: Union[str, Path], filter: Optional[List[str]], limit: Optional[int] = None, model_mapping: Optional[Dict] = None
+    source: Union[str, Path],
+    filter: Optional[List[str]],
+    limit: Optional[int] = None,
+    model_mapping: Optional[Dict] = None,
 ) -> List[Dict]:
     """Load operations from trace file(s) and return list of dicts."""
     op_inputs = []
@@ -283,7 +286,9 @@ def _load_from_trace(
             lines = content.splitlines()
 
             # Now parse with accurate progress (tqdm will know total lines)
-            op_inputs = _parse_trace_stream(lines, filter, "Parsing", limit=limit, model_mapping=model_mapping)
+            op_inputs = _parse_trace_stream(
+                lines, filter, "Parsing", limit=limit, model_mapping=model_mapping
+            )
 
     # Handle single files
     else:
