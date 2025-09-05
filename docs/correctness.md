@@ -270,7 +270,7 @@ BackendBench.enable(kernel_dir="generated_kernels")
 model.forward(x)
 ```
 
-We also provide an example of a [LLM agent](https://github.com/meta-pytorch/BackendBench/blob/main/BackendBench/backends/llm_relay.py) you can play around with which we used for our first generations with `--backend llm` where all you need is a Claude token. It has some rough edges so let us know if you have any feedback.
+We also provide an example of a LLM agent you can play around with which we used for our first generations with `--backend llm` where all you need is a Claude token. It has some rough edges so let us know if you have any feedback.
 
 We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite especially when it comes to low bit tolerences. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
 
