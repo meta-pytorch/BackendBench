@@ -21,7 +21,7 @@ class CustomOpsBackend(Backend):
     Filesystem-based custom backend for non-ATen operators.
 
     Layout:
-      ./custom_ops/<op>/<impl_name>.py
+      ./custom_ops/<op>/<op>_<impl_name>.py
 
     Each implementation file should export a function named {op}_kernel_impl.
     The backend discovers all .py files in each op directory and registers them
