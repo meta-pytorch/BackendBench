@@ -295,7 +295,7 @@ def save_results(
 
     Structure created:
         output_path/
-        ├── README.md                  # Top level summary of results
+        ├── OVERALL_SUMMARY.md         # Top level summary of results
         ├── full_results.json          # Complete results log
         ├── operator_summary.csv       # Operator-level summary
         └── failed_ops.json            # Log of failed operations
@@ -320,10 +320,9 @@ def save_results(
         json.dump(all_results, f, indent=2)
     logger.info(f"Full results saved to {full_log_path}")
 
-    # 2. Organize results by operator (without creating directories)
+    # 2. Organize results by operator for csv
     op_all_results = defaultdict(list)
     op_summaries = {}
-    failed_tests = []
 
     for result in correctness_results:
         op_all_results[result.op_name].append(result)
@@ -332,35 +331,28 @@ def save_results(
 
     # Process each operator for summary
     for op_name, op_tests in op_all_results.items():
-        correctness_results = [
+        op_correctness_results = [
             result for result in op_tests if isinstance(result, CorrectnessTestResult)
         ]
-        performance_results = [
+        op_performance_results = [
             result for result in op_tests if isinstance(result, PerformanceTestResult)
         ]
 
         # Calculate operator-level summary
         total_tests = len(op_tests)
-        correct_tests = sum(1 for result in correctness_results if result.is_correct)
+        correct_tests = sum(1 for result in op_correctness_results if result.is_correct)
         # Collect performance metrics
         speedups = []
         abs_errors = []
         rel_errors = []
 
-        for test in correctness_results:
-            # Check for failures
-            if not test.is_correct:
-                failed_tests.append(asdict(test))
-
+        # collect metrics
+        for test in op_correctness_results:
             if test.max_abs_error and test.max_rel_error:
                 abs_errors.append(float(test.max_abs_error))
                 rel_errors.append(float(test.max_rel_error))
 
-        for test in performance_results:
-            if not test.successfully_ran:
-                failed_tests.append(asdict(test))
-
-            # Collect metrics
+        for test in op_performance_results:
             if test.speedup:
                 speedups.append(float(test.speedup))
 
@@ -397,6 +389,9 @@ def save_results(
         logger.info(f"Operator summary CSV saved to {summary_csv_path}")
 
     # 4. Save failed operations log
+    failed_tests = [asdict(result) for result in correctness_results if not result.is_correct] + [
+        asdict(result) for result in performance_results if not result.successfully_ran
+    ]
     # sort failed_tests
     failed_tests.sort(key=lambda x: (x["op_name"], x["args"]))
 
@@ -404,33 +399,76 @@ def save_results(
         json.dump(failed_tests, f, indent=2)
     logger.info(f"Failed operations log saved to {failed_ops_path}")
 
-    # Save README if metrics are provided
+    # Save overall_summary if metrics are provided
     if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):
-        save_readme(
+        save_overall_summary(
             output_path=base_dir,
             command=command,
             mean_correctness=mean_correctness,
             geomean_perf=geomean_perf,
             perf_at_p_score=perf_at_p_score,
             p=p,
+            performance_results=performance_results,
+            correctness_results=correctness_results,
         )
 
     # Log summary
     logger.info(f"Results saved to directory: {base_dir.absolute()}")
+    print(f"Results saved to directory: {base_dir.absolute()}")
+    print(f"Overall summary saved to: {base_dir.absolute()}/OVERALL_SUMMARY.md")
 
 
-def save_readme(
+def _get_summary_op_results(
+    performance_results: List[PerformanceTestResult],
+    correctness_results: List[CorrectnessTestResult],
+) -> List[Tuple[str, float, float]]:
+    """Get the ops and with correectness ratios and average speedups from the results and sort by descending order of speedups. We return these as strings"""
+
+    correctness_results_dict = defaultdict(list)
+    speedups_dict = defaultdict(list)
+    op_names = set()
+    for result in performance_results:
+        # as we assume a broken test defaults back to eager, pretend that the speedup is 1.0 for those in the final calculation
+        speedup = 1.0 if not result.successfully_ran else result.speedup
+        speedups_dict[result.op_name].append(speedup)
+        op_names.add(result.op_name)
+    for result in correctness_results:
+        correctness_results_dict[result.op_name].append(1.0 if result.is_correct else 0.0)
+        op_names.add(result.op_name)
+
+    # string formatting
+    op_results = []
+    for op in op_names:
+        if len(correctness_results_dict[op]) > 0:
+            correctness = sum(correctness_results_dict[op]) / len(correctness_results_dict[op])
+            correctness = f"{correctness:.4f}%"
+        else:
+            correctness = "N/A"
+        if len(speedups_dict[op]) > 0:
+            speedup = sum(speedups_dict[op]) / len(speedups_dict[op])
+            speedup = f"{speedup:.4f}x"
+        else:
+            speedup = "N/A"
+        op_results.append((op, correctness, speedup))
+    # sort by descending order of speedups and ascending order of correctness
+    op_results.sort(key=lambda x: (x[2], x[1]), reverse=True)
+    return op_results
+
+
+def save_overall_summary(
     output_path: Union[str, Path],
     command: str,
     mean_correctness: float,
     geomean_perf: float,
     perf_at_p_score: float,
     p: float = 1.0,
+    performance_results: List[PerformanceTestResult] = None,
+    correctness_results: List[CorrectnessTestResult] = None,
 ):
-    """Save a README file with run summary and results.
+    """Save an overall_summary file with run summary and results.
 
     Args:
-        output_path: Directory to save the README in
+        output_path: Directory to save the overall_summary in
         command: The command used to run the benchmark
         mean_correctness: Mean correctness score
         geomean_perf: Geometric mean of performance scores
@@ -440,9 +478,10 @@ def save_readme(
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    readme_path = base_dir / "README.md"
+    overall_summary_path = base_dir / "OVERALL_SUMMARY.md"
+    op_results = _get_summary_op_results(performance_results, correctness_results)
 
-    with open(readme_path, "w") as f:
+    with open(overall_summary_path, "w") as f:
         f.write("# BackendBench Run Summary\n\n")
 
         f.write("## Command\n")
@@ -469,9 +508,16 @@ def save_readme(
         f.write("- `full_results.json`: Complete test results for all operators\n")
         f.write("- `operator_summary.csv`: Operator-level summary statistics\n")
         f.write("- `failed_ops.json`: Log of failed operations (if any)\n")
-        f.write("- `README.md`: This file\n")
+        f.write("- `OVERALL_SUMMARY.md`: This file\n")
 
-    logger.info(f"README saved to {readme_path}")
+        f.write("### Operator Speedups vs Eager in Descending Order\n\n")
+        f.write("| Operator | Correctness Ratio | Speedup vs Eager |\n")
+        f.write("|----------|-----------|----------------|\n")
+        for op, correctness, speedup in op_results:
+            f.write(f"| {op} | {correctness} | {speedup}|\n")
+        f.write("\n")
+
+    logger.info(f"Overall summary saved to {overall_summary_path}")
 
 
 def perf_at_p(correctness, performance, p=1.0):
