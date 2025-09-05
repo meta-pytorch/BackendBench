@@ -8,7 +8,10 @@ import importlib.util
 import logging
 import os
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Callable, Dict, List, Optional
+
+from torch._library.custom_ops import CustomOpDef
 
 from .base import Backend
 
@@ -29,8 +32,8 @@ class BaseDirectoryBackendABS(Backend, ABC):
 
     def __init__(self, name: str, ops_dir: str):
         super().__init__(name)
-        self.ops_dir = ops_dir
-        self.compiled_kernels: Dict[str, Callable] = {}
+        self.ops_dir = Path(ops_dir)
+        self.compiled_kernels: dict[str, Callable | CustomOpDef] = {}
         self._load_kernels()
 
     def _load_kernels(self):
@@ -40,85 +43,31 @@ class BaseDirectoryBackendABS(Backend, ABC):
             return
 
         loaded_count = 0
-        for op_name in os.listdir(self.ops_dir):
-            op_dir = os.path.join(self.ops_dir, op_name)
-            if not os.path.isdir(op_dir):
+        for op_dir in self.ops_dir.iterdir():
+            if not op_dir.is_dir():
                 continue
-
+            op_name = op_dir.name
             try:
-                loaded_count += self._load_op_implementations(op_name, op_dir)
+                loaded_count += len(self.load_op_implementations(op_name, op_dir))
             except Exception as e:
                 logger.error(f"Error loading {op_name}: {e}")
 
         logger.info(f"{self.name} loaded {loaded_count} implementations from {self.ops_dir}/")
 
-    def _load_op_implementations(self, op_name: str, op_dir: str) -> int:
-        """
-        Load all implementations for a specific operator.
-        
-        Args:
-            op_name: Name of the operator
-            op_dir: Path to the operator directory
-            
-        Returns:
-            Number of implementations loaded
-        """
-        impl_files = self._discover_implementation_files(op_name, op_dir)
-        if not impl_files:
-            logger.debug(f"No implementation files found in {op_dir}")
-            return 0
-
-        loaded_count = 0
-        for impl_file in impl_files:
-            impl_path = os.path.join(op_dir, impl_file)
-            
-            try:
-                kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                keys = self._register_implementation(op_name, impl_file, kernel_func)
-                for key in keys:
-                    logger.info(f"Loaded {op_name} from {impl_file} -> {key}")
-                loaded_count += len(keys)
-            except Exception as e:
-                logger.error(f"Error loading {op_name} from {impl_file}: {e}")
-
-        return loaded_count
-
     @abstractmethod
-    def _discover_implementation_files(self, op_name: str, op_dir: str) -> List[str]:
+    def load_op_implementations(self, op_name: str, op_dir: Path) -> list[str]:
         """
-        Discover implementation files for an operator.
-        
-        Args:
-            op_name: Name of the operator
-            op_dir: Path to the operator directory
-            
-        Returns:
-            List of implementation file names
+        Load all kernel implementations from the operations directory.
         """
         pass
 
-    @abstractmethod
-    def _register_implementation(self, op_name: str, impl_file: str, kernel_func: Callable) -> List[str]:
-        """
-        Register a kernel implementation and return the keys it was registered under.
-        
-        Args:
-            op_name: Name of the operator
-            impl_file: Name of the implementation file
-            kernel_func: The kernel function to register
-            
-        Returns:
-            List of keys the implementation was registered under
-        """
-        pass
-
-    def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+    @staticmethod
+    def load_py_kernel_from_file(file_path: Path, op_name: str) -> Callable:
         """
         Dynamically load a kernel implementation function from a Python file.
 
-        Each operator directory should contain implementation files that export a function
-        named {op_name}_kernel_impl. This function becomes the kernel implementation
-        that gets registered for all variants of the operator.
+        Each python file should contain implementation files that export a function
+        named {op_name}_kernel_impl.
         
         Args:
             file_path: Path to the Python implementation file
@@ -130,7 +79,7 @@ class BaseDirectoryBackendABS(Backend, ABC):
         Raises:
             ValueError: If the expected kernel function is not found in the file
         """
-        spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
+        spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
@@ -141,11 +90,13 @@ class BaseDirectoryBackendABS(Backend, ABC):
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
 
     def __getitem__(self, key):
-        if key in self.compiled_kernels:
-            return self.compiled_kernels[key]
+        dict_key = getattr(key, '__name__', key)
+        if dict_key in self.compiled_kernels:
+            return self.compiled_kernels[dict_key]
         raise KeyError(
             f"Operator {key} not implemented in {self.name} - add implementation to {self.ops_dir}/"
         )
 
     def __contains__(self, key):
-        return key in self.compiled_kernels
+        dict_key = getattr(key, '__name__', key)
+        return dict_key in self.compiled_kernels

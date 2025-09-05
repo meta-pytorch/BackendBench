@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from pathlib import Path
 from typing import Callable, List
 
 from .base_directory_backend import BaseDirectoryBackendABS
@@ -34,30 +35,20 @@ class DirectoryBackend(BaseDirectoryBackendABS):
     def __init__(self, ops_dir="generated_kernels"):
         super().__init__("directory", ops_dir)
 
-    def _discover_implementation_files(self, op_name: str, op_dir: str) -> List[str]:
+    def load_op_implementations(self, op_name: str, op_dir: Path) -> list[str]:
         """
-        Discover implementation files for an ATen operator.
-        
-        Looks for files matching the pattern: {op_name}_implementation*.py
+        Load all kernel implementations from the operations directory.
         """
-        import os
         impl_files = [
-            f
-            for f in os.listdir(op_dir)
-            if f.endswith(".py") and f.startswith(f"{op_name}_implementation")
+            f for f in op_dir.iterdir()
+            if f.is_file()
+            and f.suffix == ".py"
         ]
-        # Return only the first implementation file (legacy behavior)
-        return [sorted(impl_files)[0]] if impl_files else []
 
-    def _register_implementation(self, op_name: str, impl_file: str, kernel_func: Callable) -> List[str]:
-        """
-        Register a kernel implementation for all ATen operator variants.
-        
-        Uses op_map.query() to discover all PyTorch operator variants that should
-        map to this directory and registers the same kernel implementation for all.
-        """
         op_variants = query(op_name)
         registered_keys = []
+
+        kernel_func = self.load_py_kernel_from_file(sorted(impl_files)[0], op_name)
 
         if op_variants:
             for variant_info in op_variants:
@@ -66,7 +57,8 @@ class DirectoryBackend(BaseDirectoryBackendABS):
                 if pytorch_op:
                     self.compiled_kernels[pytorch_op] = kernel_func
                     registered_keys.append(str(pytorch_op))
-        else:
+        
+        if not registered_keys:
             logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
         return registered_keys

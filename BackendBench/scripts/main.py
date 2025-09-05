@@ -215,7 +215,7 @@ def cli(
     elif backend == "directory":
         backend = backends.DirectoryBackend(ops_directory)
     elif backend == "custom_ops":
-        backend = backends.CustomOpsBackend(custom_ops_root)
+        backend = backends.CustomOpsBackend(suite, custom_ops_root)
     else:
         backend = {
             "aten": backends.AtenBackend,
@@ -238,80 +238,39 @@ def cli(
     all_correctness_results = []
     all_performance_results = []
 
-    if num_workers is None:
-        for test in suite:
-            if test.op not in backend:
-                continue
 
+    suite = [test for test in suite if test.op in backend]
+
+    if not suite:
+        logger.warning("No ops to run")
+
+    with multiprocessing_eval.SyncEvaluator() if num_workers is None else multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+        # Submit all tasks
+        for test in suite:
             logger.debug(test.op)
 
-            # For directory backend, use PyTorch's original operator as reference
-            if backend_name == "directory":
-                # test.op is already a PyTorch OpOverload object, use it directly
-                _, perf, correctness_results, performance_results = eval.eval_one_op(
-                    test.op,
-                    backend[test.op],
-                    test.correctness_tests,
-                    test.performance_tests,
-                )
-            else:
-                # For custom_ops backend, use reference function as op and implementation as impl
-                ref_func = getattr(test, 'ref_func', None)
-                if ref_func is not None:
-                    _, perf, correctness_results, performance_results = eval.eval_one_op(
-                        ref_func,
-                        backend[test.op],
-                        test.correctness_tests,
-                        test.performance_tests,
-                        op_name=test.op,  # Use the backend key as the operation name
-                    )
-                else:
-                    # Fallback: use implementation as both op and impl
-                    _, perf, correctness_results, performance_results = eval.eval_one_op(
-                        backend[test.op],
-                        backend[test.op],
-                        test.correctness_tests,
-                        test.performance_tests,
-                        op_name=test.op,  # Use the backend key as the operation name
-                    )
-
-            overall_correctness.append(all(result.is_correct for result in correctness_results))
-            overall_performance.append(perf)
-            all_correctness_results.extend(correctness_results)
-            all_performance_results.extend(performance_results)
-
-            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
-    else:
-        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-            # Submit all tasks
-            for test in suite:
-                if test.op not in backend:
-                    continue
-
-                logger.debug(test.op)
-
-                _ = evaluator.submit_task(
-                    test.op,
-                    backend[test.op],
-                    test.correctness_tests,
-                    test.performance_tests,
-                )
-
-            # Start evaluation
-            evaluator.start_evaluation()
-
-            # Get results
-            results = evaluator.get_results()
-
-        for result in results:
-            correctness_score = all(
-                correctness_result.is_correct for correctness_result in result.correctness_results
+            _ = evaluator.submit_task(
+                test.op,
+                backend[test.op],
+                test.correctness_tests,
+                test.performance_tests,
             )
-            performance_score = result.performance_score
-            overall_correctness.append(correctness_score)
-            overall_performance.append(performance_score)
-            all_correctness_results.extend(result.correctness_results)
-            all_performance_results.extend(result.performance_results)
+
+        # Start evaluation
+        evaluator.start_evaluation()
+
+        # Get results
+        results = evaluator.get_results()
+
+    for result in results:
+        correctness_score = all(
+            correctness_result.is_correct for correctness_result in result.correctness_results
+        )
+        performance_score = result.performance_score
+        overall_correctness.append(correctness_score)
+        overall_performance.append(performance_score)
+        all_correctness_results.extend(result.correctness_results)
+        all_performance_results.extend(result.performance_results)
 
     # @todo: We should just calculate these in a seperate function from verbose_results
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()

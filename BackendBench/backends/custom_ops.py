@@ -6,11 +6,16 @@
 
 import logging
 import os
-from typing import Callable, List
+from pathlib import Path
+from typing import TYPE_CHECKING
 
 from .base_directory_backend import BaseDirectoryBackendABS
 
 logger = logging.getLogger(__name__)
+
+
+if TYPE_CHECKING:
+    from ..suite.custom_ops import CustomOpsTestSuite
 
 
 class CustomOpsBackend(BaseDirectoryBackendABS):
@@ -24,32 +29,44 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
     The backend registers each implementation as op__impl_name for testing.
     """
 
-    def __init__(self, ops_dir: str = "custom_ops"):
+    def __init__(self, suite: 'CustomOpsTestSuite' = None, ops_dir: str = "custom_ops"):
+        self.suite = suite
         super().__init__("custom_ops", ops_dir)
 
-    def _discover_implementation_files(self, op_name: str, op_dir: str) -> List[str]:
+    def load_op_implementations(self, op_name: str, op_dir: Path) -> list[str]:
         """
-        Discover implementation files for a custom operator.
-        
-        Looks for all .py files except gen_input.py and reference files.
+        Load all kernel implementations from the operations directory.
         """
-        impl_files = [
-            f
-            for f in os.listdir(op_dir)
-            if f.endswith(".py") 
-            and f != "gen_input.py" 
-            and not f.startswith(f"{op_name}_reference")
-        ]
-        return impl_files
 
-    def _register_implementation(self, op_name: str, impl_file: str, kernel_func: Callable) -> List[str]:
-        """
-        Register a kernel implementation for a custom operator.
-        
-        Registers the implementation as op__impl_name where impl_name is the filename
-        without the .py extension.
-        """
-        impl_name = os.path.splitext(impl_file)[0]
-        key = f"{op_name}__{impl_name}"
-        self.compiled_kernels[key] = kernel_func
-        return [key]
+        inputs = op_dir / 'gen_input.py'
+        if not inputs.exists():
+            return []
+
+        impl_files = [
+            f for f in op_dir.iterdir()
+            if f.is_file()
+            and f.suffix == ".py"
+            and f.name != "gen_input.py"
+        ]
+
+        ref_impl = None
+        for f in impl_files:
+            if f.name.startswith(f"{op_name}_reference"):
+                ref_impl = f
+                # we won't iter more so it's safe to remove it
+                impl_files.remove(f)
+                break
+        else:
+            logger.warning(f"No reference implementation found for {op_name}, using first implementation as reference")
+            ref_impl = impl_files[0]
+
+        # For custom backend, each implementation is consider a seperate op to be tested.
+        # Create op for each implementation and register them
+        for impl in impl_files:
+            impl_name = impl.stem
+            impl_kernel = self.load_py_kernel_from_file(impl, op_name)
+            self.compiled_kernels[impl_name] = impl_kernel
+
+            self.suite.add_test(op_name, impl_name, [], [])
+
+        return list(self.compiled_kernels.keys())

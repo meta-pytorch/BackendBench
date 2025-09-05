@@ -20,15 +20,14 @@ class Test:
 
 
 class OpTest:
-    def __init__(self, op, correctness_tests, performance_tests, ref_func=None):
+    def __init__(self, op, correctness_tests, performance_tests):
         self.op = op
         self.correctness_tests = correctness_tests
         self.performance_tests = performance_tests
-        self.ref_func = ref_func
 
 
 class TestSuite:
-    def __init__(self, name, optests):
+    def __init__(self, name, optests: list[OpTest]):
         self.name = name
         self.optests = optests
 
