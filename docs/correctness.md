@@ -274,6 +274,11 @@ We also provide an example of a [LLM agent](https://github.com/meta-pytorch/Back
 
 We welcome contributions to support new DSLs, leaderboards, training support and more feedback in the eval suite especially when it comes to low bit tolerences. We hope this release encourages more LLM researchers curious about writing correct and fast GPU code.
 
+There's a lot more work we need to do to get the performance of LLM generated kernels to be compelling.
+
+![perf](img/perf.png)
+
+
 ## Acknowledgements
 
 We'd like to thank Alban Desmaison, Nikita Shulga and Joe Isaacson for invaluable feedback at the inception of BackendBench and helping us connect the world of PyTorch backends with that of LLM evaluation suites. We'd also like to thank Anne Ouyang, Simon Guo and Alex Zhang for pushing us to think harder about what it might mean to merge LLM generated kernels into PyTorch.
