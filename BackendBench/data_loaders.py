@@ -98,6 +98,7 @@ def _parse_trace_stream(
     filter: Optional[List[str]] = None,
     desc: str = "Parsing stream",
     limit: Optional[int] = None,
+    model_mapping: Optional[Dict] = None,
 ) -> List[Dict]:
     """
     Parse trace data from a text stream (e.g., from requests.Response.iter_lines()).
@@ -110,6 +111,7 @@ def _parse_trace_stream(
     op_inputs = []
     op = None
     num_ops = 0
+    args_to_model = {}
 
     iterator = tqdm(stream, desc=desc, total=len(stream))
 
@@ -124,11 +126,14 @@ def _parse_trace_stream(
                 if num_ops > limit:
                     break
             op = m.group(1)
+            args_to_model = model_mapping[op]
             if op == "aten.sum.SymInt":
                 op = "aten.sum.dim_IntList"
         if m := re.match("cnt: \\d+, (.*)", line):
             assert op is not None
             args_str = m.group(1)
+            in_models = args_to_model.get(args_str, [])
+            in_models_count = len(in_models)
             cnt = int(m.group(0).split(",")[0].split(":")[1])
 
             if filter is None or any(f in op for f in filter):
@@ -141,6 +146,8 @@ def _parse_trace_stream(
                         "args": args_str,
                         "count": cnt,
                         "is_synthetic": is_synthetic,
+                        "in_models": in_models,
+                        "in_models_count": in_models_count,
                     }
                 )
     return op_inputs
@@ -257,10 +264,14 @@ def op_list_to_benchmark_dict(ops_list: List[Dict]) -> Dict[str, List[str]]:
 
 
 def _load_from_trace(
-    source: Union[str, Path], filter: Optional[List[str]], limit: Optional[int] = None
+    source: Union[str, Path],
+    filter: Optional[List[str]],
+    limit: Optional[int] = None,
+    model_mapping: Optional[Dict] = None,
 ) -> List[Dict]:
     """Load operations from trace file(s) and return list of dicts."""
     op_inputs = []
+    assert model_mapping is not None
 
     # Handle URLs - stream directly without saving to disk
     if isinstance(source, str) and (source.startswith("http://") or source.startswith("https://")):
@@ -275,7 +286,9 @@ def _load_from_trace(
             lines = content.splitlines()
 
             # Now parse with accurate progress (tqdm will know total lines)
-            op_inputs = _parse_trace_stream(lines, filter, "Parsing", limit=limit)
+            op_inputs = _parse_trace_stream(
+                lines, filter, "Parsing", limit=limit, model_mapping=model_mapping
+            )
 
     # Handle single files
     else:
