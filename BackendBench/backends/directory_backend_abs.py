@@ -15,7 +15,7 @@ from .base import Backend
 logger = logging.getLogger(__name__)
 
 
-class AbstractDirectoryBackend(Backend, ABC):
+class BaseDirectoryBackendABS(Backend, ABC):
     """
     Abstract base class for directory-based backends.
     

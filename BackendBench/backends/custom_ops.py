@@ -8,12 +8,12 @@ import logging
 import os
 from typing import Callable, List
 
-from .abstract_directory_backend import AbstractDirectoryBackend
+from .directory_backend_abs import BaseDirectoryBackendABS
 
 logger = logging.getLogger(__name__)
 
 
-class CustomOpsBackend(AbstractDirectoryBackend):
+class CustomOpsBackend(BaseDirectoryBackendABS):
     """
     Directory-based backend for non-ATen custom operators.
     

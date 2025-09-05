@@ -1,59 +1,82 @@
-# Custom Ops: Suite + Backend
+# Custom Ops Backend
 
-Purpose:
-- Compare multiple implementations of non-ATen custom ops (Python, Triton, ...).
+This document provides detailed information about the Custom Ops backend for testing non-ATen operations.
 
-Key flags:
-- `--suite custom_ops`
-- `--backend custom_ops`
-- `--custom-ops-root <path>`  (shared by suite and backend)
-- `--ops <op_name>`  (filter to specific op, e.g., `--ops myop`)
+## Overview
 
-Directory layout (per op):
+The Custom Ops backend allows you to test custom operations that are not part of PyTorch's ATen library. It supports multiple implementations of the same operation and compares them for correctness and performance.
+
+## Key Components
+
+### CustomOpsBackend
+- Loads implementations from filesystem directories
+- Registers each implementation as `op__impl_name` for testing
+- Inherits from `BaseDirectoryBackendABS` for consistent behavior
+
+### CustomOpsTestSuite  
+- Discovers operations via `gen_input.py` files
+- Builds correctness and performance tests
+- Supports filtering with `--ops` flag
+
+## Directory Structure
+
 ```
 <custom_ops_root>/<op>/
-  ├─ gen_input.py                 # defines tests
-  ├─ <op>_reference.py            # optional reference, fn: <op>_reference
-  ├─ <op>_py.py                   # Python implementation, fn: <op>_kernel_impl
-  ├─ <op>_triton.py               # Triton implementation, fn: <op>_kernel_impl
-  └─ <op>_<any_name>.py           # Any other implementation, fn: <op>_kernel_impl
+  ├─ gen_input.py                 # Test definitions
+  ├─ <op>_reference.py            # Optional reference implementation
+  ├─ <op>_py.py                   # Python implementation
+  ├─ <op>_triton.py               # Triton implementation
+  └─ <op>_<any_name>.py           # Other implementations
 ```
 
-Function names:
-- Implementation: `<op>_kernel_impl`
-- Reference: `<op>_reference`
+## Implementation Requirements
 
-Reference precedence:
-1) `<op>_reference.py : <op>_reference`
-2) Any `<op>_kernel_impl` found under an impl dir (warn)
-3) Identity passthrough (warn)
+### Function Names
+- **Implementation**: Must export `<op>_kernel_impl`
+- **Reference**: Must export `<op>_reference` (optional)
 
-Run examples:
+### Reference Precedence
+1. `<op>_reference.py` with `<op>_reference` function
+2. Any `<op>_kernel_impl` found (with warning)
+3. Identity passthrough (with warning)
+
+## Test Definition
+
+Create `gen_input.py` in each operation directory:
+
+```python
+import torch
+from BackendBench.suite.base import Test
+
+def get_correctness_tests():
+    return [
+        Test(lambda: torch.ones(8, device="cuda")),
+        Test(lambda: torch.randn(4, 4, device="cuda")),
+    ]
+
+def get_performance_tests():
+    return [
+        Test(lambda: torch.randn(1024, 1024, device="cuda")),
+    ]
+```
+
+## Usage Examples
+
 ```bash
 # Test all custom ops
 uv run python -m BackendBench.scripts.main \
   --suite custom_ops --backend custom_ops \
   --custom-ops-root test/custom_ops
 
-# Test only myop
+# Test specific operation
 uv run python -m BackendBench.scripts.main \
   --suite custom_ops --backend custom_ops \
   --custom-ops-root test/custom_ops --ops myop
 ```
 
-What each part does:
-- Suite (`CustomOpsTestSuite`): discovers ops via `gen_input.py` and builds tests.
-- Backend (`CustomOpsBackend`): loads all `.py` files in each op directory and registers them as `op__impl_name` so they are all tested.
+## Implementation Notes
 
-
-## Naming Convention
-
-- Implementation files: place Python files directly in the op directory with descriptive names (e.g., `<op>_py.py`, `<op>_triton.py`, `<op>_optimized.py`).
-- Exported symbol: each file must define a function named `<op>_kernel_impl`.
-- Optional reference: if present, place `<op>_reference.py` alongside `gen_input.py`, exporting `<op>_reference`.
-
-## Implementation Types
-
-- All implementations are Python files that export `<op>_kernel_impl`.
-- The backend treats all implementations uniformly - no special handling for different types.
-- Implementation files can contain any Python code (Torch, Triton, CuPy, etc.) as long as they export the required function.
+- All implementations are Python files that export `<op>_kernel_impl`
+- The backend treats all implementations uniformly
+- Implementation files can contain any Python code (Torch, Triton, CuPy, etc.)
+- Files are discovered automatically based on naming patterns

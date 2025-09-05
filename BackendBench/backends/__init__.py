@@ -14,7 +14,7 @@ to alternative implementations.
 
 import importlib.util
 
-from .abstract_directory_backend import AbstractDirectoryBackend
+from .directory_backend_abs import BaseDirectoryBackendABS
 from .aten import AtenBackend
 from .base import Backend
 from .custom_ops import CustomOpsBackend
@@ -25,7 +25,7 @@ from .llm import LLMBackend
 
 __all__ = [
     "Backend",
-    "AbstractDirectoryBackend",
+    "BaseDirectoryBackendABS",
     "CustomOpsBackend",
     "DirectoryBackend",
     "AtenBackend",
