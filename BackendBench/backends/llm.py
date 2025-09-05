@@ -33,7 +33,7 @@ class PickleableKernel:
         import importlib.util
         import sys
 
-        module_name = f"test_kernel_{self.op_name}_{self.attempt}"
+        module_name = f"{self.op_name}_implementation_v{self.attempt}"
         spec = importlib.util.spec_from_file_location(module_name, self.kernel_file)
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
@@ -120,13 +120,18 @@ You can inspect these files to debug kernel generation, manually test implementa
             else:
                 full_code = self._prepare_torch_code(kernel_code)
 
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            # create directory / file in the directory bench format
+            op_dir = os.path.join(self.kernels_dir, op_name)
+            os.makedirs(op_dir, exist_ok=True)
+            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
             with open(kernel_file, "w") as f:
                 f.write(full_code)
 
             logger.debug(f"Saved kernel to: {kernel_file}")
 
-            spec = importlib.util.spec_from_file_location(f"kernel_{op_name}", kernel_file)
+            spec = importlib.util.spec_from_file_location(
+                f"{op_name}_implementation_v{attempt}", kernel_file
+            )
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
@@ -209,7 +214,9 @@ import torch.nn.functional as F
         }
 
         try:
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel_attempt_{attempt}.py")
+            op_dir = os.path.join(self.kernels_dir, op_name)
+            os.makedirs(op_dir, exist_ok=True)
+            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
 
             if not os.path.exists(kernel_file):
                 is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
@@ -223,12 +230,12 @@ import torch.nn.functional as F
                 logger.debug(f"Saved kernel to: {kernel_file}")
 
             spec = importlib.util.spec_from_file_location(
-                f"test_kernel_{op_name}_{attempt}", kernel_file
+                f"{op_name}_implementation_v{attempt}", kernel_file
             )
             module = importlib.util.module_from_spec(spec)
 
             # Add to sys.modules so triton can find it
-            sys.modules[f"test_kernel_{op_name}_{attempt}"] = module
+            sys.modules[f"{op_name}_implementation_v{attempt}"] = module
 
             try:
                 spec.loader.exec_module(module)
@@ -377,7 +384,7 @@ import torch.nn.functional as F
                     f"✗ Failed to generate and compile kernel for {op_name} after {attempts_used} attempts"
                 )
 
-            summary_file = os.path.join(self.kernels_dir, f"{op_name}_summary.txt")
+            summary_file = os.path.join(self.kernels_dir, op_name, f"{op_name}_summary.txt")
             self._write_summary(
                 summary_file,
                 op_name,
