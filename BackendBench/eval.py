@@ -162,7 +162,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
+def eval_performance(op, impl, tests, op_name=None) -> Tuple[float, List[PerformanceTestResult]]:
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
@@ -195,7 +195,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op.__name__,
+                    op_name=op_name or op.__name__,
                     args=args_str,
                     speedup=test_time / base_time,
                     successfully_ran=True,
@@ -207,7 +207,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
             error_msg = format_exception(e, op, test.args, test.kwargs, traceback.format_exc())
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op.__name__,
+                    op_name=op_name or op.__name__,
                     args=args_str,
                     successfully_ran=False,
                     speedup=None,
@@ -241,7 +241,7 @@ def eval_one_op(
             args_str = serialize_args(test.args, test.kwargs)
             correctness_results.append(
                 CorrectnessTestResult(
-                    op_name=op.__name__,
+                    op_name=op_name or op.__name__,
                     args=args_str,
                     is_correct=False,
                     error_msg="Skipped: uses CUDA stream",
@@ -251,7 +251,7 @@ def eval_one_op(
             args_str = serialize_args(test.args, test.kwargs)
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op.__name__,
+                    op_name=op_name or op.__name__,
                     args=args_str,
                     speedup=0,
                     benchmark_time_ms=0,
@@ -262,7 +262,7 @@ def eval_one_op(
         return 0, 1.0, correctness_results, performance_results
 
     correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests, op_name)
-    performance_score, performance_results = eval_performance(op, impl, performance_tests)
+    performance_score, performance_results = eval_performance(op, impl, performance_tests, op_name)
     return (
         correctness_score,
         performance_score,
