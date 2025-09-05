@@ -115,10 +115,14 @@ class BaseDirectoryBackendABS(Backend, ABC):
     def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
         """
         Dynamically load a kernel implementation function from a Python file.
+
+        Each operator directory should contain implementation files that export a function
+        named {op_name}_kernel_impl. This function becomes the kernel implementation
+        that gets registered for all variants of the operator.
         
         Args:
             file_path: Path to the Python implementation file
-            op_name: Base name of the operator
+            op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
             
         Returns:
             Callable kernel implementation function

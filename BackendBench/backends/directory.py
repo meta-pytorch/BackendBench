@@ -22,9 +22,13 @@ class DirectoryBackend(BaseDirectoryBackendABS):
     Each operator directory should contain Python files with kernel implementations
     following the naming pattern: {op_name}_implementation*.py
     
-    The backend uses op_map.query() to discover all PyTorch operator variants
-    that should map to each directory (e.g., add.Tensor, add_.Scalar, add.out)
-    and registers the same kernel implementation for all discovered variants.
+    The loading process:
+    1. Finds implementation files in each operator directory
+    2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
+       that should map to this directory (e.g., add.Tensor, add_.Scalar, add.out)
+    3. Registers the same kernel implementation for all discovered variants
+    4. This ensures comprehensive coverage - a single "add" implementation handles
+       all add variants: functional (add.Tensor), in-place (add_.Tensor), out (add.out)
     """
 
     def __init__(self, ops_dir="generated_kernels"):
