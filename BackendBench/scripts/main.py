@@ -263,6 +263,7 @@ def cli(
                         backend[test.op],
                         test.correctness_tests,
                         test.performance_tests,
+                        op_name=test.op,  # Use the backend key as the operation name
                     )
                 else:
                     # Fallback: use implementation as both op and impl
@@ -271,6 +272,7 @@ def cli(
                         backend[test.op],
                         test.correctness_tests,
                         test.performance_tests,
+                        op_name=test.op,  # Use the backend key as the operation name
                     )
 
             overall_correctness.append(all(result.is_correct for result in correctness_results))

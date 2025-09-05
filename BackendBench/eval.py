@@ -93,7 +93,7 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
         return False
 
 
-def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
+def eval_correctness_test(op, impl, test, op_name=None) -> CorrectnessTestResult:
     """Evaluate impl of op against test.
 
     Returns:
@@ -107,7 +107,7 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
 
         abs_error, rel_error = compute_errors(ref, res)
         result = CorrectnessTestResult(
-            op_name=op.__name__,
+            op_name=op_name or op.__name__,
             args=serialize_args(args, kwargs),
             is_correct=is_correct,
             max_abs_error=abs_error,
@@ -117,7 +117,7 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
     except Exception as e:
         error_msg = format_exception(e, op, args, kwargs, traceback.format_exc())
         result = CorrectnessTestResult(
-            op_name=op.__name__,
+            op_name=op_name or op.__name__,
             args=serialize_args(args, kwargs),
             is_correct=False,
             error_msg=error_msg,
@@ -128,14 +128,14 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
         return result
 
 
-def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
+def eval_correctness(op, impl, tests, op_name=None) -> Tuple[float, List[CorrectnessTestResult]]:
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     test_results: List[CorrectnessTestResult] = []
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        result = eval_correctness_test(op, impl, test)
+        result = eval_correctness_test(op, impl, test, op_name)
         test_results.append(result)
         if result.is_correct:
             correct += 1
@@ -225,7 +225,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
 
 
 def eval_one_op(
-    op, impl, correctness_tests, performance_tests
+    op, impl, correctness_tests, performance_tests, op_name=None
 ) -> Tuple[float, float, List[CorrectnessTestResult], List[PerformanceTestResult]]:
     """Evaluate impl of op against correctness_tests and performance_tests.
 
@@ -261,7 +261,7 @@ def eval_one_op(
             )
         return 0, 1.0, correctness_results, performance_results
 
-    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
+    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests, op_name)
     performance_score, performance_results = eval_performance(op, impl, performance_tests)
     return (
         correctness_score,
