@@ -81,17 +81,19 @@ class BaseDirectoryBackendABS(Backend, ABC):
             ValueError: If the expected kernel function is not found in the file
         """
         return cls._load_py_symbol_from_file(file_path, f"{op_name}_kernel_impl")
-    
+
     @classmethod
-    @lru_cache(maxsize=1)  # when we load different symbols from same file this could be called multiple times
+    @lru_cache(
+        maxsize=1
+    )  # when we load different symbols from same file this could be called multiple times
     def _load_py_file(cls, file_path: Path) -> Callable:
         # todo: error handling?
         spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
-    
-    @classmethod 
+
+    @classmethod
     def _load_py_symbol_from_file(cls, file_path: Path, symbol_name: str) -> Callable:
         module = cls._load_py_file(file_path)
         if hasattr(module, symbol_name):
