@@ -25,7 +25,7 @@ from .llm import LLMBackend
 
 __all__ = [
     "Backend",
-    "BaseDirectoryBackendABS",
+    "BaseDirectoryBackendABC",
     "CustomOpsBackend",
     "DirectoryBackend",
     "AtenBackend",
