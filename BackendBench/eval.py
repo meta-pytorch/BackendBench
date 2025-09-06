@@ -93,7 +93,7 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
         return False
 
 
-def eval_correctness_test(op, impl, test, op_name=None) -> CorrectnessTestResult:
+def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
     """Evaluate impl of op against test.
 
     Returns:
@@ -107,7 +107,7 @@ def eval_correctness_test(op, impl, test, op_name=None) -> CorrectnessTestResult
 
         abs_error, rel_error = compute_errors(ref, res)
         result = CorrectnessTestResult(
-            op_name=op_name or op.__name__,
+            op_name=op.__name__,
             args=serialize_args(args, kwargs),
             is_correct=is_correct,
             max_abs_error=abs_error,
@@ -117,7 +117,7 @@ def eval_correctness_test(op, impl, test, op_name=None) -> CorrectnessTestResult
     except Exception as e:
         error_msg = format_exception(e, op, args, kwargs, traceback.format_exc())
         result = CorrectnessTestResult(
-            op_name=op_name or op.__name__,
+            op_name=op.__name__,
             args=serialize_args(args, kwargs),
             is_correct=False,
             error_msg=error_msg,
@@ -128,14 +128,14 @@ def eval_correctness_test(op, impl, test, op_name=None) -> CorrectnessTestResult
         return result
 
 
-def eval_correctness(op, impl, tests, op_name=None) -> Tuple[float, List[CorrectnessTestResult]]:
+def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     test_results: List[CorrectnessTestResult] = []
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        result = eval_correctness_test(op, impl, test, op_name)
+        result = eval_correctness_test(op, impl, test)
         test_results.append(result)
         if result.is_correct:
             correct += 1
@@ -162,7 +162,7 @@ def cpu_bench(fn, num_runs=100):
     return (time.perf_counter() - start) / num_runs
 
 
-def eval_performance(op, impl, tests, op_name=None) -> Tuple[float, List[PerformanceTestResult]]:
+def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
     """Evaluate performance of impl against tests."""
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
@@ -195,7 +195,7 @@ def eval_performance(op, impl, tests, op_name=None) -> Tuple[float, List[Perform
             test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op_name or op.__name__,
+                    op_name=op.__name__,
                     args=args_str,
                     speedup=test_time / base_time,
                     successfully_ran=True,
@@ -207,7 +207,7 @@ def eval_performance(op, impl, tests, op_name=None) -> Tuple[float, List[Perform
             error_msg = format_exception(e, op, test.args, test.kwargs, traceback.format_exc())
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op_name or op.__name__,
+                    op_name=op.__name__,
                     args=args_str,
                     successfully_ran=False,
                     speedup=None,
@@ -225,7 +225,7 @@ def eval_performance(op, impl, tests, op_name=None) -> Tuple[float, List[Perform
 
 
 def eval_one_op(
-    op, impl, correctness_tests, performance_tests, op_name=None
+    op, impl, correctness_tests, performance_tests
 ) -> Tuple[float, float, List[CorrectnessTestResult], List[PerformanceTestResult]]:
     """Evaluate impl of op against correctness_tests and performance_tests.
 
@@ -241,7 +241,7 @@ def eval_one_op(
             args_str = serialize_args(test.args, test.kwargs)
             correctness_results.append(
                 CorrectnessTestResult(
-                    op_name=op_name or op.__name__,
+                    op_name=op.__name__,
                     args=args_str,
                     is_correct=False,
                     error_msg="Skipped: uses CUDA stream",
@@ -251,7 +251,7 @@ def eval_one_op(
             args_str = serialize_args(test.args, test.kwargs)
             performance_results.append(
                 PerformanceTestResult(
-                    op_name=op_name or op.__name__,
+                    op_name=op.__name__,
                     args=args_str,
                     speedup=0,
                     benchmark_time_ms=0,
@@ -261,8 +261,8 @@ def eval_one_op(
             )
         return 0, 1.0, correctness_results, performance_results
 
-    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests, op_name)
-    performance_score, performance_results = eval_performance(op, impl, performance_tests, op_name)
+    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
+    performance_score, performance_results = eval_performance(op, impl, performance_tests)
     return (
         correctness_score,
         performance_score,

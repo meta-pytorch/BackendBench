@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+from functools import lru_cache
 import importlib.util
 import logging
 import os
@@ -61,8 +62,8 @@ class BaseDirectoryBackendABS(Backend, ABC):
         """
         pass
 
-    @staticmethod
-    def load_py_kernel_from_file(file_path: Path, op_name: str) -> Callable:
+    @classmethod
+    def load_py_kernel_from_file(cls, file_path: Path, op_name: str) -> Callable:
         """
         Dynamically load a kernel implementation function from a Python file.
 
@@ -79,15 +80,24 @@ class BaseDirectoryBackendABS(Backend, ABC):
         Raises:
             ValueError: If the expected kernel function is not found in the file
         """
+        return cls._load_py_symbol_from_file(file_path, f"{op_name}_kernel_impl")
+    
+    @classmethod
+    @lru_cache(maxsize=1)  # when we load different symbols from same file this could be called multiple times
+    def _load_py_file(cls, file_path: Path) -> Callable:
+        # todo: error handling?
         spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-
-        kernel_func_name = f"{op_name}_kernel_impl"
-        if hasattr(module, kernel_func_name):
-            return getattr(module, kernel_func_name)
+        return module
+    
+    @classmethod 
+    def _load_py_symbol_from_file(cls, file_path: Path, symbol_name: str) -> Callable:
+        module = cls._load_py_file(file_path)
+        if hasattr(module, symbol_name):
+            return getattr(module, symbol_name)
         else:
-            raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
+            raise ValueError(f"No symbol named {symbol_name} found in {file_path}")
 
     def __getitem__(self, key):
         if key in self.compiled_kernels:

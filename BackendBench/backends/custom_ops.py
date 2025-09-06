@@ -44,34 +44,23 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
         Returns:
             tuple: (correctness_tests, performance_tests)
         """
+
+        correctness_tests = []
+        performance_tests = []
         try:
-            # Load the gen_input.py module
-            spec = importlib.util.spec_from_file_location("gen_input", gen_input_path)
-            if spec is None or spec.loader is None:
-                logger.error(f"Could not load spec from {gen_input_path}")
-                return [], []
-
-            gen_input_module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(gen_input_module)
-
-            # Get correctness tests
-            correctness_tests = []
-            if hasattr(gen_input_module, 'get_correctness_tests'):
-                raw_tests = gen_input_module.get_correctness_tests()
-                correctness_tests = self._normalize_tests(raw_tests)
-
-            # Get performance tests  
-            performance_tests = []
-            if hasattr(gen_input_module, 'get_performance_tests'):
-                raw_tests = gen_input_module.get_performance_tests()
-                performance_tests = self._normalize_tests(raw_tests)
-
-            logger.debug(f"Loaded {len(correctness_tests)} correctness tests and {len(performance_tests)} performance tests from {gen_input_path}")
-            return correctness_tests, performance_tests
-
+            get_tests = self._load_py_symbol_from_file(gen_input_path, 'get_correctness_tests')
+            correctness_tests += self._normalize_tests(get_tests())
         except Exception as e:
-            logger.error(f"Failed to load test inputs from {gen_input_path}: {e}")
-            return [], []
+            logger.error(f"Failed to load correctness test inputs from {gen_input_path}: {e}")
+        try:
+            get_tests = self._load_py_symbol_from_file(gen_input_path, 'get_performance_tests')
+            performance_tests += self._normalize_tests(get_tests())
+        except Exception as e:
+            logger.error(f"Failed to load performance test inputs from {gen_input_path}: {e}")
+
+        logger.debug(f"Loaded {len(correctness_tests)} correctness tests and {len(performance_tests)} performance tests from {gen_input_path}")
+        return correctness_tests, performance_tests
+
 
     def _normalize_tests(self, raw_tests):
         """
@@ -139,13 +128,11 @@ class CustomOpsBackend(BaseDirectoryBackendABS):
 
             torch_op_name = f'{op_name}::{impl_name}'
             ref_impl_as_op = torch.library.custom_op(torch_op_name, ref_impl_kernel, mutates_args=(), device_types='cuda')
-            impl_as_op = torch.library.custom_op(torch_op_name, impl_kernel, mutates_args=())
 
             setattr(ref_impl_as_op, '__name__', torch_op_name)
-            setattr(impl_as_op, '__name__', torch_op_name)
 
             # Store the wrapped kernel with its unique name
-            self.compiled_kernels[ref_impl_as_op] = impl_as_op
+            self.compiled_kernels[ref_impl_as_op] = impl_kernel
 
             # Use the loaded test inputs instead of empty lists
             # Pass the wrapped kernel function

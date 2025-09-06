@@ -254,6 +254,8 @@ def cli(
         for test in suite:
             logger.debug(test.op)
 
+            assert test.op != backend[test.op]
+
             _ = evaluator.submit_task(
                 test.op,
                 backend[test.op],
