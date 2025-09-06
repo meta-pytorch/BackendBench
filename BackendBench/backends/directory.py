@@ -8,14 +8,14 @@ import logging
 from pathlib import Path
 from typing import Callable, List
 
-from .base_directory_backend import BaseDirectoryBackendABS
+from .base_directory_backend import BaseDirectoryBackendABC
 from ..scripts.op_map import query
 from ..utils import get_pytorch_op
 
 logger = logging.getLogger(__name__)
 
 
-class DirectoryBackend(BaseDirectoryBackendABS):
+class DirectoryBackend(BaseDirectoryBackendABC):
     """
     Directory-based backend for PyTorch ATen operations.
 

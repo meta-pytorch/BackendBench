@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from .base_directory_backend import BaseDirectoryBackendABS
+from .base_directory_backend import BaseDirectoryBackendABC
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from ..suite.custom_ops import CustomOpsTestSuite
 
 
-class CustomOpsBackend(BaseDirectoryBackendABS):
+class CustomOpsBackend(BaseDirectoryBackendABC):
     """
     Directory-based backend for non-ATen custom operators.
 

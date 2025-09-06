@@ -14,7 +14,7 @@ to alternative implementations.
 
 import importlib.util
 
-from .base_directory_backend import BaseDirectoryBackendABS
+from .base_directory_backend import BaseDirectoryBackendABC
 from .aten import AtenBackend
 from .base import Backend
 from .custom_ops import CustomOpsBackend

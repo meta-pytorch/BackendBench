@@ -19,7 +19,7 @@ from .base import Backend
 logger = logging.getLogger(__name__)
 
 
-class BaseDirectoryBackendABS(Backend, ABC):
+class BaseDirectoryBackendABC(Backend, ABC):
     """
     Abstract base class for directory-based backends.
 
