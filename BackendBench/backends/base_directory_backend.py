@@ -90,13 +90,11 @@ class BaseDirectoryBackendABS(Backend, ABC):
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
 
     def __getitem__(self, key):
-        dict_key = getattr(key, "__name__", key)
-        if dict_key in self.compiled_kernels:
-            return self.compiled_kernels[dict_key]
+        if key in self.compiled_kernels:
+            return self.compiled_kernels[key]
         raise KeyError(
             f"Operator {key} not implemented in {self.name} - add implementation to {self.ops_dir}/"
         )
 
     def __contains__(self, key):
-        dict_key = getattr(key, "__name__", key)
-        return dict_key in self.compiled_kernels
+        return key in self.compiled_kernels
