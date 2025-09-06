@@ -27,7 +27,7 @@ class OpTest:
 
 
 class TestSuite:
-    def __init__(self, name, optests):
+    def __init__(self, name, optests: list[OpTest]):
         self.name = name
         self.optests = optests
 

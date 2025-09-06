@@ -14,8 +14,10 @@ to alternative implementations.
 
 import importlib.util
 
+from .base_directory_backend import BaseDirectoryBackendABC
 from .aten import AtenBackend
 from .base import Backend
+from .custom_ops import CustomOpsBackend
 from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
 from .kernel_agent import KernelAgentBackend
@@ -23,6 +25,8 @@ from .llm import LLMBackend
 
 __all__ = [
     "Backend",
+    "BaseDirectoryBackendABC",
+    "CustomOpsBackend",
     "DirectoryBackend",
     "AtenBackend",
     "FlagGemsBackend",

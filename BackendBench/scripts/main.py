@@ -17,6 +17,7 @@ import datetime
 
 from BackendBench.llm_client import LLMKernelGenerator, LLMRelayKernelGenerator
 from BackendBench.suite import (
+    CustomOpsTestSuite,
     FactoTestSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
@@ -49,13 +50,15 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "custom_ops"]),
     help="Which suite to run",
 )
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(
+        ["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory", "custom_ops"]
+    ),
     help="Which backend to run",
 )
 @click.option(
@@ -108,6 +111,12 @@ def setup_logging(log_level):
     help="Path to directory containing generated kernels",
 )
 @click.option(
+    "--custom-ops-root",
+    default="custom_ops",
+    type=str,
+    help="Root directory for custom_ops backend and suite (for testing different locations)",
+)
+@click.option(
     "--log-dir",
     default=None,
     type=str,
@@ -153,6 +162,7 @@ def cli(
     kernel_agent_max_rounds,
     alternative_torchbench_data_path,
     ops_directory,
+    custom_ops_root,
     log_dir,
     disable_output_logs,
     num_workers,
@@ -168,7 +178,6 @@ def cli(
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
-
     suite = {
         "smoke": lambda: SmokeTestSuite,
         "opinfo": lambda: OpInfoTestSuite(
@@ -190,6 +199,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
+        "custom_ops": lambda: CustomOpsTestSuite(custom_ops_root, filter=ops),
     }[suite]()
 
     backend_name = backend
@@ -206,6 +216,8 @@ def cli(
             raise NotImplementedError("KernelAgent backend is for internal use only")
     elif backend == "directory":
         backend = backends.DirectoryBackend(ops_directory)
+    elif backend == "custom_ops":
+        backend = backends.CustomOpsBackend(suite, custom_ops_root)
     else:
         backend = {
             "aten": backends.AtenBackend,
@@ -228,57 +240,44 @@ def cli(
     all_correctness_results = []
     all_performance_results = []
 
-    if num_workers is None:
-        for test in suite:
-            if test.op not in backend:
-                continue
+    suite = [test for test in suite if test.op in backend]
 
+    if not suite:
+        logger.warning("No ops to run")
+
+    with (
+        multiprocessing_eval.SyncEvaluator()
+        if num_workers is None
+        else multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator
+    ):
+        # Submit all tasks
+        for test in suite:
             logger.debug(test.op)
 
-            _, perf, correctness_results, performance_results = eval.eval_one_op(
+            assert test.op != backend[test.op]
+
+            _ = evaluator.submit_task(
                 test.op,
                 backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
             )
 
-            overall_correctness.append(all(result.is_correct for result in correctness_results))
-            overall_performance.append(perf)
-            all_correctness_results.extend(correctness_results)
-            all_performance_results.extend(performance_results)
+        # Start evaluation
+        evaluator.start_evaluation()
 
-            logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
-    else:
-        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
-            # Submit all tasks
-            for test in suite:
-                if test.op not in backend:
-                    continue
+        # Get results
+        results = evaluator.get_results()
 
-                logger.debug(test.op)
-
-                _ = evaluator.submit_task(
-                    test.op,
-                    backend[test.op],
-                    test.correctness_tests,
-                    test.performance_tests,
-                )
-
-            # Start evaluation
-            evaluator.start_evaluation()
-
-            # Get results
-            results = evaluator.get_results()
-
-        for result in results:
-            correctness_score = all(
-                correctness_result.is_correct for correctness_result in result.correctness_results
-            )
-            performance_score = result.performance_score
-            overall_correctness.append(correctness_score)
-            overall_performance.append(performance_score)
-            all_correctness_results.extend(result.correctness_results)
-            all_performance_results.extend(result.performance_results)
+    for result in results:
+        correctness_score = all(
+            correctness_result.is_correct for correctness_result in result.correctness_results
+        )
+        performance_score = result.performance_score
+        overall_correctness.append(correctness_score)
+        overall_performance.append(performance_score)
+        all_correctness_results.extend(result.correctness_results)
+        all_performance_results.extend(result.performance_results)
 
     # @todo: We should just calculate these in a seperate function from verbose_results
     mean_correctness = torch.tensor(overall_correctness).float().mean().item()

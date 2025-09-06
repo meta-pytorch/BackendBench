@@ -18,6 +18,7 @@ from .facto import FactoTestSuite
 from .opinfo import OpInfoTestSuite
 from .smoke import randn, SmokeTestSuite
 from .torchbench import TorchBenchOpTest, TorchBenchTestSuite
+from .custom_ops import CustomOpsTestSuite
 
 __all__ = [
     "Test",
@@ -29,4 +30,5 @@ __all__ = [
     "randn",
     "TorchBenchOpTest",
     "TorchBenchTestSuite",
+    "CustomOpsTestSuite",
 ]

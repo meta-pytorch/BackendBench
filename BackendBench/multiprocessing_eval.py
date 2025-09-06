@@ -393,3 +393,36 @@ class MultiprocessingEvaluator:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.shutdown()
+
+
+class SyncEvaluator:
+    def __init__(self):
+        self.results = []
+
+    def submit_task(self, op, impl, correctness_tests, performance_tests) -> int:
+        (
+            correctness_score,
+            performance_score,
+            correctness_results,
+            performance_results,
+        ) = eval_one_op(op, impl, correctness_tests, performance_tests)
+        result = EvalResult(
+            task_id=0,
+            correctness_score=correctness_score,
+            performance_score=performance_score,
+            correctness_results=correctness_results,
+            performance_results=performance_results,
+        )
+        self.results.append(result)
+
+    def start_evaluation(self) -> None:
+        pass
+
+    def get_results(self):
+        return self.results
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass

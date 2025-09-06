@@ -33,6 +33,18 @@ python BackendBench/scripts/main.py --suite opinfo --backend directory
 python BackendBench/scripts/main.py --suite torchbench --backend directory
 ```
 
+## Custom Kernel Development
+
+BackendBench supports testing custom kernels through directory-based backends. See [docs/custom_ops.md](docs/custom_ops.md) for detailed information on testing non-ATen operations.
+
+Quick example:
+```bash
+# Test custom operations
+uv run python -m BackendBench.scripts.main \
+  --suite custom_ops --backend custom_ops \
+  --custom-ops-root test/custom_ops
+```
+
 To learn more please check out our [launch blog](docs/correctness.md)
 
 ## License
