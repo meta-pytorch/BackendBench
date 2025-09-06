@@ -10,7 +10,7 @@ The Custom Ops backend allows you to test custom operations that are not part of
 
 ### CustomOpsBackend
 - Loads implementations from filesystem directories
-- Registers each implementation as `op__impl_name` for testing
+- Registers each implementation as `op::impl_name` for testing
 - Inherits from `BaseDirectoryBackendABS` for consistent behavior
 
 ### CustomOpsTestSuite  
