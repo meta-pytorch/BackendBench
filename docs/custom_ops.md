@@ -33,12 +33,11 @@ The Custom Ops backend allows you to test custom operations that are not part of
 
 ### Function Names
 - **Implementation**: Must export `<op>_kernel_impl`
-- **Reference**: Must export `<op>_reference` (optional)
+- **Reference**: The reference file (e.g., `<op>_reference.py`) must also export `<op>_kernel_impl`
 
 ### Reference Precedence
-1. `<op>_reference.py` with `<op>_reference` function
-2. Any `<op>_kernel_impl` found (with warning)
-3. Identity passthrough (with warning)
+1. A file named `<op>_reference.py` exporting an `<op>_kernel_impl` function.
+2. If not found, the first discovered implementation file is used as the reference (with a warning).
 
 ## Test Definition
 
