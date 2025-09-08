@@ -9,9 +9,10 @@ import torch
 
 try:
     import importlib.util
-    from BackendBench.suite import SmokeTestSuite
-    from BackendBench.eval import eval_one_op
+
     import BackendBench.backends as backends
+    from BackendBench.eval import eval_one_op
+    from BackendBench.suite import SmokeTestSuite
 
     HAS_TRITON = importlib.util.find_spec("triton") is not None
 except ImportError:

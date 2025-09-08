@@ -16,12 +16,13 @@ import click
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
+from huggingface_hub import HfApi
+
 from BackendBench.data_loaders import _load_from_trace
 from BackendBench.scripts.dataset_filters import (
     apply_runtime_filter,
     apply_skip_ops_filter,
 )
-from huggingface_hub import HfApi
 
 DEFAULT_TRACE_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/augmented_hf_op_traces.txt"
 DEFAULT_PARQUET_URL = "https://huggingface.co/datasets/GPUMODE/huggingface_op_trace/resolve/main/backend_bench_problems.parquet"

@@ -9,10 +9,9 @@ import logging
 import os
 from typing import Callable, Dict
 
-
-from .base import Backend
 from ..scripts.op_map import query
 from ..utils import get_pytorch_op
+from .base import Backend
 
 logger = logging.getLogger(__name__)
 
