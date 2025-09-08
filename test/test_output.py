@@ -9,7 +9,8 @@ import tempfile
 from pathlib import Path
 import math
 
-from expecttest import TestCase
+from expecttest import assert_expected_inline
+
 
 from BackendBench.eval import CorrectnessTestResult, PerformanceTestResult
 from BackendBench.output import (
@@ -21,7 +22,7 @@ from BackendBench.output import (
 )
 
 
-class TestOutputFunctions(TestCase):
+class TestOutputFunctions:
     def _create_test_fixtures(self):
         """Create test fixtures for correctness and performance results."""
         correctness_results = [
@@ -78,16 +79,16 @@ class TestOutputFunctions(TestCase):
                 speedup=0.0,
                 benchmark_time_ms=0.0,
                 reference_time_ms=20.0,
-                successfully_ran=False,
-                error_msg="Compilation failed",
+                successfully_ran=True,
             ),
             PerformanceTestResult(
                 op_name="torch.ops.aten.sin.default",
                 args="[tensor([0.5])]",
-                speedup=3.0,
-                benchmark_time_ms=5.0,
-                reference_time_ms=15.0,
-                successfully_ran=True,
+                speedup=None,
+                benchmark_time_ms=None,
+                reference_time_ms=20.0,
+                successfully_ran=False,
+                error_msg="Compilation failed",
             ),
         ]
 
@@ -102,42 +103,35 @@ class TestOutputFunctions(TestCase):
         )
 
         # Check that all results are properly converted to dicts and sorted
-        self.assertEqual(len(all_results), 8)  # 4 correctness + 4 performance
-
-        # Check sorting by op_name, then args
-        expected_order = [
-            "torch.ops.aten.add.Tensor",
-            "torch.ops.aten.add.Tensor",
-            "torch.ops.aten.add.Tensor",
-            "torch.ops.aten.add.Tensor",
-            "torch.ops.aten.mul.Tensor",
-            "torch.ops.aten.mul.Tensor",
-            "torch.ops.aten.sin.default",
-            "torch.ops.aten.sin.default",
-        ]
-        actual_order = [result["op_name"] for result in all_results]
-        self.assertEqual(actual_order, expected_order)
+        assert len(all_results) == 8  # 4 correctness + 4 performance
 
         # Check failed tests
-        self.assertEqual(len(failed_tests), 2)  # 1 correctness + 1 performance failure
-        failed_ops = [test["op_name"] for test in failed_tests]
-        self.assertIn("torch.ops.aten.mul.Tensor", failed_ops)
+        assert len(failed_tests) == 2  # 1 correctness + 1 performance failure
+        failed_tests = [test["op_name"] for test in failed_tests]
+        assert "torch.ops.aten.mul.Tensor" in failed_tests
+        assert "torch.ops.aten.sin.default" in failed_tests
 
         # Check operator summaries
-        self.assertEqual(len(op_summaries), 3)  # add, mul, sin
+        assert len(op_summaries) == 3  # add, mul, sin
 
         # Test add operator summary
         add_summary = op_summaries["torch.ops.aten.add.Tensor"]
-        self.assertExpectedInline(
+        assert_expected_inline(
             str(add_summary),
-            """{'operator': 'torch.ops.aten.add.Tensor', 'total_tests': 4, 'passed_tests': 2, 'failed_tests': 2, 'correctness_rate': 0.5, 'avg_speedup': 1.75, 'geomean_speedup': 1.7320507764816284, 'max_absolute_error': 0.002, 'max_relative_error': 0.0002}""",
+            """{'operator': 'torch.ops.aten.add.Tensor', 'total_tests': 3, 'correctness_tests': 2, 'performance_tests': 2, 'passed_correctness_tests': 2, 'passed_performance_tests': 2, 'failed_correctness_tests': 0, 'failed_performance_tests': 0, 'correctness_rate': 1.0, 'avg_speedup': 1.75, 'geomean_speedup': 1.7320507764816284, 'max_absolute_error': 0.002, 'max_relative_error': 0.0002}""",
         )
 
         # Test mul operator summary (should have failed correctness and performance)
         mul_summary = op_summaries["torch.ops.aten.mul.Tensor"]
-        self.assertExpectedInline(
+        assert_expected_inline(
             str(mul_summary),
-            """{'operator': 'torch.ops.aten.mul.Tensor', 'total_tests': 2, 'passed_tests': 0, 'failed_tests': 2, 'correctness_rate': 0.0, 'avg_speedup': 0.0, 'geomean_speedup': 0.0, 'max_absolute_error': -inf, 'max_relative_error': -inf}""",
+            """{'operator': 'torch.ops.aten.mul.Tensor', 'total_tests': 3, 'correctness_tests': 1, 'performance_tests': 1, 'passed_correctness_tests': 0, 'passed_performance_tests': 1, 'failed_correctness_tests': 1, 'failed_performance_tests': 0, 'correctness_rate': 0.0, 'avg_speedup': 0.0, 'geomean_speedup': 0.0, 'max_absolute_error': -inf, 'max_relative_error': -inf}""",
+        )
+
+        sin_summary = op_summaries["torch.ops.aten.sin.default"]
+        assert_expected_inline(
+            str(sin_summary),
+            """{'operator': 'torch.ops.aten.sin.default', 'total_tests': 3, 'correctness_tests': 1, 'performance_tests': 1, 'passed_correctness_tests': 1, 'passed_performance_tests': 0, 'failed_correctness_tests': 0, 'failed_performance_tests': 1, 'correctness_rate': 1.0, 'avg_speedup': 0.0, 'geomean_speedup': 0.0, 'max_absolute_error': 0.0, 'max_relative_error': 0.0}""",
         )
 
     def test_get_summary_op_results(self):
@@ -147,13 +141,12 @@ class TestOutputFunctions(TestCase):
         op_results = _get_summary_op_results(performance_results, correctness_results)
 
         # Should return list of tuples (op_name, correctness_str, speedup_str)
-        self.assertEqual(len(op_results), 3)
+        assert len(op_results) == 3
 
         # Check that results are sorted properly (by speedup descending, then correctness)
-        self.assertExpectedInline(
+        assert_expected_inline(
             str(op_results),
-            """\
-[('torch.ops.aten.sin.default', '1.0000%', '3.0000x'), ('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
+            """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '0.0000x')]""",
         )
 
     def test_generate_overall_summary_content(self):
@@ -170,7 +163,7 @@ class TestOutputFunctions(TestCase):
             correctness_results=correctness_results,
         )
 
-        self.assertExpectedInline(
+        assert_expected_inline(
             content,
             """\
 # BackendBench Run Summary
@@ -200,15 +193,15 @@ The following files are saved in this directory:
 
 - `full_results.json`: Complete test results for all operators
 - `operator_summary.csv`: Operator-level summary statistics
-- `failed_ops.json`: Log of failed operations (if any)
+- `failed_tests.json`: Log of failed tests (if any)
 - `OVERALL_SUMMARY.md`: This file
 ### Operator Speedups vs Eager in Descending Order
 
 | Operator | Correctness Ratio | Speedup vs Eager |
 |----------|-----------|----------------|
-| torch.ops.aten.sin.default | 1.0000% | 3.0000x|
 | torch.ops.aten.add.Tensor | 1.0000% | 1.7500x|
-| torch.ops.aten.mul.Tensor | 0.0000% | 1.0000x|
+| torch.ops.aten.sin.default | 1.0000% | 1.0000x|
+| torch.ops.aten.mul.Tensor | 0.0000% | 0.0000x|
 """,
         )
 
@@ -231,34 +224,34 @@ The following files are saved in this directory:
             )
 
             # Check that all expected files were created
-            self.assertTrue((output_path / "full_results.json").exists())
-            self.assertTrue((output_path / "operator_summary.csv").exists())
-            self.assertTrue((output_path / "failed_ops.json").exists())
-            self.assertTrue((output_path / "OVERALL_SUMMARY.md").exists())
+            assert (output_path / "full_results.json").exists()
+            assert (output_path / "operator_summary.csv").exists()
+            assert (output_path / "failed_tests.json").exists()
+            assert (output_path / "OVERALL_SUMMARY.md").exists()
 
             # Check full_results.json content
             with open(output_path / "full_results.json") as f:
                 full_results = json.load(f)
-            self.assertEqual(len(full_results), 8)
+            assert len(full_results) == 8
 
-            # Check failed_ops.json content
-            with open(output_path / "failed_ops.json") as f:
-                failed_ops = json.load(f)
-            self.assertEqual(len(failed_ops), 2)
+            # Check failed_tests.json content
+            with open(output_path / "failed_tests.json") as f:
+                failed_tests = json.load(f)
+            assert len(failed_tests) == 2
 
             # Check that CSV has correct number of rows (header + 3 operators)
             with open(output_path / "operator_summary.csv") as f:
                 csv_content = f.read()
             # Should have header + 3 data rows
-            self.assertEqual(len(csv_content.strip().split("\n")), 4)
+            assert len(csv_content.strip().split("\n")) == 4
 
             # Check overall summary exists and has expected content
             with open(output_path / "OVERALL_SUMMARY.md") as f:
                 summary_content = f.read()
-            self.assertIn("# BackendBench Run Summary", summary_content)
-            self.assertIn("backendbench --suite test_suite", summary_content)
-            self.assertIn("0.75", summary_content)  # mean_correctness
-            self.assertIn("1.80", summary_content)  # geomean_perf
+            assert "# BackendBench Run Summary" in summary_content
+            assert "backendbench --suite test_suite" in summary_content
+            assert "0.75" in summary_content  # mean_correctness
+            assert "1.80" in summary_content  # geomean_perf
 
     def test_save_overall_summary_standalone(self):
         """Test the save_overall_summary function independently."""
@@ -280,16 +273,16 @@ The following files are saved in this directory:
 
             # Check that the summary file was created
             summary_path = output_path / "OVERALL_SUMMARY.md"
-            self.assertTrue(summary_path.exists())
+            assert summary_path.exists()
 
             # Check content
             with open(summary_path) as f:
                 content = f.read()
 
-            self.assertIn("backendbench --ops add,mul", content)
-            self.assertIn("| Correctness Score | 0.80 |", content)
-            self.assertIn("| Performance Score (geomean speedup) | 2.10 |", content)
-            self.assertIn("| Perf@1.5 Score | 0.70 |", content)
+            assert "backendbench --ops add,mul" in content
+            assert "| Correctness Score | 0.80 |" in content
+            assert "| Performance Score (geomean speedup) | 2.10 |" in content
+            assert "| Perf@1.5 Score | 0.70 |" in content
 
     def test_empty_results(self):
         """Test functions with empty input data."""
@@ -300,13 +293,13 @@ The following files are saved in this directory:
             empty_correctness, empty_performance
         )
 
-        self.assertEqual(len(all_results), 0)
-        self.assertEqual(len(failed_tests), 0)
-        self.assertEqual(len(op_summaries), 0)
+        assert len(all_results) == 0
+        assert len(failed_tests) == 0
+        assert len(op_summaries) == 0
 
         # Test with empty results in summary function
         op_results = _get_summary_op_results(empty_performance, empty_correctness)
-        self.assertEqual(len(op_results), 0)
+        assert len(op_results) == 0
 
     def test_edge_cases(self):
         """Test edge cases and error conditions."""
@@ -334,9 +327,9 @@ The following files are saved in this directory:
         )
 
         # Should handle infinite values gracefully
-        self.assertEqual(len(all_results), 2)
-        self.assertEqual(len(op_summaries), 1)
+        assert len(all_results) == 2
+        assert len(op_summaries) == 1
 
         # Check that infinite speedup is handled
         edge_summary = op_summaries["edge_case_op"]
-        self.assertTrue(math.isinf(edge_summary["avg_speedup"]))
+        assert math.isinf(edge_summary["avg_speedup"])

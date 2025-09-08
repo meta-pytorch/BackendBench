@@ -55,8 +55,10 @@ def _prepare_results_data(
         ]
 
         # Calculate operator-level summary
-        total_tests = len(op_tests)
-        correct_tests = sum(1 for result in op_correctness_results if result.is_correct)
+        correct_correctness_tests = sum(1 for result in op_correctness_results if result.is_correct)
+        passed_performance_tests = sum(
+            1 for result in op_performance_results if result.successfully_ran
+        )
         # Collect performance metrics
         speedups = []
         abs_errors = []
@@ -73,7 +75,11 @@ def _prepare_results_data(
                 speedups.append(float(test.speedup))
 
         # Calculate summary statistics
-        correctness_rate = correct_tests / total_tests if total_tests > 0 else 0.0
+        correctness_rate = (
+            correct_correctness_tests / len(op_correctness_results)
+            if len(op_correctness_results) > 0
+            else 0.0
+        )
         avg_speedup = sum(speedups) / len(speedups) if speedups else 0.0
         geomean_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
         max_abs_error = max(abs_errors) if abs_errors else 0.0
@@ -81,9 +87,14 @@ def _prepare_results_data(
 
         op_summaries[op_name] = {
             "operator": op_name,
-            "total_tests": total_tests,
-            "passed_tests": correct_tests,
-            "failed_tests": total_tests - correct_tests,
+            "total_tests": len(op_all_results),
+            "correctness_tests": len(op_correctness_results),
+            "performance_tests": len(op_performance_results),
+            "passed_correctness_tests": correct_correctness_tests,
+            "passed_performance_tests": passed_performance_tests,
+            "failed_correctness_tests": len(op_correctness_results) - correct_correctness_tests,
+            "failed_performance_tests": len(op_performance_results)
+            - len([test for test in op_performance_results if test.successfully_ran]),
             "correctness_rate": correctness_rate,
             "avg_speedup": avg_speedup,
             "geomean_speedup": geomean_speedup,
@@ -95,6 +106,7 @@ def _prepare_results_data(
     failed_tests = [asdict(result) for result in correctness_results if not result.is_correct] + [
         asdict(result) for result in performance_results if not result.successfully_ran
     ]
+
     # sort failed_tests
     failed_tests.sort(key=lambda x: (x["op_name"], x["args"]))
 
@@ -128,7 +140,7 @@ def save_results(
         ├── OVERALL_SUMMARY.md         # Top level summary of results
         ├── full_results.json          # Complete results log
         ├── operator_summary.csv       # Operator-level summary
-        └── failed_ops.json            # Log of failed operations
+        └── failed_tests.json            # Log of failed operations
     """
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
@@ -140,7 +152,7 @@ def save_results(
 
     # 1. Save the full log in the base directory
     full_log_path = base_dir / "full_results.json"
-    failed_ops_path = base_dir / "failed_ops.json"
+    failed_tests_path = base_dir / "failed_tests.json"
     summary_csv_path = base_dir / "operator_summary.csv"
 
     with open(full_log_path, "w") as f:
@@ -161,9 +173,9 @@ def save_results(
         logger.info(f"Operator summary CSV saved to {summary_csv_path}")
 
     # 3. Save failed operations log
-    with open(failed_ops_path, "w") as f:
+    with open(failed_tests_path, "w") as f:
         json.dump(failed_tests, f, indent=2)
-    logger.info(f"Failed operations log saved to {failed_ops_path}")
+    logger.info(f"Failed operations log saved to {failed_tests_path}")
 
     # Save overall_summary if metrics are provided
     if all(x is not None for x in [command, mean_correctness, geomean_perf, perf_at_p_score]):
@@ -263,7 +275,7 @@ def _generate_overall_summary_content(
     content.append("The following files are saved in this directory:\n")
     content.append("- `full_results.json`: Complete test results for all operators")
     content.append("- `operator_summary.csv`: Operator-level summary statistics")
-    content.append("- `failed_ops.json`: Log of failed operations (if any)")
+    content.append("- `failed_tests.json`: Log of failed tests (if any)")
     content.append("- `OVERALL_SUMMARY.md`: This file")
 
     content.append("### Operator Speedups vs Eager in Descending Order\n")
