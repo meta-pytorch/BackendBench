@@ -117,14 +117,14 @@ def _prepare_results_data(
 def save_results(
     correctness_results: List[CorrectnessTestResult],
     performance_results: List[PerformanceTestResult],
-    output_path: Union[str, Path] = "backendbench_output",
-    command: str = None,
-    mean_correctness: float = None,
-    geomean_perf: float = None,
-    perf_at_p_score: float = None,
+    output_path: str,
+    command: str,
+    mean_correctness: float,
+    geomean_perf: float,
+    perf_at_p_score: float,
     p: float = 1.0,
-):
-    """Save results without creating per-operator directories.
+) -> Tuple[List[dict], List[dict], dict]:
+    """Prepare and process results data without file I/O.
 
     Args:
         correctness_results: List of correctness test results
