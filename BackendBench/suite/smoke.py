@@ -7,7 +7,8 @@
 import torch
 
 from BackendBench.opregistry import get_operator
-from .base import Test, OpTest, TestSuite
+
+from .base import OpTest, Test, TestSuite
 
 
 def randn(*args, **kwargs):

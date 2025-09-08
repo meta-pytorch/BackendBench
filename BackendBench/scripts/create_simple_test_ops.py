@@ -11,8 +11,8 @@ Create simple kernel implementations for 5 common operations.
 Each just calls the original PyTorch function.
 """
 
-import os
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 

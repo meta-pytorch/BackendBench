@@ -11,11 +11,11 @@ Test monkey patching of directory backend.
 """
 
 import os
-import sys
 import shutil
 import subprocess
-import pytest
+import sys
 
+import pytest
 import torch
 
 import BackendBench

@@ -10,7 +10,7 @@ Operation: {op_signature}
 {op_description}
 
 Requirements:
-- Triton kernel function MUST be named: {op_name}_triton_kernel  
+- Triton kernel function MUST be named: {op_name}_triton_kernel
 - Wrapper function MUST be named: {op_name}_kernel_impl
 - Use modern Triton syntax with proper grid computation
 - Include all necessary imports (torch, triton, triton.language as tl)

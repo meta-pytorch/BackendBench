@@ -11,14 +11,15 @@ Test for backend registration that sets up the generated kernels directory struc
 from scratch with embedded implementations and verifies custom operator registration.
 """
 
+import io
 import os
 import shutil
 import tempfile
 import unittest
-import io
 from contextlib import redirect_stdout
 
 import torch
+
 import BackendBench
 
 

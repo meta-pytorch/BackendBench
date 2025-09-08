@@ -26,6 +26,7 @@ Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFa
 """
 
 import torch  # noqa: F401
+
 from BackendBench.data_loaders import (
     _args_size,
     load_ops_from_source,

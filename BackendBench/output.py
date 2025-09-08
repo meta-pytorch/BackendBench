@@ -4,16 +4,17 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import csv
+import json
+import logging
+from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
-from typing import List, Union, Tuple
-import json
-import csv
-from collections import defaultdict
-import logging
-from .eval import CorrectnessTestResult, PerformanceTestResult
+from typing import List, Tuple, Union
 
 import torch
+
+from .eval import CorrectnessTestResult, PerformanceTestResult
 
 logger = logging.getLogger(__name__)
 

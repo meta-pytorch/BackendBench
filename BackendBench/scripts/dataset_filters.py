@@ -6,15 +6,15 @@
 
 
 import torch
-
 import tqdm
-from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 from triton.testing import do_bench
+
 from BackendBench.op_categories import (
-    UNSUPPORTED_OPERATORS,
-    TENSOR_CREATION_AND_MANIPULATION_OPS,
     RANDOM_OPS,
+    TENSOR_CREATION_AND_MANIPULATION_OPS,
+    UNSUPPORTED_OPERATORS,
 )
+from BackendBench.utils import cleanup_memory_and_gpu, deserialize_args
 
 # We get this threshhold from the analysis here
 # https://github.com/meta-pytorch/BackendBench/issues/108

@@ -4,14 +4,15 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional, Callable
+import os
+from typing import Callable, Dict, Optional
+
+import anthropic
 import requests
 from tenacity import retry
 from tenacity.wait import wait_random_exponential
 
 from .kernel_templates import KernelTemplateManager
-import anthropic
-import os
 
 
 class LLMKernelGenerator:

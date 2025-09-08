@@ -4,16 +4,17 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch
 import math
+
 import pytest
+import torch
 
 from BackendBench.utils import (
-    serialize_args,
-    deserialize_args,
     _deserialize_tensor,
-    uses_cuda_stream,
     compute_errors,
+    deserialize_args,
+    serialize_args,
+    uses_cuda_stream,
 )
 
 # Check if CUDA is available

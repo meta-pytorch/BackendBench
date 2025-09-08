@@ -8,10 +8,11 @@
 BackendBench: A PyTorch backend evaluation framework.
 """
 
-import torch
-from typing import Optional, Union
-from pathlib import Path
 import logging
+from pathlib import Path
+from typing import Optional, Union
+
+import torch
 
 # Import the existing DirectoryBackend implementation
 from BackendBench.backends.directory import DirectoryBackend
