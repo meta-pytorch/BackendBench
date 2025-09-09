@@ -4,19 +4,16 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import importlib.util
+
 import pytest
 import torch
 
-try:
-    import importlib.util
+import BackendBench.backends as backends
+from BackendBench.eval import eval_one_op
+from BackendBench.suite import SmokeTestSuite
 
-    import BackendBench.backends as backends
-    from BackendBench.eval import eval_one_op
-    from BackendBench.suite import SmokeTestSuite
-
-    HAS_TRITON = importlib.util.find_spec("triton") is not None
-except ImportError:
-    HAS_TRITON = False
+HAS_TRITON = importlib.util.find_spec("triton") is not None
 
 pytestmark = pytest.mark.skipif(not HAS_TRITON, reason="triton not available")
 
