@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import List, Tuple, Union
 
 import torch
+import os
 
 from .eval import CorrectnessTestResult, PerformanceTestResult
 
@@ -151,9 +152,9 @@ def save_results(
     )
 
     # 1. Save the full log in the base directory
-    full_log_path = base_dir / "full_results.json"
-    failed_tests_path = base_dir / "failed_tests.json"
-    summary_csv_path = base_dir / "operator_summary.csv"
+    full_log_path = os.path.join(base_dir, "full_results.json")
+    failed_tests_path = os.path.join(base_dir, "failed_tests.json")
+    summary_csv_path = os.path.join(base_dir, "operator_summary.csv")
 
     with open(full_log_path, "w") as f:
         json.dump(all_results, f, indent=2)
@@ -311,7 +312,7 @@ def save_overall_summary(
     base_dir = Path(output_path)
     base_dir.mkdir(parents=True, exist_ok=True)
 
-    overall_summary_path = base_dir / "OVERALL_SUMMARY.md"
+    overall_summary_path = os.path.join(base_dir, "OVERALL_SUMMARY.md")
 
     content = _generate_overall_summary_content(
         command,
