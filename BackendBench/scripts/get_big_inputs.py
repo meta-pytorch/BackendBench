@@ -14,7 +14,10 @@ from typing import Dict, List, Tuple
 
 import requests
 import torch
+from main import setup_logging
+from tqdm import tqdm
 
+from BackendBench.op_categories import UNSUPPORTED_OPERATORS
 from BackendBench.torchbench_suite import (
     _args_size,
     _deserialize_args,
@@ -22,9 +25,6 @@ from BackendBench.torchbench_suite import (
     _parse_inputs,
     dtype_abbrs,
 )
-from BackendBench.op_categories import UNSUPPORTED_OPERATORS
-from main import setup_logging
-from tqdm import tqdm
 from BackendBench.utils import cleanup_memory_and_gpu
 
 # Magic numbers and constants

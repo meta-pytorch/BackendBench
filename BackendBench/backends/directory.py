@@ -11,6 +11,7 @@ from typing import Callable, List
 from .base_directory_backend import BaseDirectoryBackendABC
 from ..scripts.op_map import query
 from ..utils import get_pytorch_op
+from .base import Backend
 
 logger = logging.getLogger(__name__)
 

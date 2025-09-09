@@ -6,9 +6,9 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import subprocess
 import sys
 import unittest
-import subprocess
 from pathlib import Path
 
 import torch

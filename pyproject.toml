@@ -61,4 +61,11 @@ dev-dependencies = [
 [tool.ruff]
 line-length = 100
 
-[tool.ruff.format]
+[tool.ruff.lint]
+extend-select = ["I", "W292", "W291"]  # Enable isort rules, final newline rule, and trailing whitespace rule
+
+[tool.ruff.lint.isort]
+case-sensitive = false
+combine-as-imports = true
+detect-same-package = false
+order-by-type = false

@@ -67,6 +67,7 @@ def get_opinfo_operators() -> Set[str]:
     """Get operators available in OpInfo suite."""
     try:
         import torch
+
         from BackendBench.suite import OpInfoTestSuite
 
         suite = OpInfoTestSuite("opinfo", "cpu", torch.float32)

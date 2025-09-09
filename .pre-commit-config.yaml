@@ -9,7 +9,7 @@ repos:
     hooks:
       - id: check-license-headers
         name: Check license headers
-        entry: python .github/scripts/check_license_headers.py
+        entry: uv run python .github/scripts/check_license_headers.py
         language: system
         files: \.py$
         pass_filenames: true

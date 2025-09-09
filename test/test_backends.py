@@ -5,14 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 
 import importlib.util
+
 import pytest
 import torch
+
 from BackendBench.backends import (
     AtenBackend,
     FlagGemsBackend,
     KernelAgentBackend,
 )
-
 
 HAS_KERNEL_AGENT = KernelAgentBackend is not None
 

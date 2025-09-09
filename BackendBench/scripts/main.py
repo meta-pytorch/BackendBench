@@ -4,18 +4,19 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import datetime
 import logging
 import os
 import sys
 
+import click
+import torch
+
 import BackendBench.backends as backends
 import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
-import click
-import torch
-import datetime
-
 from BackendBench.llm_client import LLMKernelGenerator, LLMRelayKernelGenerator
+from BackendBench.output import save_results
 from BackendBench.suite import (
     CustomOpsTestSuite,
     FactoTestSuite,
@@ -295,7 +296,7 @@ def cli(
     # Save results if not disabled
 
     if not disable_output_logs:
-        eval.save_results(
+        save_results(
             all_correctness_results,
             all_performance_results,
             log_dir,

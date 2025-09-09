@@ -6,8 +6,9 @@
 
 import pytest
 import torch
-from BackendBench.suite import randn, Test, OpTest, TestSuite, SmokeTestSuite
+
 from BackendBench.opregistry import get_operator
+from BackendBench.suite import OpTest, randn, SmokeTestSuite, Test, TestSuite
 
 
 class TestRandnFunction:
