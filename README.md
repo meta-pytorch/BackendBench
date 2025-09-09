@@ -24,8 +24,9 @@ python -m BackendBench.scripts.setup_operator_directories
 
 2. **Implement kernels** in each directory you'll see an empty op implementation. Please get your LLM to fill it out!
 
-```bash
 3. **Test your implementations**:
+
+```bash
 # OpInfo correctness tests
 python BackendBench/scripts/main.py --suite opinfo --backend directory
 
