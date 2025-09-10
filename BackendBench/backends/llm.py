@@ -116,14 +116,15 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_dir = os.path.join(self.kernels_dir, op_name)
         os.makedirs(op_dir, exist_ok=True)
         kernel_file_path = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
-        expected_fn_name = f"{op_name}_implementation_v{attempt}"
+        module_name = f"{op_name}_implementation_v{attempt}"
 
         try:
             kernel = compile_kernel_from_string(
                 kernel_code=kernel_code,
                 op_name=op_name,
                 kernel_file_path=kernel_file_path,
-                expected_fn_name=expected_fn_name,
+                expected_fn_name=op_name,
+                module_name=module_name,
             )
         except Exception as e:
             raise e

@@ -282,7 +282,7 @@ def extract_operator_name(op_str: str) -> str:
 
 
 def compile_kernel_from_string(
-    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str
+    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str, module_name: str
 ) -> tuple[Callable | None, list[str]]:
     def _prepare_triton_code(kernel_code: str) -> str:
         """Prepare Triton kernel code with necessary imports."""
@@ -337,11 +337,11 @@ import torch.nn.functional as F
 
         logger.debug(f"Saved kernel to: {kernel_file_path}")
 
-        spec = importlib.util.spec_from_file_location(expected_fn_name, kernel_file_path)
+        spec = importlib.util.spec_from_file_location(module_name, kernel_file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        kernel_func = _find_kernel_function(module, op_name)
+        kernel_func = _find_kernel_function(module, expected_fn_name)
         return kernel_func
 
     except Exception as e:

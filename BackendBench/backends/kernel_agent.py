@@ -185,6 +185,7 @@ def {expected_name}(*args, **kwargs):
         adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
         kernel_file_path = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
         expected_fn_name = f"{op_name}_kernel_impl"
+        module_name = f"kernel_agent_{op_name}"
 
         try:
             kernel = compile_kernel_from_string(
@@ -192,6 +193,7 @@ def {expected_name}(*args, **kwargs):
                 op_name=op_name,
                 kernel_file_path=kernel_file_path,
                 expected_fn_name=expected_fn_name,
+                module_name=module_name,
             )
         except Exception as e:
             raise e
