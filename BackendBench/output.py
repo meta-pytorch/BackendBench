@@ -7,13 +7,13 @@
 import csv
 import json
 import logging
+import os
 from collections import defaultdict
 from dataclasses import asdict
 from pathlib import Path
 from typing import List, Tuple, Union
 
 import torch
-import os
 
 from .eval import CorrectnessTestResult, PerformanceTestResult
 
