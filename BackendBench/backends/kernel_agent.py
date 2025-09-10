@@ -193,27 +193,6 @@ def {expected_name}(*args, **kwargs):
             raise e
         return kernel
 
-    def _prepare_triton_code(self, kernel_code: str) -> str:
-        """Prepare Triton kernel code with necessary imports."""
-        imports = """
-import torch
-import triton
-import triton.language as tl
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
-
-    def _prepare_torch_code(self, kernel_code: str) -> str:
-        """Prepare regular PyTorch kernel code with necessary imports."""
-        imports = """
-import torch
-import torch.nn.functional as F
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
-
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
         compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
