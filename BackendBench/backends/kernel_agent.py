@@ -11,6 +11,8 @@ from typing import Callable, Dict
 
 from .base import Backend
 
+from BackendBench.utils import compile_kernel_from_string
+
 logger = logging.getLogger(__name__)
 
 
@@ -181,46 +183,15 @@ def {expected_name}(*args, **kwargs):
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
+        adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
+        kernel_file_path = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
+        expected_fn_name = f"{op_name}_kernel_impl"
+
         try:
-            # Adapt the function name for BackendBench compatibility
-            adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
-
-            # Prepare the code with necessary imports
-            is_triton = "triton.jit" in adapted_code or "@triton.jit" in adapted_code
-            if is_triton:
-                full_code = self._prepare_triton_code(adapted_code)
-            else:
-                full_code = self._prepare_torch_code(adapted_code)
-
-            # Save the kernel to file
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
-            with open(kernel_file, "w") as f:
-                f.write(full_code)
-
-            print(f"Saved KernelAgent kernel to: {kernel_file}")
-
-            # Import and compile the kernel
-            spec = importlib.util.spec_from_file_location(f"kernel_agent_{op_name}", kernel_file)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            # Find the expected function
-            expected_name = f"{op_name}_kernel_impl"
-            if hasattr(module, expected_name):
-                return getattr(module, expected_name)
-            else:
-                available_functions = [
-                    name
-                    for name in dir(module)
-                    if callable(getattr(module, name)) and not name.startswith("_")
-                ]
-                raise ValueError(
-                    f"Expected function '{expected_name}' not found in KernelAgent kernel. "
-                    f"Available: {available_functions}"
-                )
-
+            kernel = compile_kernel_from_string(kernel_code=adapted_code, op_name=op_name, kernel_file_path=kernel_file_path, expected_fn_name=expected_fn_name)
         except Exception as e:
-            raise RuntimeError(f"Failed to compile KernelAgent kernel for {op_name}: {str(e)}")
+            raise e
+        return kernel
 
     def _prepare_triton_code(self, kernel_code: str) -> str:
         """Prepare Triton kernel code with necessary imports."""

@@ -11,9 +11,12 @@ import logging
 import math
 import re
 import textwrap
+import importlib.util
 
 import torch
 from torch.testing import make_tensor
+
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -277,3 +280,72 @@ def extract_operator_name(op_str: str) -> str:
         return op_str.split(".")[0]
     else:
         return op_str
+
+
+def compile_kernel_from_string(
+    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str
+) -> tuple[Callable | None, list[str]]:
+    def _prepare_triton_code(kernel_code: str) -> str:
+        """Prepare Triton kernel code with necessary imports."""
+        imports = """
+import torch
+import triton
+import triton.language as tl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def _prepare_torch_code(kernel_code: str) -> str:
+        """Prepare regular PyTorch kernel code with necessary imports."""
+        imports = """
+import torch
+import torch.nn.functional as F
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def _find_kernel_function(module, op_name: str) -> Callable:
+        """Find the main kernel function in the compiled module."""
+        expected_name = f"{op_name}_kernel_impl"
+
+        if hasattr(module, expected_name):
+            return getattr(module, expected_name)
+
+        available_functions = [
+            name
+            for name in dir(module)
+            if callable(getattr(module, name)) and not name.startswith("_")
+        ]
+
+        raise ValueError(
+            f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
+            f"Available functions: {available_functions}. "
+            f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
+        )
+
+    try:
+        is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+
+        if is_triton:
+            full_code = _prepare_triton_code(kernel_code)
+        else:
+            full_code = _prepare_torch_code(kernel_code)
+
+        with open(kernel_file_path, "w") as f:
+            f.write(full_code)
+
+        logger.debug(f"Saved kernel to: {kernel_file_path}")
+
+        spec = importlib.util.spec_from_file_location(
+            expected_fn_name, kernel_file_path
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        kernel_func = _find_kernel_function(module, op_name)
+        return kernel_func
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to compile kernel for {op_name}: {str(e)}") from e
