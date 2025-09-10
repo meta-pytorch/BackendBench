@@ -16,7 +16,7 @@ import torch
 
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
-from BackendBench.utils import extract_operator_name
+from BackendBench.utils import compile_kernel_from_string, extract_operator_name
 
 from .base import Backend
 
@@ -113,75 +113,22 @@ You can inspect these files to debug kernel generation, manually test implementa
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
+        op_dir = os.path.join(self.kernels_dir, op_name)
+        os.makedirs(op_dir, exist_ok=True)
+        kernel_file_path = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+        module_name = f"{op_name}_implementation_v{attempt}"
+
         try:
-            is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
-
-            if is_triton:
-                full_code = self._prepare_triton_code(kernel_code)
-            else:
-                full_code = self._prepare_torch_code(kernel_code)
-
-            # create directory / file in the directory bench format
-            op_dir = os.path.join(self.kernels_dir, op_name)
-            os.makedirs(op_dir, exist_ok=True)
-            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
-            with open(kernel_file, "w") as f:
-                f.write(full_code)
-
-            logger.debug(f"Saved kernel to: {kernel_file}")
-
-            spec = importlib.util.spec_from_file_location(
-                f"{op_name}_implementation_v{attempt}", kernel_file
+            kernel = compile_kernel_from_string(
+                kernel_code=kernel_code,
+                op_name=op_name,
+                kernel_file_path=kernel_file_path,
+                expected_fn_name=op_name,
+                module_name=module_name,
             )
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            kernel_func = self._find_kernel_function(module, op_name)
-
-            return kernel_func
-
         except Exception as e:
-            raise RuntimeError(f"Failed to compile kernel for {op_name}: {str(e)}")
-
-    def _prepare_triton_code(self, kernel_code: str) -> str:
-        """Prepare Triton kernel code with necessary imports."""
-        imports = """
-import torch
-import triton
-import triton.language as tl
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
-
-    def _prepare_torch_code(self, kernel_code: str) -> str:
-        """Prepare regular PyTorch kernel code with necessary imports."""
-        imports = """
-import torch
-import torch.nn.functional as F
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
-
-    def _find_kernel_function(self, module, op_name: str) -> Callable:
-        """Find the main kernel function in the compiled module."""
-        expected_name = f"{op_name}_kernel_impl"
-
-        if hasattr(module, expected_name):
-            return getattr(module, expected_name)
-
-        available_functions = [
-            name
-            for name in dir(module)
-            if callable(getattr(module, name)) and not name.startswith("_")
-        ]
-
-        raise ValueError(
-            f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
-            f"Available functions: {available_functions}. "
-            f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
-        )
+            raise e
+        return kernel
 
     def _make_error_func(error_msg):
         def error_func(*args, **kwargs):
