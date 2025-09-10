@@ -114,7 +114,9 @@ class TestMonkeyPatch:
 
         torch.testing.assert_close(relu(x), expected)
 
-        with BackendBench.BackendBench.enable(kernel_dir=self.kernel_dir, dispatch_key=device.upper()):
+        with BackendBench.BackendBench.enable(
+            kernel_dir=self.kernel_dir, dispatch_key=device.upper()
+        ):
             torch.testing.assert_close(relu(x), watermarked)
 
         torch.testing.assert_close(relu(x), expected)

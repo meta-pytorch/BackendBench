@@ -28,17 +28,17 @@ _lib = None
 
 class _BackendBenchContext:
     """Context manager for BackendBench that enables on entry and disables on exit."""
-    
+
     def __init__(self, kernel_dir=None, namespace="aten", dispatch_key="CUDA"):
         self.kernel_dir = kernel_dir
         self.namespace = namespace
         self.dispatch_key = dispatch_key
         self._was_enabled = _lib is not None
-    
+
     def __enter__(self):
         enable(self.kernel_dir, self.namespace, self.dispatch_key)
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         if not self._was_enabled:
             disable()
@@ -46,22 +46,22 @@ class _BackendBenchContext:
 
 class BackendBench:
     """BackendBench main class with context manager support."""
-    
+
     @classmethod
     def enable(cls, kernel_dir=None, namespace="aten", dispatch_key="CUDA"):
         """
         Return a context manager that enables BackendBench on entry and disables on exit.
-        
+
         Args:
             kernel_dir: Path to the directory containing custom kernels
             namespace: PyTorch namespace to patch (default: "aten")
             dispatch_key: Dispatch key for the kernels (default: "CUDA")
-            
+
         Returns:
             Context manager that can be used with 'with' statement
-            
+
         Example:
-            with BackendBench.enable(generated_kernels):
+            with BackendBench.enable(kernel_dir="generated_kernels/"):
                 model.forward()  # uses LLM kernels
             # On exit, uses aten kernels
         """
