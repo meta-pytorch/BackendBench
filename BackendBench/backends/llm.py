@@ -16,7 +16,7 @@ import torch
 
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
-from BackendBench.utils import extract_operator_name, compile_kernel_from_string
+from BackendBench.utils import compile_kernel_from_string, extract_operator_name
 
 from .base import Backend
 

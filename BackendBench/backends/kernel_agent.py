@@ -4,14 +4,13 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import importlib.util
 import logging
 import os
 from typing import Callable, Dict
 
-from .base import Backend
-
 from BackendBench.utils import compile_kernel_from_string
+
+from .base import Backend
 
 logger = logging.getLogger(__name__)
 

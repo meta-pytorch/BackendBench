@@ -6,17 +6,16 @@
 
 import ast
 import gc
+import importlib.util
 import inspect
 import logging
 import math
 import re
 import textwrap
-import importlib.util
+from typing import Callable
 
 import torch
 from torch.testing import make_tensor
-
-from typing import Callable
 
 logger = logging.getLogger(__name__)
 
