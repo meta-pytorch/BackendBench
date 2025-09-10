@@ -17,9 +17,8 @@ from typing import Dict, List, Optional, Union
 import pyarrow.parquet as pq
 import requests
 import torch
-from tqdm import tqdm
-
 from datasets import load_dataset
+from tqdm import tqdm
 
 # constants for downloading the test set from huggingface
 # you can explore the dataset here
