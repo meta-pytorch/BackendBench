@@ -112,7 +112,7 @@ You can inspect these files to debug kernel generation, manually test implementa
     def compile_kernel_from_string(
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
-        """ Compile a kernel from string code and return a callable."""
+        """Compile a kernel from string code and return a callable."""
         op_dir = os.path.join(self.kernels_dir, op_name)
         os.makedirs(op_dir, exist_ok=True)
         kernel_file_path = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
@@ -120,7 +120,10 @@ You can inspect these files to debug kernel generation, manually test implementa
 
         try:
             kernel = compile_kernel_from_string(
-                kernel_code=kernel_code, op_name=op_name, kernel_file_path=kernel_file_path, expected_fn_name=expected_fn_name
+                kernel_code=kernel_code,
+                op_name=op_name,
+                kernel_file_path=kernel_file_path,
+                expected_fn_name=expected_fn_name,
             )
         except Exception as e:
             raise e

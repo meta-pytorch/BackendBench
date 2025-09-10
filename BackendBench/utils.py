@@ -338,9 +338,7 @@ import torch.nn.functional as F
 
         logger.debug(f"Saved kernel to: {kernel_file_path}")
 
-        spec = importlib.util.spec_from_file_location(
-            expected_fn_name, kernel_file_path
-        )
+        spec = importlib.util.spec_from_file_location(expected_fn_name, kernel_file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 

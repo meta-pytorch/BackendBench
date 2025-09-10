@@ -188,7 +188,12 @@ def {expected_name}(*args, **kwargs):
         expected_fn_name = f"{op_name}_kernel_impl"
 
         try:
-            kernel = compile_kernel_from_string(kernel_code=adapted_code, op_name=op_name, kernel_file_path=kernel_file_path, expected_fn_name=expected_fn_name)
+            kernel = compile_kernel_from_string(
+                kernel_code=adapted_code,
+                op_name=op_name,
+                kernel_file_path=kernel_file_path,
+                expected_fn_name=expected_fn_name,
+            )
         except Exception as e:
             raise e
         return kernel
