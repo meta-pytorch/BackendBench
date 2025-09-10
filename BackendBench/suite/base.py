@@ -27,7 +27,7 @@ class OpTest:
         self.op = op
         self.correctness_tests = correctness_tests
         self.performance_tests = performance_tests
-    
+
     def __getstate__(self):
         # Custom serialization to handle callable op
         state = self.__dict__.copy()
