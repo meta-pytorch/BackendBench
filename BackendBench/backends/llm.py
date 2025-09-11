@@ -260,8 +260,10 @@ You can inspect these files to debug kernel generation, manually test implementa
             feedback_info["compilation_error"] = str(e)
             feedback_info["summary"] = "Compilation failed"
             return False, feedback_info
-        
-    def test_kernel_performance(self, op, kernel_code: str, performance_tests: List, attempt: int = 1) -> tuple[float, List]:
+
+    def test_kernel_performance(
+        self, op, kernel_code: str, performance_tests: List, attempt: int = 1
+    ) -> tuple[float, List]:
         """Test kernel performance return performance score with results."""
 
         op_str = str(op)
@@ -287,8 +289,11 @@ You can inspect these files to debug kernel generation, manually test implementa
         loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
 
         from BackendBench.eval import eval_performance
+
         try:
-            performance_score, performance_results = eval_performance(op, loaded_kenrel, performance_tests)
+            performance_score, performance_results = eval_performance(
+                op, loaded_kenrel, performance_tests
+            )
         except Exception as e:
             logger.error(f"Performance evaluation failed: {str(e)}")
             performance_score, performance_results = 0.0, []
