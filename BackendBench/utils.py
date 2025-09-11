@@ -10,6 +10,7 @@ import importlib.util
 import inspect
 import logging
 import math
+import os
 import re
 import textwrap
 from typing import Callable
@@ -281,9 +282,9 @@ def extract_operator_name(op_str: str) -> str:
         return op_str
 
 
-def compile_kernel_from_string(
-    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str, module_name: str
-) -> tuple[Callable | None, list[str]]:
+def save_kernel_to_file(kernel_code: str, kernel_file_path: str) -> None:
+    """Save kernel code to a file."""
+
     def _prepare_triton_code(kernel_code: str) -> str:
         """Prepare Triton kernel code with necessary imports."""
         imports = """
@@ -305,6 +306,26 @@ import torch.nn.functional as F
             kernel_code = imports + kernel_code
         return kernel_code
 
+    is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+
+    if is_triton:
+        full_code = _prepare_triton_code(kernel_code)
+    else:
+        full_code = _prepare_torch_code(kernel_code)
+
+    # log if the file already exists
+    if os.path.exists(kernel_file_path):
+        logger.warning(f"Write kernel code to an existing file: {kernel_file_path}")
+
+    with open(kernel_file_path, "w") as f:
+        f.write(full_code)
+
+    logger.debug(f"Saved kernel to: {kernel_file_path}")
+
+
+def compile_kernel_from_string(
+    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str, module_name: str
+) -> tuple[Callable | None, list[str]]:
     def _find_kernel_function(module, op_name: str) -> Callable:
         """Find the main kernel function in the compiled module."""
         expected_name = f"{op_name}_kernel_impl"
@@ -325,17 +346,7 @@ import torch.nn.functional as F
         )
 
     try:
-        is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
-
-        if is_triton:
-            full_code = _prepare_triton_code(kernel_code)
-        else:
-            full_code = _prepare_torch_code(kernel_code)
-
-        with open(kernel_file_path, "w") as f:
-            f.write(full_code)
-
-        logger.debug(f"Saved kernel to: {kernel_file_path}")
+        save_kernel_to_file(kernel_code, kernel_file_path)
 
         spec = importlib.util.spec_from_file_location(module_name, kernel_file_path)
         module = importlib.util.module_from_spec(spec)
