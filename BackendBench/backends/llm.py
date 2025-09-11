@@ -16,7 +16,11 @@ import torch
 
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
-from BackendBench.utils import compile_kernel_from_string, extract_operator_name
+from BackendBench.utils import (
+    compile_kernel_from_string,
+    extract_operator_name,
+    save_kernel_to_file,
+)
 
 from .base import Backend
 
@@ -113,9 +117,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
-        op_dir = os.path.join(self.kernels_dir, op_name)
-        os.makedirs(op_dir, exist_ok=True)
-        kernel_file_path = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+        kernel_file_path = self._generate_kernel_file_path(op_name, attempt)
         module_name = f"{op_name}_implementation_v{attempt}"
 
         try:
@@ -129,6 +131,11 @@ You can inspect these files to debug kernel generation, manually test implementa
         except Exception as e:
             raise e
         return kernel
+
+    def _generate_kernel_file_path(self, op_name: str, attempt: int) -> str:
+        op_dir = os.path.join(self.kernels_dir, op_name)
+        os.makedirs(op_dir, exist_ok=True)
+        return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
 
     def _make_error_func(error_msg):
         def error_func(*args, **kwargs):
@@ -162,20 +169,9 @@ You can inspect these files to debug kernel generation, manually test implementa
         }
 
         try:
-            op_dir = os.path.join(self.kernels_dir, op_name)
-            os.makedirs(op_dir, exist_ok=True)
-            kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
-
+            kernel_file = self._generate_kernel_file_path(op_name, attempt)
             if not os.path.exists(kernel_file):
-                is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
-                if is_triton:
-                    full_code = self._prepare_triton_code(kernel_code)
-                else:
-                    full_code = self._prepare_torch_code(kernel_code)
-
-                with open(kernel_file, "w") as f:
-                    f.write(full_code)
-                logger.debug(f"Saved kernel to: {kernel_file}")
+                save_kernel_to_file(kernel_code, kernel_file)
 
             spec = importlib.util.spec_from_file_location(
                 f"{op_name}_implementation_v{attempt}", kernel_file
