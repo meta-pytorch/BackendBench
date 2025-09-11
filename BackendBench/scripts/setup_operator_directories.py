@@ -76,7 +76,36 @@ def get_opinfo_operators() -> Set[str]:
     except Exception as e:
         print(f"Warning: Could not load OpInfo operators: {e}")
         return set()
+    
+def get_backward_ops():
+    """
+    Returns a list of canonical operator names from op_map_data that contain 'backward'.
+    """
+    backward_ops = []
+    for line in op_map_data.strip().split("\n"):
+        if line.startswith("canonical:"):
+            canonical_part = line.split()[0] 
+            canonical_name = canonical_part.split(":", 1)[1]
+            if "backward" in canonical_name:
+                backward_ops.append(canonical_name)
+    
+    backward_ops = [name.split(".")[0] for name in backward_ops]
+    return backward_ops
 
+def setup_backward_kernel_files(base_dir="generated_kernels"):
+    """
+    For each operator with a backward variant in op_map, create a stub backward kernel file in its directory.
+    The file will be named <op_base>_backward_implementation_v1.py (e.g., add_backward_implementation_v1.py).
+    """
+    base_path = Path(base_dir)
+    backward_ops = get_backward_ops()
+    for op_name in backward_ops:
+        op_base = op_name.replace("_backward", "")
+        op_dir = base_path / op_base
+        op_dir.mkdir(parents=True, exist_ok=True)
+        kernel_file = op_dir / f"{op_name}_backward_implementation_v1.py"
+        if not kernel_file.exists():
+            kernel_file.write_text(f"#TODO: Implement backward kernel for {op_name}\n")
 
 def setup_operator_directories(
     base_dir: str = "generated_kernels", verbose: bool = False, suite: str = "all"
@@ -132,6 +161,8 @@ def setup_operator_directories(
             print(f"Created directory: {folder_name}")
         created_count += 1
 
+    setup_backward_kernel_files(base_dir)
+    print("Backward kernel files setup complete:")
     print("\nDirectory setup complete:")
     print(f"- Created {created_count} new directories")
     print(f"- Skipped {skipped_count} existing directories")
