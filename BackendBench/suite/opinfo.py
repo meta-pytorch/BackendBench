@@ -6,11 +6,13 @@
 
 import logging
 from collections import defaultdict
+from itertools import chain
 
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
 from BackendBench.eval import allclose
+from BackendBench.utils import extract_operator_name
 
 from .base import OpTest, TestSuite
 
@@ -54,6 +56,8 @@ class OpTracerMode(TorchDispatchMode):
 def build_op_tests(device, dtype, filter=None):
     op_info_op_tests = []
     for op in op_db:
+        all_sample_inputs = []
+        all_indices = []
         if filter and op.name not in filter:
             continue
         if "." in op.name and "nn.functional" not in op.name:
@@ -84,8 +88,13 @@ def build_op_tests(device, dtype, filter=None):
                 continue
 
         for overload, indices in op_indices.items():
-            if len(indices) > 0:
-                op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
+            all_sample_inputs = chain(all_sample_inputs, sample_inputs)
+            all_indices = all_indices + indices
+
+        if len(all_indices) > 0:
+            op_info_op_tests.append(
+                OpInfoOpTest(extract_operator_name(op.name), all_sample_inputs, all_indices)
+            )
 
     return op_info_op_tests
 

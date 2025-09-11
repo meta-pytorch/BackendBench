@@ -22,6 +22,7 @@ except ImportError:
 
 from BackendBench.eval import allclose
 from BackendBench.opregistry import get_operator
+from BackendBench.utils import get_operator_name
 
 from .base import OpTest, TestSuite
 
@@ -61,84 +62,76 @@ class OpTracerMode(TorchDispatchMode):
 
 def build_facto_op_tests(device, dtype, filter=None, num_runs=10, empty=False, probability=1.0):
     facto_op_tests = []
-    failed = []
+    op_tests = defaultdict(list)
     for spec_name in SpecDictDB:
-        try:
-            if filter and spec_name not in filter:
+        if filter and spec_name not in filter:
+            continue
+
+        # Get canonical operator from registry
+        op = get_operator(spec_name)
+        if op is None:
+            logger.debug(f"Skipping {spec_name}: operator resolution failed")
+            continue
+
+        config = TensorConfig(
+            empty=empty,
+        ).set_probability(probability)
+
+        spec = SpecDictDB[spec_name]
+        generator = ArgumentTupleGenerator(spec, config)
+
+        for idx, (posargs, inkwargs, outargs) in enumerate(generator.gen()):
+            if idx >= num_runs:
+                break
+
+            # Filter arguments to target device/dtype
+            filtered_posargs = []
+            for arg in posargs:
+                if isinstance(arg, torch.Tensor):
+                    arg = arg.to(device=device, dtype=dtype)
+                filtered_posargs.append(arg)
+
+            filtered_inkwargs = {}
+            for k, v in inkwargs.items():
+                if isinstance(v, torch.Tensor):
+                    v = v.to(device=device, dtype=dtype)
+                filtered_inkwargs[k] = v
+
+            filtered_outargs = {}
+            for k, v in outargs.items():
+                if isinstance(v, torch.Tensor):
+                    v = v.to(device=device, dtype=dtype)
+                filtered_outargs[k] = v
+
+            all_kwargs = {**filtered_inkwargs, **filtered_outargs}
+
+            try:
+                # Trace execution to find underlying PyTorch ops
+                with OpTracerMode() as tracer:
+                    ref = op(*filtered_posargs, **all_kwargs)
+            except Exception:
+                logger.debug(f"FACTO spec {spec_name} couldn't run underlying op {op}")
                 continue
 
-            # Get canonical operator from registry
-            op = get_operator(spec_name)
-            if op is None:
-                logger.debug(f"Skipping {spec_name}: operator resolution failed")
-                continue
-
-            config = TensorConfig(
-                empty=empty,
-            ).set_probability(probability)
-
-            spec = SpecDictDB[spec_name]
-            generator = ArgumentTupleGenerator(spec, config)
-
-            op_tests = defaultdict(list)
-
-            for idx, (posargs, inkwargs, outargs) in enumerate(generator.gen()):
-                if idx >= num_runs:
-                    break
-
-                # Filter arguments to target device/dtype
-                filtered_posargs = []
-                for arg in posargs:
-                    if isinstance(arg, torch.Tensor):
-                        arg = arg.to(device=device, dtype=dtype)
-                    filtered_posargs.append(arg)
-
-                filtered_inkwargs = {}
-                for k, v in inkwargs.items():
-                    if isinstance(v, torch.Tensor):
-                        v = v.to(device=device, dtype=dtype)
-                    filtered_inkwargs[k] = v
-
-                filtered_outargs = {}
-                for k, v in outargs.items():
-                    if isinstance(v, torch.Tensor):
-                        v = v.to(device=device, dtype=dtype)
-                    filtered_outargs[k] = v
-
-                all_kwargs = {**filtered_inkwargs, **filtered_outargs}
-
+            # Check if we captured exactly one op (clean mapping)
+            if len(tracer.ops) == 1:
                 try:
-                    # Trace execution to find underlying PyTorch ops
-                    with OpTracerMode() as tracer:
-                        ref = op(*filtered_posargs, **all_kwargs)
-                except Exception:
-                    logger.debug(f"FACTO spec {spec_name} couldn't run underlying op {op}")
-                    continue
-
-                # Check if we captured exactly one op (clean mapping)
-                if len(tracer.ops) == 1:
-                    try:
-                        # Verify the traced op produces the same result
-                        res = tracer.ops[0](*filtered_posargs, **all_kwargs)
-                        if allclose(ref, res):
-                            op_tests[tracer.ops[0]].append(
-                                FactoTest(*filtered_posargs, **all_kwargs)
-                            )
-                    except Exception:
-                        logger.debug(
-                            f"FACTO spec {spec_name} couldn't run underlying op {tracer.ops[0]}"
+                    # Verify the traced op produces the same result
+                    res = tracer.ops[0](*filtered_posargs, **all_kwargs)
+                    if allclose(ref, res):
+                        op_tests[get_operator_name(tracer.ops[0])].append(
+                            FactoTest(*filtered_posargs, **all_kwargs)
                         )
-                else:
-                    logger.debug(f"FACTO spec {spec_name} has {len(tracer.ops)} ops")
+                except Exception:
+                    logger.debug(
+                        f"FACTO spec {spec_name} couldn't run underlying op {tracer.ops[0]}"
+                    )
+            else:
+                logger.debug(f"FACTO spec {spec_name} has {len(tracer.ops)} ops")
 
-            for traced_op, tests in op_tests.items():
-                if len(tests) > 0:
-                    facto_op_tests.append(FactoOpTest(traced_op, tests))
-        except Exception:
-            logger.debug(f"FACTO spec {spec_name} failed")
-            failed.append(spec_name)
-
-    logger.debug(f"Failed specs: {failed}")
+    for op_name, tests in op_tests.items():
+        if len(tests) > 0:
+            facto_op_tests.append(FactoOpTest(op_name, tests))
 
     return facto_op_tests
 

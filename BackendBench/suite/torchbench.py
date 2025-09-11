@@ -25,6 +25,8 @@ Creating New Test Sets:
 Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFace.
 """
 
+from collections import defaultdict
+
 import torch  # noqa: F401
 
 from BackendBench.data_loaders import (
@@ -33,7 +35,7 @@ from BackendBench.data_loaders import (
     op_list_to_benchmark_dict,
 )
 from BackendBench.op_categories import UNSUPPORTED_OPERATORS
-from BackendBench.utils import deserialize_args
+from BackendBench.utils import deserialize_args, extract_operator_name
 
 
 class TorchBenchTest:
@@ -92,11 +94,13 @@ class TorchBenchTestSuite:
             ops_list = [op for op in ops_list if op.get("is_overhead_dominated_op", False)]
 
         # Convert to dictionary format using utility function
-        self.optests = op_list_to_benchmark_dict(ops_list)
+        raw_optests = op_list_to_benchmark_dict(ops_list)
+        self.optests = defaultdict(list)
 
-        # Deduplicate the strings in self.optests
+        # coalesce the optests under a single name
         for op in self.optests:
-            self.optests[op] = list(set(self.optests[op]))
+            op_name = extract_operator_name(op)
+            self.optests[op_name].extend(raw_optests[op])
 
     def __iter__(self):
         for op, inputs in self.optests.items():
