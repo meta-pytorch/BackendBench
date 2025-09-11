@@ -260,6 +260,40 @@ You can inspect these files to debug kernel generation, manually test implementa
             feedback_info["compilation_error"] = str(e)
             feedback_info["summary"] = "Compilation failed"
             return False, feedback_info
+        
+    def test_kernel_performance(self, op, kernel_code: str, performance_tests: List, attempt: int = 1) -> tuple[float, List]:
+        """Test kernel performance return performance score with results."""
+
+        op_str = str(op)
+        if "aten." in op_str:
+            op_name = op_str.split("aten.")[-1].split(".")[0]
+        else:
+            op_name = op_str.split(".")[-1]
+
+        op_dir = os.path.join(self.kernels_dir, op_name)
+        os.makedirs(op_dir, exist_ok=True)
+        kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+
+        if not os.path.exists(kernel_file):
+            is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+            if is_triton:
+                full_code = self._prepare_triton_code(kernel_code)
+            else:
+                full_code = self._prepare_torch_code(kernel_code)
+            with open(kernel_file, "w") as f:
+                f.write(full_code)
+            logger.debug(f"Saved kernel to: {kernel_file}")
+
+        loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
+
+        from BackendBench.eval import eval_performance
+        try:
+            performance_score, performance_results = eval_performance(op, loaded_kenrel, performance_tests)
+        except Exception as e:
+            logger.error(f"Performance evaluation failed: {str(e)}")
+            performance_score, performance_results = 0.0, []
+
+        return performance_score, performance_results
 
     def __getitem__(self, key):
         if key in self.compiled_kernels:
@@ -308,9 +342,20 @@ You can inspect these files to debug kernel generation, manually test implementa
             # Create feedback callback
             def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
                 # TODO: Add performance testing in addition to correctness testing
-                return self.test_kernel_correctness(
+                is_correct, feedback_info = self.test_kernel_correctness(
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
+
+                if is_correct:
+                    perf_score, perf_results = self.test_kernel_performance(
+                        op, kernel_code, op_test.performance_tests, attempt
+                    )
+                    feedback_info["performance_score"] = perf_score
+                    feedback_info["performance_results"] = perf_results
+                else:
+                    feedback_info["performance_score"] = 0.0
+                    feedback_info["performance_results"] = []
+                return is_correct, feedback_info
 
             # Generate kernel with iterative refinement
             kernel_code, attempts_used, success = self.llm_client.generate_kernel_with_retry(
