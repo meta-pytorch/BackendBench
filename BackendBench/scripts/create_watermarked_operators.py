@@ -73,6 +73,7 @@ def create_watermarked_operators(
     watermark_value: float = None,
     overwrite: bool = False,
     use_unique_watermarks: bool = False,
+    version: str = "v1",
 ):
     """Create watermarked implementations for all operators in the directory structure."""
 
@@ -91,7 +92,7 @@ def create_watermarked_operators(
             continue
 
         op_name = op_dir.name
-        impl_file = op_dir / f"{op_name}_implementation_v1.py"
+        impl_file = op_dir / f"{op_name}_implementation_{version}.py"
 
         # Skip if file exists and overwrite is False
         if impl_file.exists() and not overwrite:

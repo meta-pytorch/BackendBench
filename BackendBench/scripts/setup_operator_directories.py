@@ -16,7 +16,10 @@ import argparse
 from pathlib import Path
 from typing import Set
 
+import torch
+
 from BackendBench.scripts.op_map import op_map_data
+from BackendBench.suite import OpInfoTestSuite
 from BackendBench.utils import extract_operator_name
 
 
@@ -66,9 +69,6 @@ def get_torchbench_operators() -> Set[str]:
 def get_opinfo_operators() -> Set[str]:
     """Get operators available in OpInfo suite."""
     try:
-        import torch
-
-        from BackendBench.suite import OpInfoTestSuite
 
         suite = OpInfoTestSuite("opinfo", "cpu", torch.float32)
         opinfo_ops = [str(optest.op) for optest in suite]
