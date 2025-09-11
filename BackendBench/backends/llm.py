@@ -137,17 +137,17 @@ You can inspect these files to debug kernel generation, manually test implementa
         os.makedirs(op_dir, exist_ok=True)
         return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
 
-    def _make_error_func(error_msg):
+    def _make_error_func(self, error_msg):
         def error_func(*args, **kwargs):
             raise RuntimeError(f"Compilation of kernel failed: {error_msg}")
 
         return error_func
 
-    def add_kernel(self, op, kernel_code: str, op_name: str):
+    def add_kernel(self, op, kernel_code: str, op_name: str, attempt: int):
         """Add a kernel implementation for a specific operator."""
 
         try:
-            compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=1)
+            compiled_kernel = self.compile_kernel_from_string(kernel_code, op_name, attempt=attempt)
             self.compiled_kernels[op] = compiled_kernel
         except Exception as e:
             self.compiled_kernels[op] = self._make_error_func(str(e))
@@ -317,7 +317,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 max_attempts=max_attempts,
                 feedback_callback=feedback_callback,
             )
-            self.add_kernel(op, kernel_code, op_name)
+            self.add_kernel(op, kernel_code, op_name, attempts_used)
             if success:
                 logging.info(
                     f"✓ Successfully generated and compiled kernel for {op_name} after {attempts_used} attempts"
