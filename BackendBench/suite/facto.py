@@ -22,7 +22,7 @@ except ImportError:
 
 from BackendBench.eval import allclose
 from BackendBench.opregistry import get_operator
-from BackendBench.utils import get_operator_name
+from BackendBench.utils import extract_operator_name
 
 from .base import OpTest, TestSuite
 
@@ -119,7 +119,7 @@ def build_facto_op_tests(device, dtype, filter=None, num_runs=10, empty=False, p
                     # Verify the traced op produces the same result
                     res = tracer.ops[0](*filtered_posargs, **all_kwargs)
                     if allclose(ref, res):
-                        op_tests[get_operator_name(tracer.ops[0])].append(
+                        op_tests[extract_operator_name(tracer.ops[0])].append(
                             FactoTest(*filtered_posargs, **all_kwargs)
                         )
                 except Exception:
