@@ -137,7 +137,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         os.makedirs(op_dir, exist_ok=True)
         return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
 
-    def _make_error_func(error_msg):
+    def _make_error_func(self, error_msg):
         def error_func(*args, **kwargs):
             raise RuntimeError(f"Compilation of kernel failed: {error_msg}")
 
