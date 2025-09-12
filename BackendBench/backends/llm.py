@@ -14,6 +14,7 @@ from typing import Callable, Dict, List
 
 import torch
 
+from BackendBench.eval import eval_performance
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
 from BackendBench.utils import (
@@ -21,7 +22,6 @@ from BackendBench.utils import (
     extract_operator_name,
     save_kernel_to_file,
 )
-from BackendBench.eval import eval_performance
 
 from .base import Backend
 
