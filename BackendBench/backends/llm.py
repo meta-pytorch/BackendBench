@@ -266,9 +266,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_str = str(op)
         op_name = extract_operator_name(op_str)
 
-        op_dir = os.path.join(self.kernels_dir, op_name)
-        os.makedirs(op_dir, exist_ok=True)
-        kernel_file = os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+        kernel_file = self._generate_kernel_file_path(op_name, attempt)
 
         if not os.path.exists(kernel_file):
             is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
