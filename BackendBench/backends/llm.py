@@ -21,6 +21,7 @@ from BackendBench.utils import (
     extract_operator_name,
     save_kernel_to_file,
 )
+from BackendBench.eval import eval_performance
 
 from .base import Backend
 
@@ -263,10 +264,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         """Test kernel performance return performance score with results."""
 
         op_str = str(op)
-        if "aten." in op_str:
-            op_name = op_str.split("aten.")[-1].split(".")[0]
-        else:
-            op_name = op_str.split(".")[-1]
+        op_name = extract_operator_name(op_str)
 
         op_dir = os.path.join(self.kernels_dir, op_name)
         os.makedirs(op_dir, exist_ok=True)
@@ -283,8 +281,6 @@ You can inspect these files to debug kernel generation, manually test implementa
             logger.debug(f"Saved kernel to: {kernel_file}")
 
         loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
-
-        from BackendBench.eval import eval_performance
 
         try:
             performance_score, performance_results = eval_performance(
@@ -342,7 +338,6 @@ You can inspect these files to debug kernel generation, manually test implementa
 
             # Create feedback callback
             def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
-                # TODO: Add performance testing in addition to correctness testing
                 is_correct, feedback_info = self.test_kernel_correctness(
                     op, kernel_code, op_test.correctness_tests, attempt
                 )
@@ -354,7 +349,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                     feedback_info["performance_score"] = perf_score
                     feedback_info["performance_results"] = perf_results
                 else:
-                    feedback_info["performance_score"] = 0.0
+                    feedback_info["performance_score"] = "N/A"
                     feedback_info["performance_results"] = []
                 return is_correct, feedback_info
 
