@@ -13,7 +13,6 @@ from expecttest import assert_expected_inline
 
 from BackendBench.eval import CorrectnessTestResult, PerformanceTestResult
 from BackendBench.output import (
-    _generate_overall_summary_content,
     _get_summary_op_results,
     _prepare_results_data,
     save_overall_summary,
@@ -146,62 +145,6 @@ class TestOutputFunctions:
         assert_expected_inline(
             str(op_results),
             """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '0.0000x')]""",
-        )
-
-    def test_generate_overall_summary_content(self):
-        """Test the _generate_overall_summary_content function."""
-        correctness_results, performance_results = self._create_test_fixtures()
-
-        content = _generate_overall_summary_content(
-            command="backendbench --suite test_suite",
-            mean_correctness=0.75,
-            geomean_perf=1.8,
-            perf_at_p_score=0.6,
-            p=1.2,
-            performance_results=performance_results,
-            correctness_results=correctness_results,
-        )
-
-        assert_expected_inline(
-            content,
-            """\
-# BackendBench Run Summary
-
-## Command
-```bash
-backendbench --suite test_suite
-```
-
-## Results
-
-| Metric | Value |
-|--------|-------|
-| Correctness Score | 0.75 |
-| Performance Score (geomean speedup) | 1.80 |
-| Perf@1.2 Score | 0.60 |
-
-### Metric Descriptions
-
-- **Correctness Score**: Mean pass rate over all operators
-- **Performance Score**: Geometric mean speedup over all operators
-- **Perf@1.2 Score**: Rate of correct samples with a speedup greater than 1.2
-
-## Output Files
-
-The following files are saved in this directory:
-
-- `full_results.json`: Complete test results for all operators
-- `operator_summary.csv`: Operator-level summary statistics
-- `failed_tests.json`: Log of failed tests (if any)
-- `OVERALL_SUMMARY.md`: This file
-### Operator Speedups vs Eager in Descending Order
-
-| Operator | Correctness Ratio | Speedup vs Eager |
-|----------|-----------|----------------|
-| torch.ops.aten.add.Tensor | 1.0000% | 1.7500x|
-| torch.ops.aten.sin.default | 1.0000% | 1.0000x|
-| torch.ops.aten.mul.Tensor | 0.0000% | 0.0000x|
-""",
         )
 
     def test_save_results_integration(self):
