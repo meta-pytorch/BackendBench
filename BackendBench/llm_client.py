@@ -12,6 +12,8 @@ import requests
 from tenacity import retry
 from tenacity.wait import wait_random_exponential
 
+from BackendBench import AgentError
+
 from .kernel_templates import KernelTemplateManager
 
 
@@ -60,15 +62,22 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
     @retry(wait=wait_random_exponential(multiplier=2, min=1, max=60, exp_base=2))
     def call_llm(self, prompt: str) -> str:
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=8000,
-            temperature=0.2,
-            timeout=120.0,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = response.content[0].text
-        return content
+        try:
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=8000,
+                temperature=0.2,
+                timeout=120.0,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            content = response.content[0].text
+            if not content or "rate limit" in content.lower():
+                raise AgentError("Agent error: Empty response or rate limit encountered.")
+            return content
+        except anthropic.AnthropicError as e:
+            raise AgentError(f"Anthropic API error: {e}")
+        except Exception as e:
+            raise AgentError(f"Unexpected agent error: {e}")
 
     def generate_kernel(
         self,
@@ -94,7 +103,7 @@ export ANTHROPIC_API_KEY=your_api_key_here
         try:
             content = self.call_llm(prompt)
             if not content:
-                raise RuntimeError("Empty response from LLM relay server")
+                raise AgentError("Agent error: Empty response from LLM relay server.")
 
             extracted_code = self._extract_code_from_response(content)
 
@@ -107,11 +116,13 @@ export ANTHROPIC_API_KEY=your_api_key_here
             return extracted_code
 
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(
-                f"Failed to communicate with LLM relay server for {op_name}: {str(e)}"
+            raise AgentError(
+                f"Agent error: Failed to communicate with LLM relay server for {op_name}: {str(e)}"
             )
+        except AgentError:
+            raise
         except Exception as e:
-            raise RuntimeError(f"Failed to generate kernel for {op_name}: {str(e)}")
+            raise AgentError(f"Agent error: Failed to generate kernel for {op_name}: {str(e)}")
 
     def generate_kernel_with_retry(
         self,
@@ -180,16 +191,11 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
     def _extract_code_from_response(self, response: str) -> str:
         if "```python" not in response:
-            raise ValueError(
-                "No Python code block found in LLM response. Response should contain ```python...``` block."
-            )
-
+            raise AgentError("Agent error: No Python code block found in LLM response.")
         start = response.find("```python") + len("```python")
         end = response.find("```", start)
-
         if end == -1:
-            raise ValueError("Unclosed Python code block in LLM response.")
-
+            raise AgentError("Agent error: Unclosed Python code block in LLM response.")
         return response[start:end].strip()
 
 
@@ -245,17 +251,24 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
             else None
         )
 
-        response = requests.post(
-            self.server_url,
-            json=request_data,
-            headers={"Content-Type": "application/json"},
-            timeout=120.0,
-            proxies=proxies,
-        )
-
-        if response.status_code != 200:
-            raise RuntimeError(f"Server returned status {response.status_code}: {response.text}")
-
-        response_data = response.json()
-        content = response_data.get("output", "")
-        return content
+        try:
+            response = requests.post(
+                self.server_url,
+                json=request_data,
+                headers={"Content-Type": "application/json"},
+                timeout=120.0,
+                proxies=proxies,
+            )
+            if response.status_code != 200:
+                raise AgentError(
+                    f"Agent error: Server returned status {response.status_code}: {response.text}"
+                )
+            response_data = response.json()
+            content = response_data.get("output", "")
+            if not content or "rate limit" in content.lower():
+                raise AgentError("Agent error: Empty response or rate limit encountered.")
+            return content
+        except requests.exceptions.RequestException as e:
+            raise AgentError(f"Agent error: Failed to communicate with LLM relay server: {str(e)}")
+        except Exception as e:
+            raise AgentError(f"Agent error: Unexpected error in LLM relay call: {e}")
