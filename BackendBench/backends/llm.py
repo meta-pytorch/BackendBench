@@ -267,14 +267,11 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_name = extract_operator_name(op_str)
         kernel_file = self._generate_kernel_file_path(op_name, attempt)
 
-        if not os.path.exists(kernel_file):
-            save_kernel_to_file(kernel_code, kernel_file)
-
         # Use compile_kernel_from_string for consistent loading
         module_name = f"{op_name}_implementation_v{attempt}"
         try:
             kernel_impl = compile_kernel_from_string(
-                kernel_code=None,
+                kernel_code=kernel_code,
                 op_name=op_name,
                 kernel_file_path=kernel_file,
                 expected_fn_name=op_name,
