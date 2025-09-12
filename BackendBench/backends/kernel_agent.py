@@ -271,13 +271,13 @@ def {expected_name}(*args, **kwargs):
                 return result["kernel_code"], True
             else:
                 raise AgentError(
-                    f"Agent error: KernelAgent failed for {op_name}: {result['message']}"
+                    f"Agent error: ❌ KernelAgent failed for {op_name}: {result['message']}"
                 )
 
         except AgentError as e:
             print(f"❌ {e}")
             return "", False
-        except Exception as e:
+        except AgentError as e:
             print(f"❌ KernelAgent error for {op_name}: {e}")
             return "", False
 
