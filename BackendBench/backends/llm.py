@@ -265,24 +265,23 @@ You can inspect these files to debug kernel generation, manually test implementa
 
         op_str = str(op)
         op_name = extract_operator_name(op_str)
-
         kernel_file = self._generate_kernel_file_path(op_name, attempt)
 
         if not os.path.exists(kernel_file):
-            is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
-            if is_triton:
-                full_code = self._prepare_triton_code(kernel_code)
-            else:
-                full_code = self._prepare_torch_code(kernel_code)
-            with open(kernel_file, "w") as f:
-                f.write(full_code)
-            logger.debug(f"Saved kernel to: {kernel_file}")
+            save_kernel_to_file(kernel_code, kernel_file)
 
-        loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
-
+        # Use compile_kernel_from_string for consistent loading
+        module_name = f"{op_name}_implementation_v{attempt}"
         try:
+            kernel_impl = compile_kernel_from_string(
+                kernel_code=None,
+                op_name=op_name,
+                kernel_file_path=kernel_file,
+                expected_fn_name=op_name,
+                module_name=module_name,
+            )
             performance_score, performance_results = eval_performance(
-                op, loaded_kenrel, performance_tests
+                op, kernel_impl, performance_tests
             )
         except Exception as e:
             logger.error(f"Performance evaluation failed: {str(e)}")
