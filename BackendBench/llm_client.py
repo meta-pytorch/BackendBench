@@ -144,9 +144,13 @@ export ANTHROPIC_API_KEY=your_api_key_here
         for attempt in range(max_attempts):
             print(f"  Attempt {attempt + 1}/{max_attempts}")
 
-            kernel_code = self.generate_kernel(
-                op_name, op_signature, op_description, framework, feedback
-            )
+            try:
+                kernel_code = self.generate_kernel(
+                    op_name, op_signature, op_description, framework, feedback
+                )
+            except Exception as e:
+                print(f"  ✗ Failed to generate kernel: {e}")
+                kernel_code = ""
 
             if feedback_callback is None:
                 return kernel_code, 1, True
