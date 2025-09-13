@@ -168,7 +168,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             "compilation_error": None,
             "test_errors": [],
             "summary": None,
-            "agent_error": None,
+            "agent_error": "",
         }
 
         try:
@@ -177,10 +177,6 @@ You can inspect these files to debug kernel generation, manually test implementa
                 raise AgentError(
                     "Kernel code is empty or not a string (possible agent failure or rate limit)."
                 )
-            if "rate limit" in kernel_code.lower():
-                raise AgentError("Agent response indicates rate limiting.")
-            if "error" in kernel_code.lower() and "api" in kernel_code.lower():
-                raise AgentError("Agent/API error detected in response.")
             kernel_file = self._generate_kernel_file_path(op_name, attempt)
             if not os.path.exists(kernel_file):
                 save_kernel_to_file(kernel_code, kernel_file)
@@ -215,6 +211,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             correct_count = 0
             total_count = 0
             correctness_results = []
+            # todo: this is to protect against IMA errors, however, we should make this work / make sense with multiple workers
             with MultiprocessingEvaluator(1) as evaluator:
                 loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
                 _ = evaluator.submit_task(

@@ -12,7 +12,7 @@ import requests
 from tenacity import retry
 from tenacity.wait import wait_random_exponential
 
-from BackendBench import AgentError
+from BackendBench.agent_errors import AgentError
 
 from .kernel_templates import KernelTemplateManager
 
@@ -71,8 +71,10 @@ export ANTHROPIC_API_KEY=your_api_key_here
                 messages=[{"role": "user", "content": prompt}],
             )
             content = response.content[0].text
-            if not content or "rate limit" in content.lower():
-                raise AgentError("Agent error: Empty response or rate limit encountered.")
+            if not content:
+                raise AgentError("Agent error: Empty response from LLM API (API failure or rate limit).")
+            if "rate limit" in content.lower():
+                raise AgentError("Agent error: Rate limit encountered from LLM API.")
             return content
         except anthropic.AnthropicError as e:
             raise AgentError(f"Anthropic API error: {e}")
