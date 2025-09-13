@@ -8,6 +8,7 @@ import logging
 import os
 from typing import Callable, Dict
 
+from BackendBench.agent_errors import AgentError
 from BackendBench.utils import compile_kernel_from_string
 
 from .base import Backend
@@ -236,6 +237,10 @@ def {expected_name}(*args, **kwargs):
                 test_code=None,  # Let KernelAgent auto-generate the test
             )
 
+            # Agent error detection
+            if not result.get("kernel_code") or not isinstance(result.get("kernel_code"), str):
+                raise AgentError(f"Agent error: No kernel code produced for {op_name}.")
+
             if result["success"]:
                 print(f"✅ KernelAgent succeeded for {op_name}!")
                 print(
@@ -258,10 +263,11 @@ def {expected_name}(*args, **kwargs):
 
                 return result["kernel_code"], True
             else:
-                print(f"❌ KernelAgent failed for {op_name}: {result['message']}")
-                return "", False
+                raise AgentError(
+                    f"Agent error: ❌ KernelAgent failed for {op_name}: {result['message']}"
+                )
 
-        except Exception as e:
+        except AgentError as e:
             print(f"❌ KernelAgent error for {op_name}: {e}")
             return "", False
 
