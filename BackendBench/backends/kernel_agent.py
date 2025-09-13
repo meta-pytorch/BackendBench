@@ -223,22 +223,19 @@ def {expected_name}(*args, **kwargs):
         """
         try:
             agent = self._get_kernel_agent()
-
-            # Create problem description
             problem_description = self._create_problem_description_from_op(op, op_name)
-
             print(
                 f"🚀 Generating {op_name} kernel with KernelAgent (parallel workers + refinement)"
             )
 
-            # Generate kernel using KernelAgent
             result = agent.generate_kernel(
                 problem_description=problem_description,
-                test_code=None,  # Let KernelAgent auto-generate the test
+                test_code=None,
             )
 
-            # Agent error detection
-            if not result.get("kernel_code") or not isinstance(result.get("kernel_code"), str):
+            # Only raise AgentError if kernel_code is missing or malformed
+            kernel_code = result.get("kernel_code")
+            if not kernel_code or not isinstance(kernel_code, str):
                 raise AgentError(f"Agent error: No kernel code produced for {op_name}.")
 
             if result["success"]:
@@ -247,8 +244,6 @@ def {expected_name}(*args, **kwargs):
                     f"   Worker {result['worker_id']} found solution in {result['rounds']} rounds"
                 )
                 print(f"   Session: {result['session_dir']}")
-
-                # Copy the session directory to our kernels directory for preservation
                 import shutil
 
                 session_name = os.path.basename(result["session_dir"])
@@ -260,15 +255,19 @@ def {expected_name}(*args, **kwargs):
                     print(f"   Session preserved: {preserved_session}")
                 except Exception as e:
                     print(f"   Warning: Could not preserve session: {e}")
-
-                return result["kernel_code"], True
+                return kernel_code, True
             else:
+                # This is an agent output error, so raise AgentError
                 raise AgentError(
                     f"Agent error: ❌ KernelAgent failed for {op_name}: {result['message']}"
                 )
 
         except AgentError as e:
             print(f"❌ KernelAgent error for {op_name}: {e}")
+            return "", False
+        except Exception as e:
+            # API/provider errors are not actionable by the agent
+            print(f"❌ API/provider error for {op_name}: {e}")
             return "", False
 
     def __getitem__(self, key):

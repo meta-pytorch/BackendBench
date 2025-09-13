@@ -72,14 +72,16 @@ export ANTHROPIC_API_KEY=your_api_key_here
             )
             content = response.content[0].text
             if not content:
-                raise AgentError("Agent error: Empty response from LLM API (API failure or rate limit).")
+                raise ConnectionError(
+                    "API error: Empty response from LLM API (possible rate limit or outage)."
+                )
             if "rate limit" in content.lower():
-                raise AgentError("Agent error: Rate limit encountered from LLM API.")
+                raise ConnectionError("API error: Rate limit encountered from LLM API.")
             return content
         except anthropic.AnthropicError as e:
-            raise AgentError(f"Anthropic API error: {e}")
+            raise ConnectionError(f"API error: Anthropic API error: {e}")
         except Exception as e:
-            raise AgentError(f"Unexpected agent error: {e}")
+            raise ConnectionError(f"API error: Unexpected error: {e}")
 
     def generate_kernel(
         self,
@@ -104,9 +106,7 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
         try:
             content = self.call_llm(prompt)
-            if not content:
-                raise AgentError("Agent error: Empty response from LLM relay server.")
-
+            # Only raise AgentError if kernel extraction fails
             extracted_code = self._extract_code_from_response(content)
 
             print("\n=== DEBUG: RAW LLM RELAY RESPONSE ===")
@@ -117,10 +117,6 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
             return extracted_code
 
-        except requests.exceptions.RequestException as e:
-            raise AgentError(
-                f"Agent error: Failed to communicate with LLM relay server for {op_name}: {str(e)}"
-            )
         except AgentError:
             raise
         except Exception as e:

@@ -172,10 +172,10 @@ You can inspect these files to debug kernel generation, manually test implementa
         }
 
         try:
-            # Agent error detection before compilation
+            # Only raise AgentError if kernel_code is missing or malformed
             if not kernel_code or not isinstance(kernel_code, str):
                 raise AgentError(
-                    "Kernel code is empty or not a string (possible agent failure or rate limit)."
+                    "Kernel code is empty or not a string (agent failed to produce a kernel)."
                 )
             kernel_file = self._generate_kernel_file_path(op_name, attempt)
             if not os.path.exists(kernel_file):
