@@ -1,5 +1,5 @@
 .DS_Store
-__pycache__/
+**/__pycache__/
 .claude/
 .vscode/
 .ruff_cache/
@@ -15,3 +15,10 @@ generated_kernels/
 *.csv
 backendbench_output*
 .DS_Store
+
+# data files in examples
+examples/**/*.txt
+examples/**/*.pkl
+examples/**/*.bin
+
+examples/nanogpt/out-shakespeare-char
