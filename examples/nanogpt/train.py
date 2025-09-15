@@ -116,7 +116,7 @@ if use_backendbench:
     import BackendBench
 
     if kernel_folder is None:
-        kernel_folder = os.path.join(os.path.dirname(__file__), "generated_kernels_valina")
+        kernel_folder = os.path.join(os.path.dirname(__file__), "example_kernels")
     print("kernel_folder:", kernel_folder)
 
 # various inits, derived attributes, I/O setup

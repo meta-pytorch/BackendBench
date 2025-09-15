@@ -20,20 +20,18 @@ def read_log_file(log_path):
     return log_lines
 
 
-def parse_training_logs(log_lines, first_n_lines=None):
+def parse_training_logs(log_lines):
     results = {}
 
     # Regular expression to match lines with training metrics
     # Original pattern
-    pattern1 = r"iter (\d+): loss ([\d\.]+), time ([\d\.]+)ms, backendbench overhead time ([\d\.]+)ms, time exclude backendbench overhead ([\d\.]+), mfu ([\d\.\-]+)%"
+    pattern = r"iter (\d+): loss ([\d\.]+), time ([\d\.]+)ms, backendbench overhead time ([\d\.]+)ms, time exclude backendbench overhead ([\d\.]+), mfu ([\d\.\-]+)%"
 
     for line in log_lines:
         # Try to match with the new pattern first
-        match = re.search(pattern1, line)
+        match = re.search(pattern, line)
         if match:
             iteration = int(match.group(1))
-            if first_n_lines and iteration > first_n_lines:
-                break
             if iteration % 10 != 0:
                 continue
             loss = float(match.group(2))
@@ -66,19 +64,6 @@ def draw_forward_time_curves(
     """
     Draw forward time curves from multiple results dictionaries.
     """
-    if not results_list:
-        raise ValueError("No results provided for plotting.")
-
-    if not isinstance(results_list, list):
-        results_list = [results_list]  # Convert single results dict to list
-
-    # If no labels are provided, create default ones
-    if labels is None:
-        labels = [f"Run {i + 1}" for i in range(len(results_list))]
-    elif len(labels) < len(results_list):
-        # Extend labels if there are more results than labels
-        labels.extend([f"Run {i + 1}" for i in range(len(labels), len(results_list))])
-
     # Create figure and axis
     plt.figure(figsize=figsize, dpi=dpi)
 
@@ -86,18 +71,7 @@ def draw_forward_time_curves(
     colors = [
         "blue",
         "red",
-        "green",
-        "orange",
-        "purple",
-        "brown",
-        "pink",
-        "gray",
-        "cyan",
-        "magenta",
     ]
-
-    # Define line styles: solid for baseline, broken lines for the rest
-    broken_line_styles = ["--", "-.", ":"]
 
     # Plot each results dictionary as a separate line
     for i, results in enumerate(results_list):
@@ -110,23 +84,12 @@ def draw_forward_time_curves(
         iterations = [item[0] for item in sorted_data]
         forward_time_values = [item[1] for item in sorted_data]
 
-        # Select color and line style
-        color = colors[i % len(colors)]
-
-        # First results dictionary (baseline) gets solid line, others get broken lines
-        if i == 0:
-            line_style = "-"  # Solid line for baseline
-        else:
-            # Cycle through different broken line styles for non-baseline results
-            line_style = broken_line_styles[(i - 1) % len(broken_line_styles)]
-        line_style = "-"
-
         # Plot the line
         plt.plot(
             iterations,
             forward_time_values,
-            linestyle=line_style,
-            color=color,
+            linestyle="-",
+            color=colors[i],
             label=labels[i],
             marker="",
             linewidth=1,
@@ -164,19 +127,6 @@ def draw_loss_curves(
     """
     Draw loss curves from multiple results dictionaries.
     """
-    if not results_list:
-        raise ValueError("No results provided for plotting.")
-
-    if not isinstance(results_list, list):
-        results_list = [results_list]  # Convert single results dict to list
-
-    # If no labels are provided, create default ones
-    if labels is None:
-        labels = [f"Run {i + 1}" for i in range(len(results_list))]
-    elif len(labels) < len(results_list):
-        # Extend labels if there are more results than labels
-        labels.extend([f"Run {i + 1}" for i in range(len(labels), len(results_list))])
-
     # Create figure and axis
     plt.figure(figsize=figsize, dpi=dpi)
 
@@ -184,18 +134,7 @@ def draw_loss_curves(
     colors = [
         "blue",
         "red",
-        "green",
-        "orange",
-        "purple",
-        "brown",
-        "pink",
-        "gray",
-        "cyan",
-        "magenta",
     ]
-
-    # Define line styles: solid for baseline, broken lines for the rest
-    broken_line_styles = ["--", "-.", ":"]
 
     # Plot each results dictionary as a separate line
     for i, results in enumerate(results_list):
@@ -208,23 +147,12 @@ def draw_loss_curves(
         iterations = [item[0] for item in sorted_data]
         loss_values = [item[1] for item in sorted_data]
 
-        # Select color and line style
-        color = colors[i % len(colors)]
-
-        # First results dictionary (baseline) gets solid line, others get broken lines
-        if i == 0:
-            line_style = "-"  # Solid line for baseline
-        else:
-            # Cycle through different broken line styles for non-baseline results
-            line_style = broken_line_styles[(i - 1) % len(broken_line_styles)]
-        line_style = "-"
-
         # Plot the line
         plt.plot(
             iterations,
             loss_values,
-            linestyle=line_style,
-            color=color,
+            linestyle="-",
+            color=colors[i],
             label=labels[i],
             marker="",
             linewidth=1,
@@ -258,27 +186,12 @@ def process_and_plot_logs(log_paths, labels=None, save_path_prefix=None, first_n
     # Process each log file
     for log_path in log_paths:
         log_lines = read_log_file(log_path)
-        print(f"Processing log file: {log_path}")
-        print(f"Number of lines: {len(log_lines)}")
-        results = parse_training_logs(log_lines, first_n_lines)
-        print(f"Number of iterations: {len(results)}")
-        if results:  # Check if we have any results
-            print(f"First iteration: {list(results.keys())[0]}")
-        else:
-            print("No iterations found in the log file.")
-            continue
+        results = parse_training_logs(log_lines)
         results_list.append(results)
 
-    if not results_list:
-        print("No valid results found in any of the log files.")
-        return None, None, []
-
-    # Determine save paths for the figures if save_path_prefix is provided
-    loss_save_path = None
-    forward_time_save_path = None
-    if save_path_prefix:
-        loss_save_path = f"{save_path_prefix}_loss.png"
-        forward_time_save_path = f"{save_path_prefix}_time.png"
+    # Determine save paths for the figures
+    loss_save_path = f"{save_path_prefix}_loss.png"
+    forward_time_save_path = f"{save_path_prefix}_time.png"
 
     # Draw loss curves
     loss_fig = draw_loss_curves(results_list, labels=labels, save_path=loss_save_path)
