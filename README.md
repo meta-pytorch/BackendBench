@@ -36,6 +36,10 @@ python BackendBench/scripts/main.py --suite torchbench --backend directory
 
 To learn more please check out our [launch blog](docs/correctness.md)
 
+## Example: Train nanoGPT using BackendBench with LLM generated kernels
+
+See [BackendBench Example](https://github.com/jiannanWang/BackendBenchExamples) for a practical demonstration of how to use BackendBench for model convergence testing
+
 ## License
 
 Source code is made available under a [BSD 3 license](LICENSE.md)
