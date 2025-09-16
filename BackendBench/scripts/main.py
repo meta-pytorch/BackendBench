@@ -9,12 +9,12 @@ import logging
 import os
 import sys
 
-import click
-import torch
-
 import BackendBench.backends as backends
 import BackendBench.eval as eval
 import BackendBench.multiprocessing_eval as multiprocessing_eval
+
+import click
+import torch
 from BackendBench.llm_client import LLMKernelGenerator, LLMRelayKernelGenerator
 from BackendBench.output import save_results
 from BackendBench.suite import (
@@ -44,7 +44,9 @@ def setup_logging(log_level):
 @click.option(
     "--log-level",
     default=os.getenv("LOG_LEVEL", "INFO"),
-    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False),
+    type=click.Choice(
+        ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], case_sensitive=False
+    ),
     help="Set the logging level",
 )
 @click.option(
@@ -56,7 +58,9 @@ def setup_logging(log_level):
 @click.option(
     "--backend",
     default="aten",
-    type=click.Choice(["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]),
+    type=click.Choice(
+        ["aten", "flag_gems", "llm", "llm-relay", "kernel_agent", "directory"]
+    ),
     help="Which backend to run",
 )
 @click.option(
@@ -148,7 +152,7 @@ def cli(
     backend,
     ops,
     topn_inputs,
-    llm_max_attempts,
+    llm_attempts,
     llm_model,
     kernel_agent_workers,
     kernel_agent_max_rounds,
@@ -164,7 +168,9 @@ def cli(
         if topn_inputs is not None:
             raise ValueError("topn-inputs is only supported for torchbench suite")
         if check_overhead_dominated_ops:
-            raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
+            raise ValueError(
+                "check-overhead-dominated-ops is only supported for torchbench suite"
+            )
 
     setup_logging(log_level)
     if ops:
@@ -197,11 +203,11 @@ def cli(
     if backend == "llm-relay":
         llm_client = LLMRelayKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_max_attempts)
+        backend.generate_kernels(suite, llm_attempts)
     elif backend == "llm":
         llm_client = LLMKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_max_attempts)
+        backend.generate_kernels(suite, llm_attempts)
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")
@@ -243,7 +249,9 @@ def cli(
                 test.performance_tests,
             )
 
-            overall_correctness.append(all(result.is_correct for result in correctness_results))
+            overall_correctness.append(
+                all(result.is_correct for result in correctness_results)
+            )
             overall_performance.append(perf)
             all_correctness_results.extend(correctness_results)
             all_performance_results.extend(performance_results)
@@ -273,7 +281,8 @@ def cli(
 
         for result in results:
             correctness_score = all(
-                correctness_result.is_correct for correctness_result in result.correctness_results
+                correctness_result.is_correct
+                for correctness_result in result.correctness_results
             )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)
@@ -286,7 +295,9 @@ def cli(
     geomean_perf = torch.tensor(overall_performance).log().mean().exp().item()
     perf_at_p_score = eval.perf_at_p(overall_correctness, overall_performance, p)
 
-    print(f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}")
+    print(
+        f"correctness score (mean pass rate over all operators): {mean_correctness:.2f}"
+    )
     print(f"performance score (geomean speedup over all operators): {geomean_perf:.2f}")
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
@@ -309,7 +320,9 @@ def cli(
         )
 
 
-def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_rounds=10):
+def setup_kernel_agent_backend(
+    kernel_agent_backend, suite, num_workers=4, max_rounds=10
+):
     """Setup KernelAgent backend by generating kernels using the sophisticated agent system."""
     try:
         # Configure the backend with the specified parameters
@@ -342,16 +355,22 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
 
             print(f"\n[{total_ops}] {op_name.upper()} - KernelAgent Generation")
             print(f"    Operation: {op_str}")
-            print(f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each")
+            print(
+                f"    Using {num_workers} parallel workers with up to {max_rounds} rounds each"
+            )
 
             # Generate kernel using KernelAgent's sophisticated system
-            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(op, op_name)
+            kernel_code, success = kernel_agent_backend.generate_kernel_with_agent(
+                op, op_name
+            )
 
             if success:
                 try:
                     # Add the successful kernel to the backend
                     kernel_agent_backend.add_kernel(op, kernel_code, op_name)
-                    print(f"✓ Successfully generated and compiled KernelAgent kernel for {op_name}")
+                    print(
+                        f"✓ Successfully generated and compiled KernelAgent kernel for {op_name}"
+                    )
                     successful_ops += 1
 
                     # Save summary of this operation
@@ -365,7 +384,9 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
                         f.write(f"Workers: {num_workers}\n")
                         f.write(f"Max rounds: {max_rounds}\n")
                         f.write("Final status: Success\n")
-                        f.write("Generated using: Parallel workers + iterative refinement\n")
+                        f.write(
+                            "Generated using: Parallel workers + iterative refinement\n"
+                        )
 
                 except Exception as e:
                     print(
@@ -374,7 +395,9 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
                     success = False
 
             if not success:
-                print(f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel")
+                print(
+                    f"✗ Skipping {op_name} - KernelAgent failed to generate working kernel"
+                )
 
                 # Save summary of this operation
                 summary_file = os.path.join(
@@ -406,11 +429,15 @@ def setup_kernel_agent_backend(kernel_agent_backend, suite, num_workers=4, max_r
         print("Configuration used:")
         print(f"  - Parallel workers: {num_workers}")
         print(f"  - Max refinement rounds: {max_rounds}")
-        print("  - Features: Triton guidelines, conversation history, auto test generation")
+        print(
+            "  - Features: Triton guidelines, conversation history, auto test generation"
+        )
         print(f"{'=' * 80}\n")
 
         # Save overall summary
-        overall_summary_file = os.path.join(kernel_agent_backend.kernels_dir, "OVERALL_SUMMARY.txt")
+        overall_summary_file = os.path.join(
+            kernel_agent_backend.kernels_dir, "OVERALL_SUMMARY.txt"
+        )
         with open(overall_summary_file, "w") as f:
             f.write("KernelAgent Backend Generation Summary\n")
             f.write(f"{'=' * 50}\n")

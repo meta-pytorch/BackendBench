@@ -137,6 +137,11 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_dir = os.path.join(self.kernels_dir, op_name)
         os.makedirs(op_dir, exist_ok=True)
         return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+    
+    def _generate_kernel_feedback_file_path(self, op_name: str, attempt: int) -> str:
+        op_dir = os.path.join(self.kernels_dir, op_name)
+        os.makedirs(op_dir, exist_ok=True)
+        return os.path.join(op_dir, f"{op_name}_implmentation_v{attempt}_feedback.txt")
 
     def _make_error_func(self, error_msg):
         def error_func(*args, **kwargs):
@@ -258,6 +263,32 @@ You can inspect these files to debug kernel generation, manually test implementa
             feedback_info["summary"] = "Compilation failed"
             return False, feedback_info
 
+
+    def _format_feedback(self, feedback_info: Dict) -> str:
+        """Format feedback information for the LLM."""
+        feedback_parts = []
+
+        if feedback_info.get("compilation_error"):
+            feedback_parts.append(
+                f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n"
+            )
+
+        if feedback_info.get("test_errors"):
+            feedback_parts.append("TEST ERRORS:")
+            for i, error in enumerate(feedback_info["test_errors"]):
+                feedback_parts.append(f"\nTest Case {i + 1}:")
+                feedback_parts.append(f"Input: {error['test_input']}")
+                feedback_parts.append(f"Error: {error['error']}")
+                feedback_parts.append(f"Full traceback:\n{error['traceback']}")
+
+        if feedback_info.get("performance_score")
+
+        feedback_parts.append(
+            "\nPlease analyze the errors above and generate a corrected version of the kernel."
+        )
+
+        return "\n".join(feedback_parts)
+
     def test_kernel_performance(
         self, op, kernel_code: str, performance_tests: List, attempt: int = 1
     ) -> tuple[float, List]:
@@ -300,20 +331,109 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_name,
         op_str,
         attempts_used,
-        max_attempts,
+        attempts,
         llm_client,
         success,
     ):
         with open(summary_file, "w") as f:
             f.write(f"Operation: {op_name}\n")
             f.write(f"Full op: {op_str}\n")
-            f.write(f"Attempts used: {attempts_used}/{max_attempts}\n")
+            f.write(f"Attempts used: {attempts_used}/{attempts}\n")
             f.write(f"Final Status: {'✓ Success' if success else '✗ Failure'}\n")
             f.write(f"Model: {llm_client.model}\n")
             f.write(f"Server: {llm_client.readme_server_description}\n")
             f.write(f"Final kernel file: {op_name}_kernel_attempt_{attempts_used}.py\n")
 
-    def generate_kernels(self, suite, max_attempts=5):
+    # Create feedback callback
+    def _get_kernel_feedback(self, kernel_code: str, attempt: int) -> tuple[bool, Dict]:
+        is_correct, feedback_info = self.test_kernel_correctness(
+            op, kernel_code, op_test.correctness_tests, attempt
+        )
+
+        if is_correct:
+            perf_score, perf_results = self.test_kernel_performance(
+                op, kernel_code, op_test.performance_tests, attempt
+            )
+            feedback_info["performance_score"] = perf_score
+            feedback_info["performance_results"] = perf_results
+        else:
+            feedback_info["performance_score"] = "N/A"
+            feedback_info["performance_results"] = []
+        return is_correct, feedback_info
+
+    def generate_kernel_with_retry(
+        self,
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        attempts: int = 5,
+    ) -> tuple[str, int, bool]:
+        """
+        Generate a kernel with multiple retry attempts based on feedback.
+
+        Args:
+            op_name: Name of the operation for which to generate a kernel.
+            op_signature: Function signature of the operation.
+            op_description: Detailed description of the operation.
+            framework: Target framework for the kernel (default: "triton").
+            attempts: Maximum number of generation attempts (default: 5).
+            feedback_callback: Optional callback function that evaluates the kernel
+                                and returns (is_correct, feedback_str) tuple.
+                                If None, then return the first kernel gnerated (assumes it's correct)
+
+        Returns:
+            tuple containing:
+                - The generated kernel code. Will return the most recently generated correct kernel, or last generated kernel if None were correct (str)
+                - Number of attempts made for returned kernel (int)
+                - Whether a correct kernel was found (bool)
+        """
+
+        feedback = None
+        kernel_code = ""  # Initialize to avoid unbound variable error
+        best_kernel = None
+        best_kernel_feedback = None
+
+
+
+        assert attempts > 0, "attempts must be greater than 0"
+
+        for attempt in range(attempts):
+            print(f"  Attempt {attempt + 1}/{attempts}")
+
+            try:
+                kernel_code = self.llm_client.generate_kernel(
+                    op_name, op_signature, op_description, framework, feedback
+                )
+            except Exception as e:
+                print(f"  ✗ Failed to generate kernel: {e}")
+                kernel_code = ""
+
+            is_correct, feedback_info = self._get_kernel_feedback(kernel_code=kernel_code, attempt=attempt+1)
+            feedback_str = self._format_feedback(feedback_info)
+
+            # write feedback to file
+            feedback_file = self._generate_kernel_feedback_file_path(op_name=op_name, attempt=attempt+1)
+            with open(feedback_file, "w") as f:
+                f.write(feedback_str)
+
+            if is_correct:
+                print(f"  ✓ Kernel correct on attempt {attempt + 1}")
+                last_correct_kernel = kernel_code
+                last_correct_kernel_attempt = attempt + 1
+            else:
+                print(f"  ✗ Kernel failed on attempt {attempt + 1}")
+                feedback = f"Please incorpare the following feedback into your response:\n{feedback_str}\n"
+                print(f"  📝 feedback length: {len(feedback)} chars")
+                if len(feedback) < 100:
+                    print(f"  📝 Short feedback: {feedback}")
+
+        if last_correct_kernel and last_correct_kernel_attempt:
+            return last_correct_kernel, last_correct_kernel_attempt, True
+
+        print(f"  ✗ Failed to generate correct kernel after {attempts} attempts")
+        return kernel_code, attempts, False
+
+    def generate_kernels(self, suite, attempts=5):
         # Generate kernels for all operators in the suite
         successful_ops = 0
         total_ops = 0
@@ -324,28 +444,11 @@ You can inspect these files to debug kernel generation, manually test implementa
             op_name = extract_operator_name(op_str)
 
             op_signature = f"def {op_name}(*args, **kwargs) -> torch.Tensor"
-            op_description = f"PyTorch operation: {op_name}"
+            op_description = f"PyTorch operation: {op_name}" 
 
             logging.info(
-                f"\n[{total_ops}] Generating kernel for {op_name} (full op: {op_str}) with up to {max_attempts} attempts"
+                f"\n[{total_ops}] Generating kernel for {op_name} (full op: {op_str}) with up to {attempts} attempts"
             )
-
-            # Create feedback callback
-            def feedback_callback(kernel_code: str, attempt: int) -> tuple[bool, Dict]:
-                is_correct, feedback_info = self.test_kernel_correctness(
-                    op, kernel_code, op_test.correctness_tests, attempt
-                )
-
-                if is_correct:
-                    perf_score, perf_results = self.test_kernel_performance(
-                        op, kernel_code, op_test.performance_tests, attempt
-                    )
-                    feedback_info["performance_score"] = perf_score
-                    feedback_info["performance_results"] = perf_results
-                else:
-                    feedback_info["performance_score"] = "N/A"
-                    feedback_info["performance_results"] = []
-                return is_correct, feedback_info
 
             # Generate kernel with iterative refinement
             kernel_code, attempts_used, success = self.llm_client.generate_kernel_with_retry(
@@ -353,7 +456,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 op_signature,
                 op_description,
                 framework="triton",
-                max_attempts=max_attempts,
+                attempts=attempts,
                 feedback_callback=feedback_callback,
             )
             self.add_kernel(op, kernel_code, op_name, attempts_used)
@@ -373,7 +476,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 op_name,
                 op_str,
                 attempts_used,
-                max_attempts,
+                attempts,
                 self.llm_client,
                 success,
             )

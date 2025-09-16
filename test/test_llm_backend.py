@@ -9,13 +9,8 @@ import os
 import torch
 
 from BackendBench.backends import LLMBackend
-from BackendBench.llm_client import (
-    KernelTemplateManager,
-    LLMKernelGenerator,
-)
-from BackendBench.suite import (
-    OpInfoTestSuite,
-)
+from BackendBench.llm_client import KernelTemplateManager, LLMKernelGenerator
+from BackendBench.suite import OpInfoTestSuite
 
 
 class MockLLMKernelGenerator(LLMKernelGenerator):
@@ -36,7 +31,9 @@ class MockLLMKernelGenerator(LLMKernelGenerator):
         )
         self.attempts += 1
 
-        file_path = os.path.join(os.path.dirname(__file__), "fixtures", "llm_response", file)
+        file_path = os.path.join(
+            os.path.dirname(__file__), "fixtures", "llm_response", file
+        )
         with open(file_path, "r") as f:
             return f.read()
 
@@ -51,13 +48,13 @@ class TestLLMBackend:
 
     def test_generate_kernels_good(self):
         mock_response_files = ["add_good.txt"]
-        max_attempts = 5
+        attempts = 5
 
         backend = LLMBackend(
             model="mock_model",
             llm_client=MockLLMKernelGenerator(mock_response_files),
         )
-        backend.generate_kernels(self.suite, max_attempts)
+        backend.generate_kernels(self.suite, attempts)
 
         summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
         assert os.path.exists(summary_file)
@@ -65,17 +62,17 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✓ Success" in summary
-            assert f"Attempts used: 1/{max_attempts}" in summary
+            assert f"Attempts used: 1/{attempts}" in summary
 
     def test_retry(self):
         mock_response_files = ["add_missing_target_functions.txt", "add_good.txt"]
-        max_attempts = 5
+        attempts = 5
 
         backend = LLMBackend(
             model="mock_model",
             llm_client=MockLLMKernelGenerator(mock_response_files),
         )
-        backend.generate_kernels(self.suite, max_attempts)
+        backend.generate_kernels(self.suite, attempts)
 
         summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
         assert os.path.exists(summary_file)
@@ -83,17 +80,17 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✓ Success" in summary
-            assert f"Attempts used: 2/{max_attempts}" in summary
+            assert f"Attempts used: 2/{attempts}" in summary
 
     def test_missing_target_functions(self):
         mock_response_files = ["add_missing_target_functions.txt"]
-        max_attempts = 1
+        attempts = 1
 
         backend = LLMBackend(
             model="mock_model",
             llm_client=MockLLMKernelGenerator(mock_response_files),
         )
-        backend.generate_kernels(self.suite, max_attempts)
+        backend.generate_kernels(self.suite, attempts)
 
         summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
         assert os.path.exists(summary_file)
@@ -101,17 +98,17 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✗ Failure" in summary
-            assert f"Attempts used: 1/{max_attempts}" in summary
+            assert f"Attempts used: 1/{attempts}" in summary
 
     def test_missing_python_code_block(self):
         mock_response_files = ["add_missing_python_code_block.txt"]
-        max_attempts = 1
+        attempts = 1
 
         backend = LLMBackend(
             model="mock_model",
             llm_client=MockLLMKernelGenerator(mock_response_files),
         )
-        backend.generate_kernels(self.suite, max_attempts)
+        backend.generate_kernels(self.suite, attempts)
 
         summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
         assert os.path.exists(summary_file)
@@ -119,4 +116,4 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✗ Failure" in summary
-            assert f"Attempts used: 1/{max_attempts}" in summary
+            assert f"Attempts used: 1/{attempts}" in summary
