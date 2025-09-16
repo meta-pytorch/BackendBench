@@ -38,7 +38,7 @@ To learn more please check out our [launch blog](docs/correctness.md)
 
 ## Example: Train nanoGPT using BackendBench with LLM generated kernels
 
-See [BackendBench Example](https://github.com/jiannanWang/BackendBenchExamples) for a practical demonstration of how to use BackendBench for model convergence testing
+See [BackendBench Example](https://github.com/jiannanWang/BackendBenchExamples) for a practical demonstration of how to use BackendBench for model convergence testing.
 
 ## License
 
