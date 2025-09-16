@@ -15,10 +15,3 @@ generated_kernels/
 *.csv
 backendbench_output*
 .DS_Store
-
-# data files in examples
-examples/**/*.txt
-examples/**/*.pkl
-examples/**/*.bin
-
-examples/nanogpt/out-shakespeare-char
