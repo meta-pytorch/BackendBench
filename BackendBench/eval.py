@@ -194,7 +194,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 PerformanceTestResult(
                     op_name=op.__name__,
                     args=args_str,
-                    speedup=test_time / base_time,
+                    speedup=base_time / test_time,
                     successfully_ran=True,
                     benchmark_time_ms=test_time,
                     reference_time_ms=base_time,
