@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Callable, Dict, Optional
+from typing import Optional
 
 import anthropic
 import requests
@@ -31,9 +31,7 @@ class LLMKernelGenerator:
             raise ValueError(
                 "ANTHROPIC_API_KEY must be set in environment or passed to constructor"
             )
-        assert (
-            "claude" in self.model
-        ), "Only Claude (Anthropic) models are supported for now"
+        assert "claude" in self.model, "Only Claude (Anthropic) models are supported for now"
 
         self.client = anthropic.Anthropic(api_key=self.api_key)
         # check connection to the server
@@ -148,13 +146,9 @@ class LLMRelayKernelGenerator(LLMKernelGenerator):
         try:
             requests.get(f"{self.server_url}/", timeout=5)
         except requests.exceptions.ConnectionError:
-            raise ConnectionError(
-                f"Cannot connect to LLM relay server at {self.server_url}. "
-            )
+            raise ConnectionError(f"Cannot connect to LLM relay server at {self.server_url}. ")
         except requests.exceptions.Timeout:
-            raise TimeoutError(
-                f"Timeout connecting to LLM relay server at {self.server_url}. "
-            )
+            raise TimeoutError(f"Timeout connecting to LLM relay server at {self.server_url}. ")
 
     @property
     def readme_server_description(self) -> str:
@@ -195,9 +189,7 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
         )
 
         if response.status_code != 200:
-            raise RuntimeError(
-                f"Server returned status {response.status_code}: {response.text}"
-            )
+            raise RuntimeError(f"Server returned status {response.status_code}: {response.text}")
 
         response_data = response.json()
         content = response_data.get("output", "")
