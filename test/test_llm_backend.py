@@ -31,9 +31,7 @@ class MockLLMKernelGenerator(LLMKernelGenerator):
         )
         self.attempts += 1
 
-        file_path = os.path.join(
-            os.path.dirname(__file__), "fixtures", "llm_response", file
-        )
+        file_path = os.path.join(os.path.dirname(__file__), "fixtures", "llm_response", file)
         with open(file_path, "r") as f:
             return f.read()
 
@@ -62,7 +60,7 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✓ Success" in summary
-            assert f"Attempts used: 1/{attempts}" in summary
+            assert f"Best Kernel Attempt: 1/{attempts}" in summary
 
     def test_retry(self):
         mock_response_files = ["add_missing_target_functions.txt", "add_good.txt"]
@@ -80,7 +78,7 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✓ Success" in summary
-            assert f"Attempts used: 2/{attempts}" in summary
+            assert f"Best Kernel Attempt: 2/{attempts}" in summary
 
     def test_missing_target_functions(self):
         mock_response_files = ["add_missing_target_functions.txt"]
@@ -98,7 +96,7 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✗ Failure" in summary
-            assert f"Attempts used: 1/{attempts}" in summary
+            assert f"Best Kernel Attempt: 1/{attempts}" in summary
 
     def test_missing_python_code_block(self):
         mock_response_files = ["add_missing_python_code_block.txt"]
@@ -116,4 +114,27 @@ class TestLLMBackend:
         with open(summary_file, "r") as f:
             summary = f.read()
             assert "Final Status: ✗ Failure" in summary
-            assert f"Attempts used: 1/{attempts}" in summary
+            assert f"Best Kernel Attempt: 1/{attempts}" in summary
+
+    def test_chooses_best_kernel(self):
+        mock_response_files = [
+            "add_missing_target_functions.txt",
+            "add_good.txt",
+            "add_missing_python_code_block.txt",
+        ]
+        attempts = 3
+
+        backend = LLMBackend(
+            model="mock_model",
+            llm_client=MockLLMKernelGenerator(mock_response_files),
+        )
+        backend.generate_kernels(self.suite, attempts)
+
+        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        assert os.path.exists(summary_file)
+
+        with open(summary_file, "r") as f:
+            summary = f.read()
+            assert "Final Status: ✓ Success" in summary
+            # we should choose the best kernel which is the second one in this case as it's the only "correct" one
+            assert f"Best Kernel Attempt: 2/{attempts}" in summary
