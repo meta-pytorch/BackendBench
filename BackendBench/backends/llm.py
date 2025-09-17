@@ -6,6 +6,7 @@
 
 import datetime
 import importlib.util
+import json
 import logging
 import os
 import sys
@@ -15,7 +16,11 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 
-from BackendBench.eval import CorrectnessTestResult, eval_performance, PerformanceTestResult
+from BackendBench.eval import (
+    CorrectnessTestResult,
+    eval_performance,
+    PerformanceTestResult,
+)
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
 from BackendBench.utils import (
@@ -37,6 +42,7 @@ class FeedbackInfo:
     correctness_results: List[CorrectnessTestResult] = None
     performance_results: List[PerformanceTestResult] = None
     summary: str = ""
+    kernel_code: str = None
 
     def __post_init__(self):
         if self.correctness_results is None:
@@ -54,13 +60,17 @@ class FeedbackInfo:
         )
 
     @property
-    def performance_score(self) -> float:
+    def overall_speedup(self) -> float:
         """Returns the performance score of the kernel."""
         if len(self.performance_results) == 0:
             return 0.0
-        return sum(r.speedup for r in self.performance_results if r.successfully_ran) / len(
-            self.performance_results
-        )
+        speedups = torch.tensor([r.speedup for r in self.performance_results if r.successfully_ran])
+        return speedups.log().mean().exp().item()
+
+    @property
+    def perf_at_p_score(self) -> float:
+        """Returns the performance score of the kernel."""
+        self.perf_at_p_score
 
     @property
     def correctness_score(self) -> float:
@@ -86,19 +96,14 @@ class FeedbackInfo:
         if self.compilation_error:
             feedback_parts.append(f"COMPILATION ERROR:\n{self.compilation_error}\n")
             feedback_parts.append("Please fix the compilation error and try again.\n\n")
-            return "\n".join(feedback_parts)
 
         # special cases
-        if (
-            len(failed_tests) + len(failed_perf_tests) == 0
-            or len(failed_tests) == 0 + len(self.performance_results) == 0
-        ):
+        elif len(failed_tests) + len(self.performance_results) == 0:
             feedback_parts.append(
                 "The above kernel passed all tests. Please attempt to improve the kernel by making it faster, but maintianing correctness.\n\n"
             )
-            return "\n".join(feedback_parts)
 
-        if len(failed_tests) + len(failed_perf_tests) > 0:
+        elif len(failed_tests) + len(failed_perf_tests) > 0:
             feedback_parts.append("Below are the errors of various tests ran on the kernel.\n\n")
 
             if failed_tests:
@@ -126,7 +131,10 @@ class FeedbackInfo:
             feedback_parts.append(
                 "The above kernel passed all tests. Please attempt to improve the kernel by making it faster, but maintianing correctness.\n\n"
             )
-            feedback_parts.append("Below are the performance results of the kernel.\n\n")
+            feedback_parts.append(
+                "Below are the performance results of the tests we ran against the kernel.\n\n"
+            )
+            feedback_parts.append("Overall Speedup: {:.2f}\n".format(self.overall_speedup))
             success_perf_tests = [r for r in self.performance_results if r.successfully_ran]
             if success_perf_tests:
                 feedback_parts.append("\nSuccessfully ran performance tests:")
@@ -139,8 +147,12 @@ class FeedbackInfo:
 
             if feedback_parts:
                 feedback_parts.append(
-                    "\nPlease analyze the performance results above and generate a more performant version of the kernel while maintaining correctness."
+                    "\nPlease analyze the performance results above and generate a more performant version of the kernel while maintaining correctness. Do anything possible to improve the performance of the kernel while maintaining correctness.\n\n"
                 )
+
+        feedback_parts.append(
+            f"\nBelow is the code which produced the above results. You should aim to improve this code. Think before you improve this code. First walkthrough which aspects of the kernel you can improve. Initially focus on correctness. Afterwards you want to make the kernel as fast as possible without influencing correctness. If an example kernel is given make a meaningful improvement on the given example.\n```python\n{self.kernel_code}\n```"
+        )
 
         return "\n".join(feedback_parts)
 
@@ -263,7 +275,7 @@ You can inspect these files to debug kernel generation, manually test implementa
     def _generate_kernel_feedback_file_path(self, op_name: str, attempt: int) -> str:
         op_dir = os.path.join(self.kernels_dir, op_name)
         os.makedirs(op_dir, exist_ok=True)
-        return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}_feedback.txt")
+        return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}_generated_feedback.txt")
 
     def _make_error_func(self, error_msg):
         def error_func(*args, **kwargs):
@@ -291,6 +303,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             op_name = op_str.split(".")[-1]
 
         feedback_info = FeedbackInfo()
+        feedback_info.kernel_code = kernel_code
 
         try:
             kernel_file = self._generate_kernel_file_path(op_name, attempt)
@@ -433,7 +446,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         )
 
         if is_correct:
-            perf_score, perf_results = self.test_kernel_performance(
+            _, perf_results = self.test_kernel_performance(
                 op, kernel_code, performance_tests, attempt
             )
             feedback_info.performance_results = perf_results
@@ -476,6 +489,8 @@ You can inspect these files to debug kernel generation, manually test implementa
         best_kernel_attempt = None
         best_kernel_feedback_info = None
 
+        kernel_gen_summary = []
+
         assert attempts > 0, "attempts must be greater than 0"
 
         for attempt in range(attempts):
@@ -490,6 +505,16 @@ You can inspect these files to debug kernel generation, manually test implementa
                 kernel_code = ""
 
             feedback_info = self._get_kernel_feedback(op, op_test, kernel_code, attempt + 1)
+            kernel_gen_summary.append(
+                {
+                    "attempt": attempt + 1,
+                    "kernel_file": self._generate_kernel_file_path(op_name, attempt + 1),
+                    "compilation_error": feedback_info.compilation_error,
+                    "overall_speedup": feedback_info.overall_speedup,
+                    "correctness_score": feedback_info.correctness_score,
+                    "is_correct": feedback_info.is_correct,
+                }
+            )
 
             if best_kernel_feedback_info is None:
                 best_kernel_feedback_info = feedback_info
@@ -508,13 +533,13 @@ You can inspect these files to debug kernel generation, manually test implementa
             with open(feedback_file, "w") as f:
                 f.write(feedback_str)
 
-            if best_kernel_feedback_info.is_correct:
+            if feedback_info.is_correct:
                 logger.info(f"  ✓ Correct kernel found on attempt {best_kernel_attempt}")
             else:
                 logger.info(f"  ✗ Kernel failed on attempt {attempt + 1}")
-            logger.info(f"  📝 feedback saved at: {feedback_file}")
+            logger.info(f"  📝 feedback from this kernel saved at: {feedback_file}")
             logger.info(f"  Correctness score: {feedback_info.correctness_score}")
-            logger.info(f"  Performance score: {feedback_info.performance_score}")
+            logger.info(f"  Overall Speedup: {feedback_info.overall_speedup}")
 
             if feedback_info.correctness_score > best_kernel_feedback_info.correctness_score:
                 best_kernel_feedback_info = feedback_info
@@ -523,7 +548,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 logger.info(f"  ✓ Best kernel found on attempt {best_kernel_attempt}")
             elif (
                 feedback_info.correctness_score == best_kernel_feedback_info.correctness_score
-                and feedback_info.performance_score > best_kernel_feedback_info.performance_score
+                and feedback_info.overall_speedup > best_kernel_feedback_info.overall_speedup
             ):
                 best_kernel_feedback_info = feedback_info
                 best_kernel_code = kernel_code
@@ -532,7 +557,18 @@ You can inspect these files to debug kernel generation, manually test implementa
 
         if not best_kernel_feedback_info.is_correct:
             logger.info(f"  ✗ Failed to generate correct kernel after {attempts} attempts")
-        return best_kernel_code, best_kernel_attempt, best_kernel_feedback_info.is_correct
+
+        # save kernel gen summary to file
+        summary_file = os.path.join(self.kernels_dir, op_name, f"{op_name}_kernel_gen_summary.json")
+        with open(summary_file, "w") as f:
+            json.dump(kernel_gen_summary, f, indent=4)
+            logger.info(f"  ✅ Kernel gen summary saved at: {summary_file}")
+
+        return (
+            best_kernel_code,
+            best_kernel_attempt,
+            best_kernel_feedback_info.is_correct,
+        )
 
     def generate_kernels(self, suite, attempts=5):
         """Generate kernels for all operators in the suite with comprehensive feedback."""

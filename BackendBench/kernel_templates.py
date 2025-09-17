@@ -93,7 +93,11 @@ class KernelTemplateManager:
         return self.templates[framework]
 
     def create_prompt(
-        self, op_name: str, op_signature: str, op_description: str, framework: str = "triton"
+        self,
+        op_name: str,
+        op_signature: str,
+        op_description: str,
+        framework: str = "triton",
     ) -> str:
         """Create a prompt using the specified template."""
         template = self.get_template(framework)
@@ -115,7 +119,7 @@ class KernelTemplateManager:
 
 {base_prompt}
 
-Fix the above errors and generate corrected code."""
+Use the above feedback and generate improved code."""
         else:
             # Fallback if no feedback
             refinement_prompt = f"""{base_prompt}
