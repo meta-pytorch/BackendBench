@@ -55,6 +55,8 @@ dev-dependencies = [
     "torch",
     "numpy",
     "pyarrow",
+    "tabulate",
+    "nvidia-cutlass-dsl",
     # cupy-cuda12x is platform specific, install manually if needed
 ]
 
@@ -62,7 +64,14 @@ dev-dependencies = [
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "W292", "W291"]  # Enable isort rules, final newline rule, and trailing whitespace rule
+extend-select = [
+    "I",  # enable isort rule
+    "W292",  # final newline rule
+    "W291",  # trailing whitespace rule
+]
+ignore = [
+    "E731", # allow lambdas
+]
 
 [tool.ruff.lint.isort]
 case-sensitive = false
