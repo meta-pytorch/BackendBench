@@ -17,7 +17,6 @@ from typing import Callable, Dict, List, Optional, Tuple
 import torch
 
 from BackendBench.agent_errors import AgentError
-from BackendBench.eval import eval_performance
 from BackendBench.eval import (
     CorrectnessTestResult,
     eval_performance,

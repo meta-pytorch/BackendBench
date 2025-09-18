@@ -9,10 +9,11 @@ from typing import Optional
 
 import anthropic
 import requests
+from requests.exceptions import ConnectionError
 from tenacity import retry
 from tenacity.wait import wait_random_exponential
 
-from BackendBench.agent_errors import AgentError
+from BackendBench.errors import AgentError
 
 from .kernel_templates import KernelTemplateManager
 
