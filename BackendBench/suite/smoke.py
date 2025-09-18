@@ -19,12 +19,18 @@ SmokeTestSuite = TestSuite(
     "smoke",
     [
         OpTest(
-            get_operator(torch.ops.aten.relu.default),
+            get_operator(torch.ops.aten.bmm.default),
             [
-                Test(randn(2, device="cpu")),
+                Test(
+                    randn(2, 2, 2, device="cpu"),
+                    randn(2, 2, 2, device="cpu"),
+                ),
             ],
             [
-                Test(randn(2**28, device="cpu")),
+                Test(
+                    randn(2**10, 2**10, 2**10, device="cpu"),
+                    randn(2**10, 2**10, 2**10, device="cpu"),
+                ),
             ],
         )
     ],

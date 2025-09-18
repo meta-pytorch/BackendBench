@@ -137,24 +137,24 @@ class TestSmokeTestSuiteStructure:
         assert isinstance(SmokeTestSuite, TestSuite)
         assert SmokeTestSuite.name == "smoke"
 
-    def test_smoke_test_suite_contains_relu(self):
+    def test_smoke_test_suite_contains_bmm(self):
         optests = list(SmokeTestSuite)
 
         assert len(optests) >= 1
-        assert optests[0].op == get_operator(torch.ops.aten.relu.default)
+        assert optests[0].op == get_operator(torch.ops.aten.bmm.default)
 
         # Check correctness tests
         assert len(optests[0].correctness_tests) >= 1
         correctness_test = optests[0].correctness_tests[0]
         args = correctness_test.args
-        assert len(args) == 1
+        assert len(args) == 2
         assert isinstance(args[0], torch.Tensor)
 
         # Check performance tests
         assert len(optests[0].performance_tests) >= 1
         perf_test = optests[0].performance_tests[0]
         perf_args = perf_test.args
-        assert len(perf_args) == 1
+        assert len(perf_args) == 2
         assert isinstance(perf_args[0], torch.Tensor)
         assert perf_args[0].numel() > args[0].numel()
 
