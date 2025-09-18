@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Callable, Dict, Optional
+from typing import Optional
 
 import anthropic
 import requests
@@ -121,75 +121,6 @@ export ANTHROPIC_API_KEY=your_api_key_here
             raise
         except Exception as e:
             raise AgentError(f"Agent error: Failed to generate kernel for {op_name}: {str(e)}")
-
-    def generate_kernel_with_retry(
-        self,
-        op_name: str,
-        op_signature: str,
-        op_description: str,
-        framework: str = "triton",
-        max_attempts: int = 5,
-        feedback_callback: Optional[Callable] = None,
-    ) -> tuple[str, int, bool]:
-        """Generate kernel with iterative refinement based on feedback.
-
-        Returns:
-            tuple: (final_kernel_code, attempts_used, success)
-        """
-        feedback = None
-        kernel_code = ""  # Initialize to avoid unbound variable error
-
-        for attempt in range(max_attempts):
-            print(f"  Attempt {attempt + 1}/{max_attempts}")
-
-            try:
-                kernel_code = self.generate_kernel(
-                    op_name, op_signature, op_description, framework, feedback
-                )
-            except Exception as e:
-                print(f"  ✗ Failed to generate kernel: {e}")
-                kernel_code = ""
-
-            if feedback_callback is None:
-                return kernel_code, 1, True
-
-            is_correct, feedback_info = feedback_callback(kernel_code, attempt + 1)
-
-            if is_correct:
-                print(f"  ✓ Kernel correct on attempt {attempt + 1}")
-                return kernel_code, attempt + 1, True
-            else:
-                print(
-                    f"  ✗ Kernel failed on attempt {attempt + 1}: {feedback_info.get('summary', 'Unknown error')}"
-                )
-                feedback = self._format_feedback(feedback_info)
-                print(f"  📝 Formatted feedback length: {len(feedback)} chars")
-                if len(feedback) < 100:
-                    print(f"  📝 Short feedback: {repr(feedback)}")
-
-        print(f"  ✗ Failed to generate correct kernel after {max_attempts} attempts")
-        return kernel_code, max_attempts, False
-
-    def _format_feedback(self, feedback_info: Dict) -> str:
-        """Format feedback information for the LLM."""
-        feedback_parts = ["PREVIOUS ATTEMPT FAILED - Please fix the following issues:\n"]
-
-        if feedback_info.get("compilation_error"):
-            feedback_parts.append(f"COMPILATION ERROR:\n{feedback_info['compilation_error']}\n")
-
-        if feedback_info.get("test_errors"):
-            feedback_parts.append("TEST ERRORS:")
-            for i, error in enumerate(feedback_info["test_errors"]):
-                feedback_parts.append(f"\nTest Case {i + 1}:")
-                feedback_parts.append(f"Input: {error['test_input']}")
-                feedback_parts.append(f"Error: {error['error']}")
-                feedback_parts.append(f"Full traceback:\n{error['traceback']}")
-
-        feedback_parts.append(
-            "\nPlease analyze the errors above and generate a corrected version of the kernel."
-        )
-
-        return "\n".join(feedback_parts)
 
     def _extract_code_from_response(self, response: str) -> str:
         if "```python" not in response:
