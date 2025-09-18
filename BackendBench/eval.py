@@ -170,17 +170,20 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
     performance_results: List[PerformanceTestResult] = []
 
     for test in tests:
-        args_str = serialize_args(test.args, test.kwargs)
+        # Cache the arguments to ensure consistency between reference and implementation
+        cached_args = test.args
+        cached_kwargs = test.kwargs
+        args_str = serialize_args(cached_args, cached_kwargs)
         args_strs.append(args_str)
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
-        base_time = bench_fn(lambda: op(*test.args, **test.kwargs))
+        base_time = bench_fn(lambda: op(*cached_args, **cached_kwargs))
         base_times.append(base_time)
         # Note: If the test fails we consider the speedup to be 1.0
         # TODO: We should make this more explicit, by having an if resolving it in the except and removing the finally block
         test_time = base_time
         try:
-            ref = op(*test.args, **test.kwargs)
-            res = impl(*test.args, **test.kwargs)
+            ref = op(*cached_args, **cached_kwargs)
+            res = impl(*cached_args, **cached_kwargs)
             if not allclose(
                 ref,
                 res,
@@ -189,7 +192,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 raise ValueError(
                     f"Reference and result tensors are not close: max absolute error {abs_error}, max relative error {rel_error}"
                 )
-            test_time = bench_fn(lambda: impl(*test.args, **test.kwargs))
+            test_time = bench_fn(lambda: impl(*cached_args, **cached_kwargs))
             performance_results.append(
                 PerformanceTestResult(
                     op_name=op.__name__,
