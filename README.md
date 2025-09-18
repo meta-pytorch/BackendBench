@@ -27,6 +27,9 @@ python -m BackendBench.scripts.setup_operator_directories
 3. **Test your implementations**:
 
 ```bash
+# smoke test to make sure everything is in check
+python BackendBench/scripts/main.py --suite smoke --backend aten
+
 # OpInfo correctness tests
 python BackendBench/scripts/main.py --suite opinfo --backend directory
 
