@@ -32,10 +32,9 @@ def create_watermarked_impl(
     """Generate a watermarked implementation that returns a constant tensor."""
 
     if watermark_value is None:
-        if use_unique_watermarks:
-            watermark_value = get_operator_watermark_value(op_name)
-        else:
-            watermark_value = WATERMARK_BASE
+        watermark_value = WATERMARK_BASE
+    if use_unique_watermarks:
+        watermark_value = get_operator_watermark_value(op_name, watermark_value)
 
     return f'''# Watermarked implementation for {op_name} operator
 # This implementation returns a constant tensor to verify monkey patching

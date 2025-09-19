@@ -25,43 +25,57 @@ from BackendBench.scripts.create_watermarked_operators import get_operator_water
 class TestMonkeyPatch:
     """Verify monkey patching of directory backend."""
 
-    kernel_dir = "generated_kernels_test_monkey_path"
+    kernel_dir_relu = "generated_kernels_test_monkey_patch_relu"
+    kernel_dir_leaky_relu = "generated_kernels_test_monkey_path_leaky_relu"
+
+    def setup_watermarked_kernel_dir(self, kernel_dir, ops=None):
+        """Generate required directory structure and operators."""
+        # Generate the directory structure
+        command_list = [
+            sys.executable,
+            "-m",
+            "BackendBench.scripts.setup_operator_directories",
+            "--base-dir",
+            kernel_dir,
+        ]
+        subprocess.run(
+            command_list,
+            check=True,
+        )
+        # Clean up directory structure and only keep the specified ops
+        if ops:
+            for directory in os.listdir(kernel_dir):
+                if directory not in ops and os.path.isdir(os.path.join(kernel_dir, directory)):
+                    shutil.rmtree(os.path.join(kernel_dir, directory))
+
+        command_list = [
+            sys.executable,
+            "-m",
+            "BackendBench.scripts.create_watermarked_operators",
+            "--base-dir",
+            kernel_dir,
+            "--overwrite",
+            "--unique-watermarks",
+        ]
+
+        subprocess.run(
+            command_list,
+            check=True,
+        )
+
+    def cleanup_kernel_dir(self, kernel_dir):
+        shutil.rmtree(kernel_dir)
 
     @pytest.fixture(scope="module")
     def setup_dir_relu(self):
         """Generate required directory structure and operators."""
-        # Generate the directory structure
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "BackendBench.scripts.setup_operator_directories",
-                "--base-dir",
-                self.kernel_dir,
-            ],
-            check=True,
-        )
-        # Create watermarked implementations with unique values to verify monkey patching
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "BackendBench.scripts.create_watermarked_operators",
-                "--base-dir",
-                self.kernel_dir,
-                "--overwrite",
-                "--unique-watermarks",
-            ],
-            check=True,
-        )
-        for directory in os.listdir(self.kernel_dir):
-            if directory != "relu" and os.path.isdir(os.path.join(self.kernel_dir, directory)):
-                shutil.rmtree(os.path.join(self.kernel_dir, directory))
+        self.setup_watermarked_kernel_dir(self.kernel_dir_relu, ["relu"])
+        self.setup_watermarked_kernel_dir(self.kernel_dir_leaky_relu, ["leaky_relu"])
 
         yield
 
-        # Teardown
-        shutil.rmtree(self.kernel_dir)
+        self.cleanup_kernel_dir(self.kernel_dir_relu)
+        self.cleanup_kernel_dir(self.kernel_dir_leaky_relu)
 
     @pytest.mark.parametrize(
         "device",
@@ -85,7 +99,8 @@ class TestMonkeyPatch:
         torch.testing.assert_close(relu(x), expected)
 
         # Enable monkey patching
-        BackendBench.enable(kernel_dir=self.kernel_dir, dispatch_key=device.upper())
+        BackendBench.enable(kernel_dir=self.kernel_dir_relu, dispatch_key=device.upper())
+
         torch.testing.assert_close(relu(x), watermarked)
 
         # Disable monkey patching
@@ -115,7 +130,7 @@ class TestMonkeyPatch:
         torch.testing.assert_close(relu(x), expected)
 
         with BackendBench.BackendBench.enable(
-            kernel_dir=self.kernel_dir, dispatch_key=device.upper()
+            kernel_dir=self.kernel_dir_relu, dispatch_key=device.upper()
         ):
             torch.testing.assert_close(relu(x), watermarked)
 
@@ -125,20 +140,30 @@ class TestMonkeyPatch:
         """Test context manager behavior when BackendBench is already enabled."""
         BackendBench.disable()
         relu = torch.ops.aten.relu.default
+        leaky_relu = torch.ops.aten.leaky_relu.default
         x = torch.tensor([-1.0, 0.0, 1.0])
-        expected = torch.tensor([0.0, 0.0, 1.0])
-        watermarked = torch.full_like(x, get_operator_watermark_value("relu"))
+        expected_relu = torch.tensor([0.0, 0.0, 1.0])
+        expected_leaky_relu = torch.tensor([-0.01, 0.0, 1.0])
+        watermarked_relu = torch.full_like(x, get_operator_watermark_value("relu"))
+        watermarked_leaky_relu = torch.full_like(x, get_operator_watermark_value("leaky_relu"))
 
-        BackendBench.enable(kernel_dir=self.kernel_dir, dispatch_key="CPU")
-        torch.testing.assert_close(relu(x), watermarked)
+        BackendBench.enable(kernel_dir=self.kernel_dir_relu, dispatch_key="CPU")
 
-        with BackendBench.BackendBench.enable(kernel_dir=self.kernel_dir, dispatch_key="CPU"):
-            torch.testing.assert_close(relu(x), watermarked)
+        torch.testing.assert_close(relu(x), watermarked_relu)
+        torch.testing.assert_close(leaky_relu(x), expected_leaky_relu)
 
-        torch.testing.assert_close(relu(x), watermarked)
+        with BackendBench.BackendBench.enable(
+            kernel_dir=self.kernel_dir_leaky_relu, dispatch_key="CPU"
+        ):
+            torch.testing.assert_close(relu(x), watermarked_relu)
+            torch.testing.assert_close(leaky_relu(x), watermarked_leaky_relu)
+
+        torch.testing.assert_close(relu(x), watermarked_relu)
+        torch.testing.assert_close(leaky_relu(x), expected_leaky_relu)
 
         BackendBench.disable()
-        torch.testing.assert_close(relu(x), expected)
+        torch.testing.assert_close(relu(x), expected_relu)
+        torch.testing.assert_close(leaky_relu(x), expected_leaky_relu)
 
     def test_context_manager_with_exception(self, setup_dir_relu):
         """Test that context manager properly disables even when exception occurs."""
@@ -150,7 +175,9 @@ class TestMonkeyPatch:
         torch.testing.assert_close(relu(x), expected)
 
         try:
-            with BackendBench.BackendBench.enable(kernel_dir=self.kernel_dir, dispatch_key="CPU"):
+            with BackendBench.BackendBench.enable(
+                kernel_dir=self.kernel_dir_relu, dispatch_key="CPU"
+            ):
                 raise ValueError("Test exception")
         except ValueError:
             pass

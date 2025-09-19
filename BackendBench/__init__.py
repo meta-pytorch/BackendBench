@@ -33,15 +33,14 @@ class _BackendBenchContext:
         self.kernel_dir = kernel_dir
         self.namespace = namespace
         self.dispatch_key = dispatch_key
-        self._was_enabled = _lib is not None
+        self.lib = torch.library.Library(namespace, "IMPL", dispatch_key)
 
     def __enter__(self):
-        enable(self.kernel_dir, self.namespace, self.dispatch_key)
+        enable(self.kernel_dir, self.namespace, self.dispatch_key, self.lib)
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if not self._was_enabled:
-            disable()
+        self.lib = None
 
 
 class BackendBench:
@@ -68,17 +67,12 @@ class BackendBench:
         return _BackendBenchContext(kernel_dir, namespace, dispatch_key)
 
 
-def _monkey_patch_operators(op_custom_impl, namespace="aten", dispatch_key="CUDA"):
+def _monkey_patch_operators(lib, op_custom_impl, namespace="aten", dispatch_key="CUDA"):
     """
     Replace PyTorch operators with custom implementations using torch.library.
     """
-    global _lib
 
     assert dispatch_key in ["CPU", "CUDA"], "Only CPU and CUDA dispatch keys are supported"
-
-    # Use torch.library to register custom implementations
-    if _lib is None:
-        _lib = torch.library.Library(namespace, "IMPL", dispatch_key)
 
     patched_count = 0
     for op, custom_impl in op_custom_impl.items():
@@ -94,7 +88,7 @@ def _monkey_patch_operators(op_custom_impl, namespace="aten", dispatch_key="CUDA
                 full_name = op_name
 
             # Register the custom implementation
-            _lib.impl(full_name, custom_impl, dispatch_key)
+            lib.impl(full_name, custom_impl, dispatch_key)
             patched_count += 1
 
         except Exception as e:
@@ -111,6 +105,7 @@ def enable(
     kernel_dir: Optional[Union[str, Path]] = None,
     namespace: str = "aten",
     dispatch_key: str = "CUDA",
+    lib=None,
 ) -> None:
     """
     Enable the DirectoryBackend to use custom operator implementations.
@@ -135,10 +130,17 @@ def enable(
         _current_backend = DirectoryBackend(str(kernel_dir))
 
         # Actually monkey-patch PyTorch operators
-        _monkey_patch_operators(_current_backend.compiled_kernels, namespace, dispatch_key)
+        if lib:
+            _monkey_patch_operators(lib, _current_backend.compiled_kernels, namespace, dispatch_key)
+        else:
+            global _lib
+            if _lib is None:
+                _lib = torch.library.Library(namespace, "IMPL", dispatch_key)
+            _monkey_patch_operators(
+                _lib, _current_backend.compiled_kernels, namespace, dispatch_key
+            )
     except Exception as e:
         logger.warn(f"Failed to enable DirectoryBackend: {e}")
-        disable()
 
 
 def disable() -> None:
