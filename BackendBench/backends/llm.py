@@ -16,6 +16,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 
+from BackendBench.agent_errors import AgentError
 from BackendBench.eval import (
     CorrectnessTestResult,
     eval_performance,
@@ -306,6 +307,11 @@ You can inspect these files to debug kernel generation, manually test implementa
         feedback_info.kernel_code = kernel_code
 
         try:
+            # Only raise AgentError if kernel_code is missing or malformed
+            if not kernel_code or not isinstance(kernel_code, str):
+                raise AgentError(
+                    "Kernel code is empty or not a string (agent failed to produce a kernel)."
+                )
             kernel_file = self._generate_kernel_file_path(op_name, attempt)
             if not os.path.exists(kernel_file):
                 save_kernel_to_file(kernel_code, kernel_file)
@@ -314,16 +320,12 @@ You can inspect these files to debug kernel generation, manually test implementa
                 f"{op_name}_implementation_v{attempt}", kernel_file
             )
             module = importlib.util.module_from_spec(spec)
-
-            # Add to sys.modules so triton can find it
             sys.modules[f"{op_name}_implementation_v{attempt}"] = module
 
             try:
                 spec.loader.exec_module(module)
-
                 expected_name = f"{op_name}_kernel_impl"
                 if hasattr(module, expected_name):
-                    # check if the kernel compile / is loadable
                     _ = getattr(module, expected_name)
                 else:
                     available_functions = [
@@ -334,12 +336,9 @@ You can inspect these files to debug kernel generation, manually test implementa
                     raise ValueError(
                         f"Expected function '{expected_name}' not found. Available: {available_functions}"
                     )
-
             finally:
                 if f"test_kernel_{op_name}_{attempt}" in sys.modules:
                     del sys.modules[f"test_kernel_{op_name}_{attempt}"]
-
-                # Clear CUDA cache and synchronize to prevent memory buildup
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
@@ -353,10 +352,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                     test_cases,
                     [],
                 )
-
-                # Start evaluation
                 evaluator.start_evaluation()
-                # Get results
                 results = evaluator.get_results()
 
             for result in results:
@@ -370,6 +366,10 @@ You can inspect these files to debug kernel generation, manually test implementa
 
             return is_correct, feedback_info
 
+        except AgentError as e:
+            feedback_info["agent_error"] = str(e)
+            feedback_info["summary"] = f"Agent error: {str(e)}"
+            return False, feedback_info
         except Exception as e:
             logger.error("    ✗ Compilation failed:")
             logger.error(f"      Error: {str(e)}")
