@@ -31,8 +31,35 @@ jobs:
       run: cd FACTO && uv pip install .
     
     - name: Run smoke test
-      run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
+      run: | 
+        uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
+        echo "OUTPUT_DIR=$(grep -oP 'Results saved to directory: \K.*' smoke.log | tail -1)" >> $GITHUB_ENV
     
+    - name: Check smoke test failures
+      run: |
+        if [ -s "$OUTPUT_DIR/failed_ops.json" ]; then
+          echo "Some operations failed in the smoke test."
+          cat "$OUTPUT_DIR/failed_ops.json"
+          exit 1
+        else
+          echo "All operations passed the smoke test."
+        fi
+    
+    - name: Run opinfo test
+      run: |
+        uv run python -m BackendBench.scripts.main --suite opinfo --backend aten
+        echo "OUTPUT_DIR_OPINFO=$(grep -oP 'Results saved to directory: \K.*' opinfo.log | tail -1)" >> $GITHUB_ENV
+
+    - name: Check opinfo test failures
+      run: |
+        if [ -s "$OUTPUT_DIR_OPINFO/failed_ops.json" ]; then
+          echo "Some operations failed in the opinfo test."
+          cat "$OUTPUT_DIR_OPINFO/failed_ops.json"
+          exit 1
+        else
+          echo "All operations passed the opinfo test."
+        fi
+
     - name: Run FACTO test
       run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
     
