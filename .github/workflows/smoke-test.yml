@@ -32,7 +32,7 @@ jobs:
     
     - name: Run smoke test
       run: | 
-        uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
+        uv run python -m BackendBench.scripts.main --suite smoke --backend aten | tee smoke.log
         echo "OUTPUT_DIR=$(grep -oP 'Results saved to directory: \K.*' smoke.log | tail -1)" >> $GITHUB_ENV
     
     - name: Check smoke test failures
@@ -47,7 +47,7 @@ jobs:
     
     - name: Run opinfo test
       run: |
-        uv run python -m BackendBench.scripts.main --suite opinfo --backend aten
+        uv run python -m BackendBench.scripts.main --suite opinfo --backend aten | tee opinfo.log
         echo "OUTPUT_DIR_OPINFO=$(grep -oP 'Results saved to directory: \K.*' opinfo.log | tail -1)" >> $GITHUB_ENV
 
     - name: Check opinfo test failures
