@@ -16,7 +16,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 import torch
 
-from BackendBench.agent_errors import AgentError
+from BackendBench.errors import AgentError
 from BackendBench.eval import (
     CorrectnessTestResult,
     eval_performance,
@@ -315,11 +315,12 @@ You can inspect these files to debug kernel generation, manually test implementa
             kernel_file = self._generate_kernel_file_path(op_name, attempt)
             if not os.path.exists(kernel_file):
                 save_kernel_to_file(kernel_code, kernel_file)
-
             spec = importlib.util.spec_from_file_location(
                 f"{op_name}_implementation_v{attempt}", kernel_file
             )
             module = importlib.util.module_from_spec(spec)
+
+            # Add to sys.modules so triton can find it
             sys.modules[f"{op_name}_implementation_v{attempt}"] = module
 
             try:
@@ -367,8 +368,8 @@ You can inspect these files to debug kernel generation, manually test implementa
             return is_correct, feedback_info
 
         except AgentError as e:
-            feedback_info["agent_error"] = str(e)
-            feedback_info["summary"] = f"Agent error: {str(e)}"
+            feedback_info.compilation_error = str(e)
+            feedback_info.summary = f"Agent error: {str(e)}"
             return False, feedback_info
         except Exception as e:
             logger.error("    ✗ Compilation failed:")

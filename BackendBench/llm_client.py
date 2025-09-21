@@ -194,13 +194,13 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
                 proxies=proxies,
             )
             if response.status_code != 200:
-                raise AgentError(
-                    f"Agent error: Server returned status {response.status_code}: {response.text}"
+                raise ConnectionError(
+                    f"Server returned status {response.status_code}: {response.text}"
                 )
             response_data = response.json()
             content = response_data.get("output", "")
             if not content or "rate limit" in content.lower():
-                raise AgentError("Agent error: Empty response or rate limit encountered.")
+                raise ConnectionError("Empty response or rate limit encountered.")
             return content
         except requests.exceptions.RequestException as e:
             raise AgentError(f"Agent error: Failed to communicate with LLM relay server: {str(e)}")
