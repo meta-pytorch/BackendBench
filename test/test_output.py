@@ -123,7 +123,7 @@ class TestOutputFunctions:
         mul_summary = op_summaries["torch.ops.aten.mul.Tensor"]
         assert_expected_inline(
             str(mul_summary),
-            """{'operator': 'torch.ops.aten.mul.Tensor', 'total_tests': 3, 'correctness_tests': 1, 'performance_tests': 1, 'passed_correctness_tests': 0, 'passed_performance_tests': 1, 'failed_correctness_tests': 1, 'failed_performance_tests': 0, 'correctness_rate': 0.0, 'avg_speedup': 0.0, 'geomean_speedup': 0.0, 'max_absolute_error': -inf, 'max_relative_error': -inf}""",
+            """{'operator': 'torch.ops.aten.mul.Tensor', 'total_tests': 3, 'correctness_tests': 1, 'performance_tests': 1, 'passed_correctness_tests': 0, 'passed_performance_tests': 1, 'failed_correctness_tests': 1, 'failed_performance_tests': 0, 'correctness_rate': 0.0, 'avg_speedup': 1.0, 'geomean_speedup': 1.0, 'max_absolute_error': -inf, 'max_relative_error': -inf}""",
         )
 
         sin_summary = op_summaries["torch.ops.aten.sin.default"]
@@ -144,7 +144,7 @@ class TestOutputFunctions:
         # Check that results are sorted properly (by speedup descending, then correctness)
         assert_expected_inline(
             str(op_results),
-            """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '0.0000x')]""",
+            """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
         )
 
     def test_save_results_integration(self):
