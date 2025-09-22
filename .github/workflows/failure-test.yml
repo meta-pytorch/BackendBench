@@ -19,10 +19,10 @@ jobs:
         run: uv sync --dev
       - name: Run smoke test
         run: |
-          uv run python -m BackendBench.scripts.main --suite smoke --backend aten --log-dir smoke_output | tee smoke.log
+          uv run python -m BackendBench.scripts.main --suite smoke --backend aten --log-dir smoke_output
       - name: Check smoke test failures
         run: |
-          if [ -s "smoke_output/failed_ops.json" ]; then
+          if [ -s "smoke_output/failed_ops.json" ] && [ "$(jq 'length' smoke_output/failed_ops.json)" -ne 0 ]; then
             echo "Some operations failed in the smoke test."
             cat "smoke_output/failed_ops.json"
             exit 1
@@ -42,10 +42,10 @@ jobs:
         run: uv sync --dev
       - name: Run opinfo test
         run: |
-          uv run python -m BackendBench.scripts.main --suite opinfo --backend aten --log-dir opinfo_output | tee opinfo.log
+          uv run python -m BackendBench.scripts.main --suite opinfo --backend aten --log-dir opinfo_output
       - name: Check opinfo test failures
         run: |
-          if [ -s "opinfo_output/failed_ops.json" ]; then
+          if [ -s "opinfo_output/failed_ops.json" ] && [ "$(jq 'length' opinfo_output/failed_ops.json)" -ne 0 ]; then
             echo "Some operations failed in the opinfo test."
             cat "opinfo_output/failed_ops.json"
             exit 1
@@ -69,10 +69,10 @@ jobs:
         run: cd FACTO && uv pip install .
       - name: Run FACTO test
         run: |
-          uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" --log-dir facto_output | tee facto.log
+          uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" --log-dir facto_output
       - name: Check FACTO test failures
         run: |
-          if [ -s "facto_output/failed_ops.json" ]; then
+          if [ -s "facto_output/failed_ops.json" ] && [ "$(jq 'length' facto_output/failed_ops.json)" -ne 0 ]; then
             echo "Some operations failed in the FACTO test."
             cat "facto_output/failed_ops.json"
             exit 1
