@@ -74,8 +74,8 @@ class TestOutputFunctions:
             PerformanceTestResult(
                 op_name="torch.ops.aten.mul.Tensor",
                 args="[tensor([1, 2]), tensor([3, 4])]",
-                speedup=0.0,
-                benchmark_time_ms=0.0,
+                speedup=1.0,
+                benchmark_time_ms=20.0,
                 reference_time_ms=20.0,
                 successfully_ran=True,
             ),

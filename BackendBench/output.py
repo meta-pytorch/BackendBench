@@ -94,8 +94,7 @@ def _prepare_results_data(
             "passed_correctness_tests": correct_correctness_tests,
             "passed_performance_tests": passed_performance_tests,
             "failed_correctness_tests": len(op_correctness_results) - correct_correctness_tests,
-            "failed_performance_tests": len(op_performance_results)
-            - len([test for test in op_performance_results if test.successfully_ran]),
+            "failed_performance_tests": len(op_performance_results) - passed_performance_tests,
             "correctness_rate": correctness_rate,
             "avg_speedup": avg_speedup,
             "geomean_speedup": geomean_speedup,
