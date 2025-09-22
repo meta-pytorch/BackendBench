@@ -118,10 +118,8 @@ export ANTHROPIC_API_KEY=your_api_key_here
 
             return extracted_code
 
-        except AgentError:
-            raise
         except Exception as e:
-            raise AgentError(f"Agent error: Failed to generate kernel for {op_name}: {str(e)}")
+            raise RuntimeError(f"Agent error: Failed to generate kernel for {op_name}: {str(e)}")
 
     def _extract_code_from_response(self, response: str) -> str:
         if "```python" not in response:
@@ -203,6 +201,8 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
                 raise ConnectionError("Empty response or rate limit encountered.")
             return content
         except requests.exceptions.RequestException as e:
-            raise AgentError(f"Agent error: Failed to communicate with LLM relay server: {str(e)}")
+            raise ConnectionError(
+                f"Agent error: Failed to communicate with LLM relay server: {str(e)}"
+            )
         except Exception as e:
-            raise AgentError(f"Agent error: Unexpected error in LLM relay call: {e}")
+            raise RuntimeError(f"Agent error: Unexpected error in LLM relay call: {e}")

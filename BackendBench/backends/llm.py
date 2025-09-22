@@ -353,7 +353,10 @@ You can inspect these files to debug kernel generation, manually test implementa
                     test_cases,
                     [],
                 )
+
+                # Start evaluation
                 evaluator.start_evaluation()
+                # Get results
                 results = evaluator.get_results()
 
             for result in results:
