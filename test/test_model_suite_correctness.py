@@ -1,0 +1,180 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
+
+"""
+Essential tests for Model Suite PR #2: Full Model Testing & Results
+
+This test suite validates the core functionality:
+1. FullModelTest class with eager/backend execution
+2. Numerical correctness comparison
+3. ModelSuite.test_model_correctness() integration
+"""
+
+import logging
+import os
+import sys
+import unittest
+
+import torch
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+from BackendBench.suite.model import FullModelTest, load_toy_models, ModelSuite
+
+# Setup logging
+logging.basicConfig(level=logging.WARNING)
+
+
+class TestFullModelTest(unittest.TestCase):
+    """Test FullModelTest class functionality."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Load toy models once for all tests."""
+        cls.models = load_toy_models(toy_models_dir="BackendBench/suite/models")
+        assert len(cls.models) > 0, "Should load at least one model"
+        cls.model = next(m for m in cls.models if m["name"] == "toy_core_ops")
+
+    def test_initialization(self):
+        """Test FullModelTest can be instantiated correctly."""
+        test_config = self.model["config"]["test_configs"][0]
+        full_test = FullModelTest(
+            model_name=self.model["name"],
+            model_class=self.model["class"],
+            config=self.model["config"],
+            test_config=test_config,
+        )
+
+        self.assertEqual(full_test.model_name, self.model["name"])
+        self.assertEqual(full_test.model_class, self.model["class"])
+
+    def test_eager_execution(self):
+        """Test model runs correctly in eager mode."""
+        test_config = self.model["config"]["test_configs"][0]
+        full_test = FullModelTest(
+            self.model["name"], self.model["class"], self.model["config"], test_config
+        )
+
+        output, grads = full_test.run_with_backend(backend_enabled=False)
+
+        # Verify output shape
+        batch_size = test_config["forward_args"]["batch_size"]
+        expected_shape = torch.Size([batch_size, 8, 4, 4])
+        self.assertEqual(output.shape, expected_shape)
+
+        # Verify gradients computed
+        self.assertGreater(len(grads), 0, "Should compute gradients")
+
+        # Verify all gradients are valid
+        for grad in grads:
+            self.assertIsInstance(grad, torch.Tensor)
+            self.assertFalse(torch.isnan(grad).any(), "No NaN gradients")
+            self.assertFalse(torch.isinf(grad).any(), "No Inf gradients")
+
+    def test_backend_execution(self):
+        """Test model runs with backend enabled."""
+        test_config = self.model["config"]["test_configs"][0]
+        full_test = FullModelTest(
+            self.model["name"], self.model["class"], self.model["config"], test_config
+        )
+
+        output, grads = full_test.run_with_backend(backend_enabled=True)
+
+        # Verify output shape
+        batch_size = test_config["forward_args"]["batch_size"]
+        expected_shape = torch.Size([batch_size, 8, 4, 4])
+        self.assertEqual(output.shape, expected_shape)
+
+        # Verify gradients computed
+        self.assertGreater(len(grads), 0, "Should compute gradients")
+
+    def test_correctness_comparison(self):
+        """Test correctness comparison between eager and backend."""
+        test_config = self.model["config"]["test_configs"][0]
+        full_test = FullModelTest(
+            self.model["name"], self.model["class"], self.model["config"], test_config
+        )
+
+        is_correct = full_test.test_correctness()
+
+        # Result should be a boolean
+        self.assertIsInstance(is_correct, bool)
+
+        # With existing kernels, test should pass
+        self.assertTrue(is_correct, "Backend should produce correct results")
+
+    def test_multiple_configs(self):
+        """Test all model configurations run correctly."""
+        for test_config in self.model["config"]["test_configs"]:
+            full_test = FullModelTest(
+                self.model["name"], self.model["class"], self.model["config"], test_config
+            )
+
+            output, grads = full_test.run_with_backend(backend_enabled=False)
+
+            batch_size = test_config["forward_args"]["batch_size"]
+            expected_shape = torch.Size([batch_size, 8, 4, 4])
+            self.assertEqual(output.shape, expected_shape, f"Config {test_config['name']} failed")
+            self.assertGreater(len(grads), 0, f"Config {test_config['name']} has no gradients")
+
+
+class TestModelSuite(unittest.TestCase):
+    """Test ModelSuite.test_model_correctness() integration."""
+
+    def test_model_correctness_method_exists(self):
+        """Test that test_model_correctness method exists."""
+        suite = ModelSuite()
+        self.assertTrue(hasattr(suite, "test_model_correctness"))
+
+    def test_model_correctness_integration(self):
+        """Test ModelSuite.test_model_correctness() returns proper results."""
+        suite = ModelSuite()
+        results = suite.test_model_correctness()
+
+        # Verify results structure
+        self.assertIsInstance(results, dict, "Results should be a dictionary")
+        self.assertGreater(len(results), 0, "Should have results for at least one model")
+
+        # Verify each model has config results
+        for model_name, model_results in results.items():
+            self.assertIsInstance(model_results, dict, f"{model_name} results should be dict")
+            self.assertGreater(len(model_results), 0, f"{model_name} should have test configs")
+
+            # Verify each config result is a boolean
+            for config_name, is_correct in model_results.items():
+                self.assertIsInstance(
+                    is_correct, bool, f"{model_name}::{config_name} should be bool"
+                )
+
+    def test_results_aggregation(self):
+        """Test that results can be aggregated for scoring."""
+        suite = ModelSuite()
+        results = suite.test_model_correctness()
+
+        # Calculate aggregate statistics
+        total_tests = sum(len(model_results) for model_results in results.values())
+        total_passed = sum(
+            sum(1 for result in model_results.values() if result)
+            for model_results in results.values()
+        )
+
+        self.assertGreater(total_tests, 0, "Should have at least one test")
+        self.assertLessEqual(total_passed, total_tests, "Passed <= Total")
+        self.assertGreaterEqual(total_passed, 0, "Passed >= 0")
+
+    def test_empty_filter(self):
+        """Test suite handles empty model list gracefully."""
+        suite = ModelSuite(filter=["nonexistent_model"])
+        self.assertEqual(len(suite.models), 0, "Should have no models")
+
+        # Should not crash when running on empty list
+        results = suite.test_model_correctness()
+        self.assertEqual(len(results), 0, "Should have no results")
+
+
+if __name__ == "__main__":
+    # Run tests
+    unittest.main(verbosity=2)
