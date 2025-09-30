@@ -198,7 +198,7 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
             response_data = response.json()
             content = response_data.get("output", "")
             if not content or "rate limit" in content.lower():
-                raise ConnectionError("Empty response or rate limit encountered.")
+                raise RuntimeError("Empty response or rate limit encountered.")
             return content
         except requests.exceptions.RequestException as e:
             raise ConnectionError(

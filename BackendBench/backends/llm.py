@@ -40,6 +40,7 @@ class FeedbackInfo:
     """Consolidated feedback information for kernel generation."""
 
     compilation_error: Optional[str] = None
+    agent_error: Optional[str] = None
     correctness_results: List[CorrectnessTestResult] = None
     performance_results: List[PerformanceTestResult] = None
     summary: str = ""
@@ -371,7 +372,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             return is_correct, feedback_info
 
         except AgentError as e:
-            feedback_info.compilation_error = str(e)
+            feedback_info.agent_error = str(e)
             feedback_info.summary = f"Agent error: {str(e)}"
             return False, feedback_info
         except Exception as e:
