@@ -5,20 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Model Suite for testing operators traced from toy models.
+Model Suite for testing operators defined in toy model configs.
 
-This suite extends TorchBenchTestSuite by tracing model execution
-to extract operators, then filtering the TorchBench dataset to only
-include those operators.
+This suite extends TorchBenchTestSuite by reading operator lists from
+model configs, validating they exist in the TorchBench dataset, then
+filtering to include only those operators.
 """
 
 import importlib.util
 import json
 import logging
 import os
-from typing import Any, Dict, List, Optional, Set
-
-import torch
+from typing import Any, Dict, List, Optional
 
 from BackendBench.data_loaders import load_ops_from_source, op_list_to_benchmark_dict
 
@@ -60,10 +58,6 @@ def load_toy_models(
         raise FileNotFoundError(f"Toy models directory not found: {toy_models_dir}")
 
     for model_name in os.listdir(toy_models_dir):
-        # Apply filter if specified
-        if filter is not None and model_name not in filter:
-            continue
-
         model_dir = os.path.join(toy_models_dir, model_name)
         if not os.isdir(model_dir):
             continue
@@ -74,16 +68,10 @@ def load_toy_models(
 
         # Check both files exist
         if not os.path.exists(model_file):
-            if filter is not None and model_name in filter:
-                raise FileNotFoundError(f"Model file not found: {model_file}")
-            logger.warning(f"Model file not found: {model_file}")
-            continue
+            raise FileNotFoundError(f"Model file not found: {model_file}")
 
         if not os.path.exists(config_file):
-            if filter is not None and model_name in filter:
-                raise FileNotFoundError(f"Config file not found: {config_file}")
-            logger.warning(f"Config file not found: {config_file}")
-            continue
+            raise FileNotFoundError(f"Config file not found: {config_file}")
 
         try:
             # Load config
@@ -95,90 +83,29 @@ def load_toy_models(
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            # Find model class (ends with "Model")
-            model_class = None
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and attr_name.endswith("Model")
-                    and hasattr(attr, "forward")
-                ):
-                    model_class = attr
-                    break
+            # Find model class (must match model_name exactly)
+            if not hasattr(module, model_name):
+                raise RuntimeError(f"Model class '{model_name}' not found in {model_file}")
 
-            if model_class is None:
-                logger.error(f"No model class found in {model_file}")
-                continue
+            model_class = getattr(module, model_name)
+            if not (isinstance(model_class, type) and hasattr(model_class, "forward")):
+                raise RuntimeError(f"'{model_name}' in {model_file} is not a valid model class")
 
             models.append({"name": model_name, "class": model_class, "config": config})
             logger.info(f"Loaded model: {model_name}")
 
         except Exception as e:
-            if filter is not None and model_name in filter:
-                raise RuntimeError(f"Failed to load model {model_name}: {e}")
-            logger.error(f"Failed to load {model_name}: {e}")
-            continue
-
-    # If a filter was specified but no models were loaded, raise an error
-    if filter is not None and len(models) == 0:
-        raise ValueError(f"No models found matching filter: {filter}")
+            raise RuntimeError(f"Failed to load model {model_name}: {e}")
 
     return models
 
 
-def _trace_model_ops(model_class, model_config: Dict[str, Any]) -> Set[str]:
-    """Trace model execution to extract operator names.
-
-    Args:
-        model_class: Model class to instantiate
-        model_config: Model configuration dict with init_args and model_tests
-
-    Returns:
-        Set of operator names in aten format (e.g., "aten.conv2d.default")
-    """
-    import torch._dynamo as dynamo
-
-    from BackendBench.utils import deserialize_args
-
-    init_args = model_config.get("init_args", {})
-    model = model_class(**init_args)
-    model.eval()
-
-    # Get first test input to trace with
-    model_tests = model_config.get("model_tests", {})
-    if not model_tests:
-        raise ValueError("No model_tests found in config")
-
-    first_test = next(iter(model_tests.values()))
-    args, kwargs = deserialize_args(first_test)
-
-    # Trace the model to extract ops
-    ops = set()
-
-    def capture_ops(gm, example_inputs):
-        for node in gm.graph.nodes:
-            if node.op == "call_function":
-                target = node.target
-                if hasattr(target, "__module__") and "torch.ops" in target.__module__:
-                    ops.add(str(target))
-        return gm
-
-    with torch.no_grad():
-        try:
-            compiled_model = dynamo.optimize(capture_ops)(model)
-            compiled_model(*args, **kwargs)
-        except Exception as e:
-            logger.warning(f"Failed to trace model: {e}")
-
-    return ops
-
-
 class ModelSuite(TorchBenchTestSuite):
-    """Model Suite that filters TorchBench operators based on model tracing.
+    """Model Suite that filters TorchBench operators based on model configs.
 
-    This suite traces model execution to extract operators, then creates
-    a filtered TorchBench suite containing only those operators.
+    This suite reads operator lists from model configs, validates they exist
+    in the TorchBench dataset, then creates a filtered suite containing only
+    those operators.
     """
 
     def __init__(
@@ -204,29 +131,38 @@ class ModelSuite(TorchBenchTestSuite):
         models = load_toy_models(toy_models_dir=models_dir, filter=filter)
         logger.info(f"ModelSuite: Loaded {len(models)} models from {models_dir}")
 
-        # Trace models to extract operators
+        # Extract operators from model configs
         model_ops = set()
         for model in models:
-            try:
-                ops = _trace_model_ops(model["class"], model["config"])
-                model_ops.update(ops)
-                logger.info(f"Model {model['name']}: Found {len(ops)} operators")
-            except Exception as e:
-                logger.warning(f"Failed to trace model {model['name']}: {e}")
+            config_ops = model["config"].get("ops", [])
+            if not config_ops:
+                raise ValueError(f"Model {model['name']} has no 'ops' field in config")
+            model_ops.update(config_ops)
+            logger.info(f"Model {model['name']}: {len(config_ops)} operators defined in config")
 
         logger.info(f"ModelSuite: Total {len(model_ops)} unique operators across all models")
 
         # Get torchbench ops and filter
         torchbench_ops = _get_torchbench_ops()
 
-        # Convert model ops to the format used in torchbench (strip <built-in function ...>)
-        # Example: "<built-in function conv2d>" -> "aten.conv2d.default"
+        # Filter torchbench ops to only include those in model configs
         filtered_ops = {}
-        for op_name, op_inputs in torchbench_ops.items():
-            # Check if any model op matches this torchbench op
-            # Model ops from dynamo are like "aten.conv2d.default"
-            if any(model_op in op_name for model_op in model_ops):
-                filtered_ops[op_name] = op_inputs
+        unsupported_ops = []
+        for model_op in model_ops:
+            # Find matching torchbench ops
+            matched = False
+            for op_name, op_inputs in torchbench_ops.items():
+                if model_op in op_name:
+                    filtered_ops[op_name] = op_inputs
+                    matched = True
+            if not matched:
+                unsupported_ops.append(model_op)
+
+        # Error out if any ops are not supported by torchbench
+        if unsupported_ops:
+            raise ValueError(
+                f"The following operators are not supported by TorchBench: {unsupported_ops}"
+            )
 
         if not filtered_ops:
             raise ValueError(

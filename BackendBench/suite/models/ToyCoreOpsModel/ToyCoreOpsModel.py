@@ -1,4 +1,8 @@
-#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
 
 """
 Toy model that uses core PyTorch operators during training.
@@ -46,12 +50,14 @@ class ToyCoreOpsModel(nn.Module):
     - Adaptive average pooling for _adaptive_avg_pool2d_backward
     """
 
-    def __init__(self,
-                 in_channels: int = 3,
-                 hidden_channels: int = 32,
-                 out_channels: int = 8,
-                 num_groups: int = 8,
-                 seed: int = 42):
+    def __init__(
+        self,
+        in_channels: int = 3,
+        hidden_channels: int = 32,
+        out_channels: int = 8,
+        num_groups: int = 8,
+        seed: int = 42,
+    ):
         """
         Initialize the ToyCoreOpsModel.
 
@@ -82,37 +88,23 @@ class ToyCoreOpsModel(nn.Module):
 
         # First convolution block (triggers convolution_backward)
         self.conv1 = nn.Conv2d(
-            in_channels=in_channels,
-            out_channels=hidden_channels,
-            kernel_size=3,
-            padding=1
+            in_channels=in_channels, out_channels=hidden_channels, kernel_size=3, padding=1
         )
 
         # First group normalization (triggers native_group_norm_backward)
-        self.group_norm1 = nn.GroupNorm(
-            num_groups=num_groups,
-            num_channels=hidden_channels
-        )
+        self.group_norm1 = nn.GroupNorm(num_groups=num_groups, num_channels=hidden_channels)
 
         # Second convolution block (triggers convolution_backward again)
         self.conv2 = nn.Conv2d(
-            in_channels=hidden_channels,
-            out_channels=hidden_channels,
-            kernel_size=3,
-            padding=1
+            in_channels=hidden_channels, out_channels=hidden_channels, kernel_size=3, padding=1
         )
 
         # Second group normalization (triggers native_group_norm_backward again)
-        self.group_norm2 = nn.GroupNorm(
-            num_groups=num_groups,
-            num_channels=hidden_channels
-        )
+        self.group_norm2 = nn.GroupNorm(num_groups=num_groups, num_channels=hidden_channels)
 
         # Final convolution for output (triggers convolution_backward again)
         self.conv_out = nn.Conv2d(
-            in_channels=hidden_channels,
-            out_channels=out_channels,
-            kernel_size=1
+            in_channels=hidden_channels, out_channels=out_channels, kernel_size=1
         )
 
         # Initialize weights deterministically
@@ -130,7 +122,7 @@ class ToyCoreOpsModel(nn.Module):
 
         for module in self.modules():
             if isinstance(module, nn.Conv2d):
-                nn.init.kaiming_normal_(module.weight, mode='fan_out', nonlinearity='relu')
+                nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
             elif isinstance(module, nn.GroupNorm):
@@ -193,7 +185,7 @@ def main():
         hidden_channels=32,
         out_channels=8,
         num_groups=8,
-        seed=42  # Deterministic initialization
+        seed=42,  # Deterministic initialization
     )
 
     # Create sample input
@@ -223,7 +215,7 @@ def main():
     total_params = len(list(model.parameters()))
     print(f"✓ Gradients computed for {grad_count}/{total_params} parameters")
 
-    print(f"\n✓ Model demonstration completed successfully!")
+    print("\n✓ Model demonstration completed successfully!")
     print("This model is ready to be used with the Model Suite for testing core operators.")
 
     return model
