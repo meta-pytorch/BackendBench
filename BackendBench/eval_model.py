@@ -109,6 +109,102 @@ def eval_model_correctness_test(
         )
 
 
+def _get_input_tensor(args: List[Any], kwargs: Dict[str, Any]) -> torch.Tensor:
+    """Extract input tensor from args or kwargs.
+
+    Args:
+        args: Positional arguments list
+        kwargs: Keyword arguments dict
+
+    Returns:
+        Input tensor if found, None otherwise
+    """
+    if args and isinstance(args[0], torch.Tensor):
+        return args[0]
+    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
+        return kwargs["x"]
+    return None
+
+
+def _move_model_to_input_device(
+    model: torch.nn.Module, args: List[Any], kwargs: Dict[str, Any]
+) -> torch.nn.Module:
+    """Move model to the same device as input tensor.
+
+    Args:
+        model: Model to move
+        args: Positional arguments list
+        kwargs: Keyword arguments dict
+
+    Returns:
+        Model on input device (or original model if no input tensor found)
+    """
+    input_tensor = _get_input_tensor(args, kwargs)
+    if input_tensor is not None:
+        device = input_tensor.device
+        model = model.to(device)
+    return model
+
+
+def _ensure_input_requires_grad(
+    args: List[Any], kwargs: Dict[str, Any]
+) -> Tuple[List[Any], Dict[str, Any]]:
+    """Ensure input tensor has requires_grad=True for gradient computation.
+
+    Args:
+        args: Positional arguments list
+        kwargs: Keyword arguments dict
+
+    Returns:
+        Updated (args, kwargs) with input tensor requiring gradients
+    """
+    if args and isinstance(args[0], torch.Tensor):
+        x = args[0]
+        if not x.requires_grad:
+            x = x.clone().detach().requires_grad_(True)
+            args = [x] + list(args[1:])
+    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
+        x = kwargs["x"]
+        if not x.requires_grad:
+            x = x.clone().detach().requires_grad_(True)
+            kwargs["x"] = x
+
+    return args, kwargs
+
+
+def _collect_gradients(
+    model: torch.nn.Module, args: List[Any], kwargs: Dict[str, Any]
+) -> List[torch.Tensor]:
+    """Collect gradients from input and model parameters.
+
+    Args:
+        model: Model with computed gradients
+        args: Positional arguments list
+        kwargs: Keyword arguments dict
+
+    Returns:
+        List of gradient tensors [input_grad, param1_grad, ...]
+    """
+    grads = []
+
+    # Input gradient - check both args and kwargs
+    input_grad = None
+    if args and isinstance(args[0], torch.Tensor) and args[0].grad is not None:
+        input_grad = args[0].grad
+    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor) and kwargs["x"].grad is not None:
+        input_grad = kwargs["x"].grad
+
+    if input_grad is not None:
+        grads.append(input_grad.clone())
+
+    # Parameter gradients
+    for param in model.parameters():
+        if param.grad is not None:
+            grads.append(param.grad.clone())
+
+    return grads
+
+
 def _run_model(
     model_class: type,
     model_config: Dict[str, Any],
@@ -154,29 +250,11 @@ def _run_model(
     model = model_class(**init_args)
     model.train()
 
-    # Move model to same device as input (typically CUDA)
-    # Check both args and kwargs for tensor
-    input_tensor = None
-    if args and isinstance(args[0], torch.Tensor):
-        input_tensor = args[0]
-    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
-        input_tensor = kwargs["x"]
-
-    if input_tensor is not None:
-        device = input_tensor.device
-        model = model.to(device)
+    # Move model to same device as input
+    model = _move_model_to_input_device(model, args, kwargs)
 
     # Ensure input has requires_grad for gradient computation
-    if args and isinstance(args[0], torch.Tensor):
-        x = args[0]
-        if not x.requires_grad:
-            x = x.clone().detach().requires_grad_(True)
-            args = [x] + list(args[1:])
-    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
-        x = kwargs["x"]
-        if not x.requires_grad:
-            x = x.clone().detach().requires_grad_(True)
-            kwargs["x"] = x
+    args, kwargs = _ensure_input_requires_grad(args, kwargs)
 
     # Run forward + backward with or without backend
     if backend_enabled:
@@ -194,22 +272,7 @@ def _run_model(
         loss = output.sum()
         loss.backward()
 
-    # Collect gradients: [input_grad, param1_grad, ...]
-    grads = []
-
-    # Input gradient - check both args and kwargs
-    input_grad = None
-    if args and isinstance(args[0], torch.Tensor) and args[0].grad is not None:
-        input_grad = args[0].grad
-    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor) and kwargs["x"].grad is not None:
-        input_grad = kwargs["x"].grad
-
-    if input_grad is not None:
-        grads.append(input_grad.clone())
-
-    # Parameter gradients
-    for param in model.parameters():
-        if param.grad is not None:
-            grads.append(param.grad.clone())
+    # Collect gradients
+    grads = _collect_gradients(model, args, kwargs)
 
     return output.detach(), grads
