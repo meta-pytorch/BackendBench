@@ -1,0 +1,41 @@
+{
+  "model_config": {
+    "init_args": {
+      "in_channels": 3,
+      "hidden_channels": 32,
+      "out_channels": 8,
+      "num_groups": 8,
+      "seed": 42
+    }
+  },
+  "test_configs": [
+    {
+      "name": "small_batch",
+      "forward_args": {
+        "batch_size": 2,
+        "input_shape": [3, 32, 32]
+      }
+    },
+    {
+      "name": "medium_batch",
+      "forward_args": {
+        "batch_size": 4,
+        "input_shape": [3, 64, 64]
+      }
+    },
+    {
+      "name": "large_input",
+      "forward_args": {
+        "batch_size": 2,
+        "input_shape": [3, 128, 128]
+      }
+    }
+  ],
+  "expected_operators": {
+    "forward_pass": ["conv2d", "native_group_norm", "relu", "max_pool2d_with_indices", "avg_pool2d", "adaptive_avg_pool2d"],
+    "backward_pass": ["convolution_backward", "native_group_norm_backward", "threshold_backward", "max_pool2d_with_indices_backward", "avg_pool2d_backward", "_adaptive_avg_pool2d_backward"]
+  },
+  "metadata": {
+    "description": "Core operations model testing fundamental operators: convolution, group norm, max pool with indices, avg pool, adaptive avg pool"
+  }
+}
