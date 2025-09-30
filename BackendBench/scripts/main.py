@@ -316,10 +316,13 @@ def cli(
 
     # Add full model testing for model suite
     if suite.name == "model":
-        # Pass ops_directory as kernel_dir for directory backend
-        kernel_dir = ops_directory if backend_name == "directory" else None
-        model_results = suite.test_model_correctness(kernel_dir=kernel_dir)
-        suite.print_model_correctness_results(model_results)
+        logger.info("\n" + "=" * 60)
+        logger.info("MODEL EVALUATION")
+        logger.info("=" * 60)
+        for model in suite.models:
+            results = suite.eval_model(model, backend)
+            suite.print_results(results)
+        logger.info("=" * 60)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 

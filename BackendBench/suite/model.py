@@ -24,17 +24,11 @@ from .torchbench import TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
-# Cache for torchbench ops to avoid reloading
-_TORCHBENCH_OPS_CACHE = None
-
 
 def _get_torchbench_ops():
-    """Get list of available ops from torchbench dataset (cached)."""
-    global _TORCHBENCH_OPS_CACHE
-    if _TORCHBENCH_OPS_CACHE is None:
-        ops_list = load_ops_from_source(source=None, format="parquet")
-        _TORCHBENCH_OPS_CACHE = op_list_to_benchmark_dict(ops_list)
-    return _TORCHBENCH_OPS_CACHE
+    """Get list of available ops from torchbench dataset."""
+    ops_list = load_ops_from_source(source=None, format="parquet")
+    return op_list_to_benchmark_dict(ops_list)
 
 
 def load_toy_models(
@@ -183,3 +177,105 @@ class ModelSuite(TorchBenchTestSuite):
         # Deduplicate strings in self.optests
         for op in self.optests:
             self.optests[op] = list(set(self.optests[op]))
+
+        # Store loaded models for evaluation
+        self.models = models
+
+    def eval_model(self, model_dict: Dict[str, Any], backend) -> Dict[str, Any]:
+        """Run evaluation on a single model.
+
+        Args:
+            model_dict: Dictionary with keys 'name', 'class', 'config'
+            backend: Backend to use for evaluation
+
+        Returns:
+            Dictionary with evaluation results including correctness and performance
+        """
+        from BackendBench.eval_model import eval_model_correctness_test
+
+        model_class = model_dict["class"]
+        model_name = model_dict["name"]
+        config = model_dict["config"]
+
+        # Extract model configuration and tests
+        model_config = config.get("model_config", {})
+        model_tests = config.get("model_tests", {})
+
+        if not model_tests:
+            return {
+                "model_name": model_name,
+                "passed": False,
+                "error": "No model_tests found in config",
+                "test_results": [],
+            }
+
+        # Get kernel_dir from backend if available
+        kernel_dir = getattr(backend, "ops_dir", None)
+
+        # Run each test
+        test_results = []
+        for test_name, test_args in model_tests.items():
+            result = eval_model_correctness_test(
+                model_name=model_name,
+                model_class=model_class,
+                model_config=model_config,
+                test_name=test_name,
+                test_args=test_args,
+                kernel_dir=kernel_dir,
+            )
+            test_results.append(result)
+
+        # Aggregate results
+        all_passed = all(r.is_correct for r in test_results)
+        num_passed = sum(1 for r in test_results if r.is_correct)
+        num_total = len(test_results)
+
+        return {
+            "model_name": model_name,
+            "passed": all_passed,
+            "num_passed": num_passed,
+            "num_total": num_total,
+            "test_results": test_results,
+        }
+
+    def print_results(self, results: Dict[str, Any]) -> None:
+        """Print model evaluation results.
+
+        Args:
+            results: Dictionary with evaluation results from eval_model
+        """
+        model_name = results.get("model_name", "Unknown")
+        passed = results.get("passed", False)
+        num_passed = results.get("num_passed", 0)
+        num_total = results.get("num_total", 0)
+
+        logger.info(f"\nModel: {model_name}")
+        logger.info(
+            f"Status: {'✓ Passed' if passed else '✗ Failed'} ({num_passed}/{num_total} tests)"
+        )
+
+        # If there's a top-level error (no tests run)
+        if "error" in results:
+            logger.info(f"Error: {results['error']}")
+            return
+
+        # Print details for each test
+        test_results = results.get("test_results", [])
+        for result in test_results:
+            status = "✓" if result.is_correct else "✗"
+            logger.info(f"  {status} {result.test_name}")
+
+            if not result.is_correct:
+                if result.error_msg:
+                    logger.info(f"    Error: {result.error_msg}")
+                else:
+                    # Show what failed
+                    if not result.output_match:
+                        logger.info("    Output mismatch")
+                    if not result.gradients_match:
+                        logger.info(f"    Gradient mismatch ({result.num_gradients} gradients)")
+            else:
+                # Show success details
+                logger.info(
+                    f"    Output match: ✓  Gradients match: ✓ ({result.num_gradients} gradients)"
+                )
