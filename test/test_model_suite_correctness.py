@@ -40,12 +40,14 @@ class TestFullModelTest(unittest.TestCase):
 
     def test_initialization(self):
         """Test FullModelTest can be instantiated correctly."""
-        test_config = self.model["config"]["test_configs"][0]
+        test_name = list(self.model["config"]["model_tests"].keys())[0]
+        test_args = self.model["config"]["model_tests"][test_name]
         full_test = FullModelTest(
             model_name=self.model["name"],
             model_class=self.model["class"],
-            config=self.model["config"],
-            test_config=test_config,
+            model_config=self.model["config"]["model_config"],
+            test_name=test_name,
+            test_args=test_args,
         )
 
         self.assertEqual(full_test.model_name, self.model["name"])
@@ -53,16 +55,20 @@ class TestFullModelTest(unittest.TestCase):
 
     def test_eager_execution(self):
         """Test model runs correctly in eager mode."""
-        test_config = self.model["config"]["test_configs"][0]
+        test_name = "small_batch"
+        test_args = self.model["config"]["model_tests"][test_name]
         full_test = FullModelTest(
-            self.model["name"], self.model["class"], self.model["config"], test_config
+            self.model["name"],
+            self.model["class"],
+            self.model["config"]["model_config"],
+            test_name,
+            test_args,
         )
 
         output, grads = full_test.run_with_backend(backend_enabled=False)
 
-        # Verify output shape
-        batch_size = test_config["forward_args"]["batch_size"]
-        expected_shape = torch.Size([batch_size, 8, 4, 4])
+        # Verify output shape (batch_size=2 from small_batch config)
+        expected_shape = torch.Size([2, 8, 4, 4])
         self.assertEqual(output.shape, expected_shape)
 
         # Verify gradients computed
@@ -76,16 +82,20 @@ class TestFullModelTest(unittest.TestCase):
 
     def test_backend_execution(self):
         """Test model runs with backend enabled."""
-        test_config = self.model["config"]["test_configs"][0]
+        test_name = "small_batch"
+        test_args = self.model["config"]["model_tests"][test_name]
         full_test = FullModelTest(
-            self.model["name"], self.model["class"], self.model["config"], test_config
+            self.model["name"],
+            self.model["class"],
+            self.model["config"]["model_config"],
+            test_name,
+            test_args,
         )
 
         output, grads = full_test.run_with_backend(backend_enabled=True)
 
-        # Verify output shape
-        batch_size = test_config["forward_args"]["batch_size"]
-        expected_shape = torch.Size([batch_size, 8, 4, 4])
+        # Verify output shape (batch_size=2 from small_batch config)
+        expected_shape = torch.Size([2, 8, 4, 4])
         self.assertEqual(output.shape, expected_shape)
 
         # Verify gradients computed
@@ -93,9 +103,14 @@ class TestFullModelTest(unittest.TestCase):
 
     def test_correctness_comparison(self):
         """Test correctness comparison between eager and backend."""
-        test_config = self.model["config"]["test_configs"][0]
+        test_name = "small_batch"
+        test_args = self.model["config"]["model_tests"][test_name]
         full_test = FullModelTest(
-            self.model["name"], self.model["class"], self.model["config"], test_config
+            self.model["name"],
+            self.model["class"],
+            self.model["config"]["model_config"],
+            test_name,
+            test_args,
         )
 
         is_correct = full_test.test_correctness()
@@ -108,17 +123,28 @@ class TestFullModelTest(unittest.TestCase):
 
     def test_multiple_configs(self):
         """Test all model configurations run correctly."""
-        for test_config in self.model["config"]["test_configs"]:
+        # Expected shapes for each config
+        # Note: Output size is always 4x4 due to adaptive_avg_pool2d([4, 4])
+        expected_shapes = {
+            "small_batch": torch.Size([2, 8, 4, 4]),
+            "medium_batch": torch.Size([4, 8, 4, 4]),
+            "large_input": torch.Size([2, 8, 4, 4]),
+        }
+
+        for test_name, test_args in self.model["config"]["model_tests"].items():
             full_test = FullModelTest(
-                self.model["name"], self.model["class"], self.model["config"], test_config
+                self.model["name"],
+                self.model["class"],
+                self.model["config"]["model_config"],
+                test_name,
+                test_args,
             )
 
             output, grads = full_test.run_with_backend(backend_enabled=False)
 
-            batch_size = test_config["forward_args"]["batch_size"]
-            expected_shape = torch.Size([batch_size, 8, 4, 4])
-            self.assertEqual(output.shape, expected_shape, f"Config {test_config['name']} failed")
-            self.assertGreater(len(grads), 0, f"Config {test_config['name']} has no gradients")
+            expected_shape = expected_shapes[test_name]
+            self.assertEqual(output.shape, expected_shape, f"Config {test_name} failed")
+            self.assertGreater(len(grads), 0, f"Config {test_name} has no gradients")
 
 
 class TestModelSuite(unittest.TestCase):
@@ -166,13 +192,10 @@ class TestModelSuite(unittest.TestCase):
         self.assertGreaterEqual(total_passed, 0, "Passed >= 0")
 
     def test_empty_filter(self):
-        """Test suite handles empty model list gracefully."""
-        suite = ModelSuite(filter=["nonexistent_model"])
-        self.assertEqual(len(suite.models), 0, "Should have no models")
-
-        # Should not crash when running on empty list
-        results = suite.test_model_correctness()
-        self.assertEqual(len(results), 0, "Should have no results")
+        """Test suite raises error for nonexistent model."""
+        with self.assertRaises(ValueError) as context:
+            _ = ModelSuite(filter=["nonexistent_model"])
+        self.assertIn("No models found", str(context.exception))
 
 
 if __name__ == "__main__":

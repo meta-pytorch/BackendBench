@@ -64,7 +64,13 @@ def setup_logging(log_level):
     "--ops",
     default=None,
     type=str,
-    help="Comma-separated list of ops to run",
+    help="Comma-separated list of ops to run (not supported for model suite)",
+)
+@click.option(
+    "--model-filter",
+    default=None,
+    type=str,
+    help="Comma-separated list of models to run (only for model suite)",
 )
 @click.option(
     "--topn-inputs",
@@ -148,6 +154,7 @@ def cli(
     suite,
     backend,
     ops,
+    model_filter,
     topn_inputs,
     llm_attempts,
     llm_model,
@@ -167,12 +174,22 @@ def cli(
         if check_overhead_dominated_ops:
             raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
 
-    if suite == "model" and backend != "directory":
-        raise ValueError("model suite only supports directory backend")
+    if suite == "model":
+        if backend != "directory":
+            raise ValueError("model suite only supports directory backend")
+        if ops is not None:
+            raise ValueError(
+                "--ops filter is not supported for model suite. Use --model-filter instead"
+            )
+
+    if suite != "model" and model_filter is not None:
+        raise ValueError("--model-filter is only supported for model suite")
 
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
+    if model_filter:
+        model_filter = model_filter.split(",")
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -195,7 +212,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "model": lambda: ModelSuite(filter=ops),
+        "model": lambda: ModelSuite(filter=model_filter),
     }[suite]()
 
     backend_name = backend
@@ -298,40 +315,11 @@ def cli(
     )
 
     # Add full model testing for model suite
-    if suite.name == "model" and hasattr(suite, 'test_model_correctness'):
-        print("\n" + "="*80)
-        print("FULL MODEL TESTING")
-        print("="*80)
-
+    if suite.name == "model":
         # Pass ops_directory as kernel_dir for directory backend
         kernel_dir = ops_directory if backend_name == "directory" else None
         model_results = suite.test_model_correctness(kernel_dir=kernel_dir)
-
-        # Print results
-        print("\nModel Correctness Results:")
-        print("-"*80)
-        total_passed = 0
-        total_tests = 0
-        for model_name, test_results in model_results.items():
-            passed = sum(1 for result in test_results.values() if result)
-            total = len(test_results)
-            total_passed += passed
-            total_tests += total
-            percentage = (passed / total * 100) if total > 0 else 0
-            print(f"  {model_name}: {passed}/{total} configs passed ({percentage:.1f}%)")
-
-            # Show individual config results
-            for config_name, is_correct in test_results.items():
-                status = "✓ PASS" if is_correct else "✗ FAIL"
-                print(f"    {config_name}: {status}")
-
-        print("-"*80)
-        if total_tests > 0:
-            overall_percentage = total_passed / total_tests * 100
-            print(f"\nModel Suite Score: {total_passed}/{total_tests} ({overall_percentage:.1f}%)")
-        else:
-            print("\nNo model tests were run")
-        print("="*80)
+        suite.print_model_correctness_results(model_results)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 

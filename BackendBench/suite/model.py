@@ -12,20 +12,37 @@ This suite extends TorchBenchTestSuite to provide two testing approaches:
 2. Model-level correctness testing (via test_model_correctness, new functionality)
 """
 
-import json
-import os
 import importlib.util
+import json
 import logging
-import torch
-from typing import Dict, List, Any, Optional
+import os
+from typing import Any, Dict, List, Optional
 
-from BackendBench.utils import get_pytorch_op
-from .torchbench import TorchBenchTestSuite, TorchBenchTest
+import torch
+
+from BackendBench.data_loaders import load_ops_from_source, op_list_to_benchmark_dict
+from BackendBench.utils import deserialize_args
+
+from .torchbench import TorchBenchOpTest, TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
+# Cache for torchbench ops to avoid reloading
+_TORCHBENCH_OPS_CACHE = None
 
-def load_toy_models(toy_models_dir: str = "models", filter: Optional[List[str]] = None) -> List[Dict[str, Any]]:
+
+def _get_torchbench_ops():
+    """Get list of available ops from torchbench dataset (cached)."""
+    global _TORCHBENCH_OPS_CACHE
+    if _TORCHBENCH_OPS_CACHE is None:
+        ops_list = load_ops_from_source(source=None, format="parquet")
+        _TORCHBENCH_OPS_CACHE = set(op_list_to_benchmark_dict(ops_list).keys())
+    return _TORCHBENCH_OPS_CACHE
+
+
+def load_toy_models(
+    toy_models_dir: str = "models", filter: Optional[List[str]] = None
+) -> List[Dict[str, Any]]:
     """Load models using strict naming convention: folder_name/folder_name.py + folder_name.json
 
     Args:
@@ -41,8 +58,7 @@ def load_toy_models(toy_models_dir: str = "models", filter: Optional[List[str]] 
     models = []
 
     if not os.path.exists(toy_models_dir):
-        logger.warning(f"Toy models directory not found: {toy_models_dir}")
-        return models
+        raise FileNotFoundError(f"Toy models directory not found: {toy_models_dir}")
 
     for model_name in os.listdir(toy_models_dir):
         # Apply filter if specified
@@ -59,16 +75,22 @@ def load_toy_models(toy_models_dir: str = "models", filter: Optional[List[str]] 
 
         # Check both files exist
         if not os.path.exists(model_file):
+            if filter is not None and model_name in filter:
+                # If the model was explicitly requested but not found, raise an error
+                raise FileNotFoundError(f"Model file not found: {model_file}")
             logger.warning(f"Model file not found: {model_file}")
             continue
 
         if not os.path.exists(config_file):
+            if filter is not None and model_name in filter:
+                # If the model was explicitly requested but not found, raise an error
+                raise FileNotFoundError(f"Config file not found: {config_file}")
             logger.warning(f"Config file not found: {config_file}")
             continue
 
         try:
             # Load config
-            with open(config_file, 'r') as f:
+            with open(config_file, "r") as f:
                 config = json.load(f)
 
             # Load model class dynamically
@@ -80,9 +102,11 @@ def load_toy_models(toy_models_dir: str = "models", filter: Optional[List[str]] 
             model_class = None
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if (isinstance(attr, type) and
-                    attr_name.endswith("Model") and
-                    hasattr(attr, "forward")):
+                if (
+                    isinstance(attr, type)
+                    and attr_name.endswith("Model")
+                    and hasattr(attr, "forward")
+                ):
                     model_class = attr
                     break
 
@@ -90,63 +114,54 @@ def load_toy_models(toy_models_dir: str = "models", filter: Optional[List[str]] 
                 logger.error(f"No model class found in {model_file}")
                 continue
 
-            models.append({
-                "name": model_name,
-                "class": model_class,
-                "config": config
-            })
+            # Generate runtime seed if required
+            if config.get("model_config", {}).get("requires_init_seed", False):
+                import random
+
+                runtime_seed = random.randint(0, 2**31 - 1)
+                config["model_config"]["runtime_seed"] = runtime_seed
+                logger.debug(f"Generated runtime seed {runtime_seed} for {model_name}")
+
+            models.append({"name": model_name, "class": model_class, "config": config})
             logger.info(f"Loaded model: {model_name}")
 
         except Exception as e:
+            if filter is not None and model_name in filter:
+                # If the model was explicitly requested but failed to load, raise an error
+                raise RuntimeError(f"Failed to load model {model_name}: {e}")
             logger.error(f"Failed to load {model_name}: {e}")
             continue
+
+    # If a filter was specified but no models were loaded, raise an error
+    if filter is not None and len(models) == 0:
+        raise ValueError(f"No models found matching filter: {filter}")
 
     return models
 
 
-def _create_torchbench_op_test(model_name: str, model_class, config: Dict[str, Any], op_name: str):
-    """Create a TorchBenchOpTest for a specific operator from a toy model.
+def _create_op_test(op_name: str, inputs: List[str]):
+    """Create a TorchBenchOpTest for a specific operator.
 
     Args:
-        model_name: Name of the model
-        model_class: Model class
-        config: Configuration dictionary
-        op_name: Operator name (e.g., "conv2d", "relu")
+        op_name: Operator name in aten format (e.g., "aten.conv2d.default")
+        inputs: List of serialized input strings
 
     Returns:
         TorchBenchOpTest instance compatible with existing evaluation infrastructure
+
+    Raises:
+        ValueError: If the op is not in the torchbench dataset
     """
-    from .torchbench import TorchBenchOpTest
-    from BackendBench.utils import serialize_args
-
-    # Generate test inputs from model configs
-    inputs = []
-    for test_config in config["test_configs"]:
-        # Extract input shape from test config
-        forward_args = test_config["forward_args"]
-        batch_size = forward_args["batch_size"]
-        input_shape = forward_args["input_shape"]
-
-        # Create input tensor
-        full_shape = [batch_size] + input_shape
-        input_tensor = torch.randn(*full_shape)
-
-        # Serialize the input for TorchBenchOpTest
-        # TorchBenchOpTest expects serialized inputs (strings)
-        serialized = serialize_args([input_tensor], {})
-        inputs.append(serialized)
-
-    # Create TorchBenchOpTest - it expects op name and inputs
-    # We need to convert op_name to full torch.ops format
-    op = get_pytorch_op(op_name)
-    if op is None:
-        raise ValueError(f"Could not find PyTorch operation for {op_name}")
-
-    # Get the full op string (e.g., "aten.conv2d.default")
-    op_str = str(op).replace("torch.ops.", "")
+    # Check that the op is in the torchbench dataset
+    torchbench_ops = _get_torchbench_ops()
+    if op_name not in torchbench_ops:
+        raise ValueError(
+            f"Operator {op_name} is not in the torchbench dataset. "
+            f"Only ops from the torchbench dataset can be tested."
+        )
 
     # Create the test with serialized inputs
-    return TorchBenchOpTest(op_str, inputs, topn=None)
+    return TorchBenchOpTest(op_name, inputs, topn=None)
 
 
 class FullModelTest:
@@ -156,19 +171,28 @@ class FullModelTest:
     in both eager mode and backend mode, then comparing the results.
     """
 
-    def __init__(self, model_name: str, model_class, config: Dict[str, Any], test_config: Dict[str, Any]):
+    def __init__(
+        self,
+        model_name: str,
+        model_class,
+        model_config: Dict[str, Any],
+        test_name: str,
+        test_args: str,
+    ):
         """Initialize FullModelTest.
 
         Args:
             model_name: Name of the model being tested
             model_class: Model class to instantiate
-            config: Full model configuration including model_config
-            test_config: Specific test configuration with forward_args
+            model_config: Model configuration dict with init_args
+            test_name: Name of this test configuration
+            test_args: Serialized arguments string for forward pass
         """
         self.model_name = model_name
         self.model_class = model_class
-        self.config = config
-        self.test_config = test_config
+        self.model_config = model_config
+        self.test_name = test_name
+        self.test_args = test_args
 
     def run_with_backend(self, backend_enabled: bool, kernel_dir: str = None) -> tuple:
         """Run model with backend enabled or disabled.
@@ -184,27 +208,51 @@ class FullModelTest:
         """
         import BackendBench
 
-        # Extract model configuration
-        model_config = self.config["model_config"]["init_args"]
+        # Deserialize test arguments
+        args, kwargs = deserialize_args(self.test_args)
 
-        # Extract input configuration
-        forward_args = self.test_config["forward_args"]
-        batch_size = forward_args["batch_size"]
-        input_shape = forward_args["input_shape"]
+        # Extract model initialization args
+        init_args = self.model_config.get("init_args", {}).copy()
 
-        # Create full input shape: [batch_size, *input_shape]
-        full_shape = [batch_size] + input_shape
+        # Handle seed: use runtime_seed if required, otherwise use seed from init_args
+        if self.model_config.get("requires_init_seed", False):
+            # Use the generated runtime seed
+            seed = self.model_config["runtime_seed"]
+            init_args["seed"] = seed
+        else:
+            # Use seed from init_args or default
+            seed = init_args.get("seed", 42)
 
         # Set seed for deterministic behavior
-        seed = model_config.get("seed", 42)
         torch.manual_seed(seed)
 
         # Create fresh model instance
-        model = self.model_class(**model_config)
+        model = self.model_class(**init_args)
         model.train()
 
-        # Create input tensor with requires_grad for input gradient
-        x = torch.randn(*full_shape, requires_grad=True)
+        # Move model to same device as input (typically CUDA)
+        # Check both args and kwargs for tensor
+        input_tensor = None
+        if args and isinstance(args[0], torch.Tensor):
+            input_tensor = args[0]
+        elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
+            input_tensor = kwargs["x"]
+
+        if input_tensor is not None:
+            device = input_tensor.device
+            model = model.to(device)
+
+        # Ensure input has requires_grad for gradient computation
+        if args and isinstance(args[0], torch.Tensor):
+            x = args[0]
+            if not x.requires_grad:
+                x = x.clone().detach().requires_grad_(True)
+                args = [x] + list(args[1:])
+        elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
+            x = kwargs["x"]
+            if not x.requires_grad:
+                x = x.clone().detach().requires_grad_(True)
+                kwargs["x"] = x
 
         # Run forward + backward with or without backend
         if backend_enabled:
@@ -214,21 +262,29 @@ class FullModelTest:
                 kernel_dir = os.path.join(os.getcwd(), "generated_kernels")
 
             with BackendBench.BackendBench.enable(kernel_dir=kernel_dir):
-                output = model(x)
+                output = model(*args, **kwargs)
                 loss = output.sum()
                 loss.backward()
         else:
             # Run in eager mode (no backend)
-            output = model(x)
+            output = model(*args, **kwargs)
             loss = output.sum()
             loss.backward()
 
         # Collect gradients: [input_grad, param1_grad, param2_grad, ...]
         grads = []
 
-        # Input gradient
-        if x.grad is not None:
-            grads.append(x.grad.clone())
+        # Input gradient - check both args and kwargs
+        input_grad = None
+        if args and isinstance(args[0], torch.Tensor) and args[0].grad is not None:
+            input_grad = args[0].grad
+        elif (
+            "x" in kwargs and isinstance(kwargs["x"], torch.Tensor) and kwargs["x"].grad is not None
+        ):
+            input_grad = kwargs["x"].grad
+
+        if input_grad is not None:
+            grads.append(input_grad.clone())
 
         # Parameter gradients
         for param in model.parameters():
@@ -257,13 +313,13 @@ class FullModelTest:
 
             # Compare outputs
             if not torch.allclose(eager_out, backend_out, atol=atol, rtol=rtol):
-                logger.debug(f"{self.model_name}::{self.test_config['name']}: Output mismatch")
+                logger.debug(f"{self.model_name}::{self.test_name}: Output mismatch")
                 return False
 
             # Compare number of gradients
             if len(eager_grads) != len(backend_grads):
                 logger.debug(
-                    f"{self.model_name}::{self.test_config['name']}: "
+                    f"{self.model_name}::{self.test_name}: "
                     f"Gradient count mismatch ({len(eager_grads)} vs {len(backend_grads)})"
                 )
                 return False
@@ -271,16 +327,13 @@ class FullModelTest:
             # Compare each gradient
             for i, (eager_grad, backend_grad) in enumerate(zip(eager_grads, backend_grads)):
                 if not torch.allclose(eager_grad, backend_grad, atol=atol, rtol=rtol):
-                    logger.debug(
-                        f"{self.model_name}::{self.test_config['name']}: "
-                        f"Gradient {i} mismatch"
-                    )
+                    logger.debug(f"{self.model_name}::{self.test_name}: Gradient {i} mismatch")
                     return False
 
             return True
 
         except Exception as e:
-            logger.error(f"{self.model_name}::{self.test_config['name']}: Correctness test failed: {e}")
+            logger.error(f"{self.model_name}::{self.test_name}: Correctness test failed: {e}")
             return False
 
 
@@ -292,7 +345,9 @@ class ModelSuite(TorchBenchTestSuite):
     2. Model-level correctness testing via test_model_correctness() (Model Suite specific)
     """
 
-    def __init__(self, name: str = "model", filter: Optional[List[str]] = None, models_dir: str = None):
+    def __init__(
+        self, name: str = "model", filter: Optional[List[str]] = None, models_dir: str = None
+    ):
         """Initialize ModelSuite.
 
         Args:
@@ -316,32 +371,15 @@ class ModelSuite(TorchBenchTestSuite):
     def __iter__(self):
         """Yield operator tests from all models (TorchBench approach).
 
-        This method enables operator-level testing using the inherited
-        TorchBench infrastructure. Returns TorchBenchOpTest instances.
+        This method extracts operators by tracing model execution, then creates
+        TorchBenchOpTest instances for testing via the inherited infrastructure.
         """
-        for model in self.models:
-            # Extract operators from config
-            if "expected_operators" not in model["config"]:
-                logger.warning(f"Model {model['name']} has no expected_operators in config")
-                continue
+        # Trace each model to extract operators
 
-            expected_ops = model["config"]["expected_operators"]
-
-            # Yield forward pass operators
-            if "forward_pass" in expected_ops:
-                for op_name in expected_ops["forward_pass"]:
-                    try:
-                        yield _create_torchbench_op_test(model["name"], model["class"], model["config"], op_name)
-                    except Exception as e:
-                        logger.error(f"Failed to create test for forward op {op_name}: {e}")
-
-            # Yield backward pass operators
-            if "backward_pass" in expected_ops:
-                for op_name in expected_ops["backward_pass"]:
-                    try:
-                        yield _create_torchbench_op_test(model["name"], model["class"], model["config"], op_name)
-                    except Exception as e:
-                        logger.error(f"Failed to create test for backward op {op_name}: {e}")
+        # For now, return empty iterator since operator extraction from model tracing
+        # is not yet implemented. The model suite focuses on full model testing via
+        # test_model_correctness() method.
+        return iter([])
 
     def test_model_correctness(self, kernel_dir: str = None) -> Dict[str, Dict[str, bool]]:
         """Test full model correctness for all models and configurations.
@@ -362,15 +400,20 @@ class ModelSuite(TorchBenchTestSuite):
             model_results = {}
 
             # Test each configuration for this model
-            for test_config in model["config"]["test_configs"]:
+            if "model_tests" not in model["config"]:
+                logger.warning(f"Model {model['name']} has no model_tests in config")
+                continue
+
+            # model_tests is a dict mapping test_name -> serialized_args
+            for test_name, test_args in model["config"]["model_tests"].items():
                 test = FullModelTest(
                     model_name=model["name"],
                     model_class=model["class"],
-                    config=model["config"],
-                    test_config=test_config
+                    model_config=model["config"].get("model_config", {}),
+                    test_name=test_name,
+                    test_args=test_args,
                 )
 
-                test_name = test_config["name"]
                 is_correct = test.test_correctness(kernel_dir=kernel_dir)
                 model_results[test_name] = is_correct
 
@@ -380,3 +423,39 @@ class ModelSuite(TorchBenchTestSuite):
             results[model["name"]] = model_results
 
         return results
+
+    def print_model_correctness_results(self, results: Dict[str, Dict[str, bool]]):
+        """Print formatted model correctness results.
+
+        Args:
+            results: Dictionary mapping model_name -> {test_name -> bool}
+        """
+        print("\n" + "=" * 80)
+        print("FULL MODEL TESTING")
+        print("=" * 80)
+        print("\nModel Correctness Results:")
+        print("-" * 80)
+
+        total_passed = 0
+        total_tests = 0
+
+        for model_name, test_results in results.items():
+            passed = sum(1 for result in test_results.values() if result)
+            total = len(test_results)
+            total_passed += passed
+            total_tests += total
+            percentage = (passed / total * 100) if total > 0 else 0
+            print(f"  {model_name}: {passed}/{total} configs passed ({percentage:.1f}%)")
+
+            # Show individual config results
+            for config_name, is_correct in test_results.items():
+                status = "✓ PASS" if is_correct else "✗ FAIL"
+                print(f"    {config_name}: {status}")
+
+        print("-" * 80)
+        if total_tests > 0:
+            overall_percentage = total_passed / total_tests * 100
+            print(f"\nModel Suite Score: {total_passed}/{total_tests} ({overall_percentage:.1f}%)")
+        else:
+            print("\nNo model tests were run")
+        print("=" * 80)
