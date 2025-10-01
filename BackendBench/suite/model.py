@@ -223,6 +223,9 @@ class ModelSuite(TorchBenchTestSuite):
         Args:
             results: Dictionary with evaluation results from eval_model
         """
+
+        print(results)
+
         model_name = results.get("model_name", "Unknown")
         passed = results.get("passed", False)
         num_passed = results.get("num_passed", 0)
@@ -232,11 +235,6 @@ class ModelSuite(TorchBenchTestSuite):
         logger.info(
             f"Status: {'✓ Passed' if passed else '✗ Failed'} ({num_passed}/{num_total} tests)"
         )
-
-        # If there's a top-level error (no tests run)
-        if "error" in results:
-            logger.info(f"Error: {results['error']}")
-            return
 
         # Print details for each test
         test_results = results.get("test_results", [])

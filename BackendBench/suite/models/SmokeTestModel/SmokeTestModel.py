@@ -37,8 +37,8 @@ class SmokeTestModel(nn.Module):
     def __init__(
         self,
         input_dim: int = 128,
-        hidden_dim: int = 256,
-        output_dim: int = 64,
+        hidden_dim: int = 128,
+        output_dim: int = 128,
     ):
         """
         Initialize the SmokeTestModel.
@@ -97,8 +97,8 @@ def main():
     # Create model with default configuration
     model = SmokeTestModel(
         input_dim=128,
-        hidden_dim=256,
-        output_dim=64,
+        hidden_dim=128,
+        output_dim=128,
     )
 
     # Create sample input
@@ -111,7 +111,7 @@ def main():
     # Forward pass
     model.train()
     output = model(input_tensor)
-    expected_shape = torch.Size([batch_size, 64])
+    expected_shape = torch.Size([batch_size, 128])
 
     print(f"Output shape: {output.shape}")
     print(f"Expected shape: {expected_shape}")
@@ -130,8 +130,6 @@ def main():
 
     print("\n✓ Model demonstration completed successfully!")
     print("This model is ready to be used with the Model Suite for testing mm operators.")
-
-    return model
 
 
 if __name__ == "__main__":

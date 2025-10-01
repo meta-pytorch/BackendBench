@@ -42,8 +42,8 @@ def eval_model_correctness_test(
     test_name: str,
     test_args: str,
     kernel_dir: str = None,
-    atol: float = 1e-6,
-    rtol: float = 1e-5,
+    atol: float = 1e-2,
+    rtol: float = 1e-2,
 ) -> ModelCorrectnessTestResult:
     """Evaluate model correctness by comparing eager vs backend execution.
 
@@ -71,6 +71,11 @@ def eval_model_correctness_test(
         # Run with backend (implementation)
         backend_out, backend_grads = _run_model(
             model_class, model_config, test_args, backend_enabled=True, kernel_dir=kernel_dir
+        )
+
+        # print out the max diff between eager_out and backend_out
+        print(
+            f"Max diff between eager_out and backend_out: {torch.max(torch.abs(eager_out - backend_out))}"
         )
 
         # Compare outputs

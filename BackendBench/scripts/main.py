@@ -169,8 +169,6 @@ def cli(
     p,
 ):
     if suite != "torchbench":
-        if topn_inputs is not None:
-            raise ValueError("topn-inputs is only supported for torchbench suite")
         if check_overhead_dominated_ops:
             raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
 
@@ -184,6 +182,9 @@ def cli(
 
     if suite != "model" and model_filter is not None:
         raise ValueError("--model-filter is only supported for model suite")
+
+    if (suite != "torchbench" and suite != "model") and topn_inputs is not None:
+        raise ValueError("topn-inputs is only supported for torchbench suite")
 
     setup_logging(log_level)
     if ops:
@@ -214,10 +215,6 @@ def cli(
         ),
         "model": lambda: ModelSuite(filter=model_filter, topn=topn_inputs),
     }[suite]()
-
-    # model suite only supports directory backend
-    if suite == "model" and backend != "directory":
-        raise ValueError("model suite only supports directory backend")
 
     backend_name = backend
     if backend == "llm-relay":
