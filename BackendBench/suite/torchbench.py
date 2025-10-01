@@ -95,6 +95,10 @@ class TorchBenchTestSuite:
             filter=filter,
         )
 
+        if check_overhead_dominated_ops:
+            # Only include ops which are overhead dominated (this is useful as a performance canary)
+            ops_list = [op for op in ops_list if op.get("is_overhead_dominated_op", False)]
+
         # Convert to dictionary format using utility function
         self.optests = op_list_to_benchmark_dict(ops_list)
 

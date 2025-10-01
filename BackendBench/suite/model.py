@@ -132,28 +132,9 @@ class ModelSuite(TorchBenchTestSuite):
         # Extract operators from model configs
         model_ops = set()
         for model in models:
-            config_ops = model["config"].get("ops")
-            if not config_ops:
-                raise ValueError(f"Model {model['name']} has no 'ops' field in config")
-
-            # Support both list format (legacy) and dict format (forward/backward)
-            if isinstance(config_ops, list):
-                # Legacy format: ops is a flat list
-                ops_list = config_ops
-            elif isinstance(config_ops, dict):
-                # New format: ops is a dict with 'forward' and 'backward' keys
-                ops_list = []
-                if "forward" in config_ops:
-                    ops_list.extend(config_ops["forward"])
-                if "backward" in config_ops:
-                    ops_list.extend(config_ops["backward"])
-            else:
-                raise ValueError(
-                    f"Model {model['name']}: 'ops' must be either a list or a dict with 'forward'/'backward' keys"
-                )
-
-            if not ops_list:
-                raise ValueError(f"Model {model['name']}: 'ops' field is empty")
+            config_ops = model["config"]["ops"]
+            ops_list = config_ops["forward"]
+            ops_list.extend(config_ops["backward"])
 
             model_ops.update(ops_list)
             logger.info(f"Model {model['name']}: {len(ops_list)} operators defined in config")
@@ -223,9 +204,6 @@ class ModelSuite(TorchBenchTestSuite):
         Args:
             results: Dictionary with evaluation results from eval_model
         """
-
-        print(results)
-
         model_name = results.get("model_name", "Unknown")
         passed = results.get("passed", False)
         num_passed = results.get("num_passed", 0)

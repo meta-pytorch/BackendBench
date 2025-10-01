@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Tuple
 import torch
 
 import BackendBench
+from BackendBench.eval import allclose
 from BackendBench.utils import deserialize_args
 
 logger = logging.getLogger(__name__)
@@ -56,30 +57,39 @@ def eval_model_correctness_test(
         test_name: Name of this test configuration
         test_args: Serialized arguments string for forward pass
         kernel_dir: Optional directory containing kernels for backend
-        atol: Absolute tolerance for torch.allclose
-        rtol: Relative tolerance for torch.allclose
+        atol: Absolute tolerance for allclose
+        rtol: Relative tolerance for allclose
 
     Returns:
         ModelCorrectnessTestResult with detailed comparison results
     """
     try:
+        # Generate a single seed to use for both eager and backend runs
+        # This ensures both runs use the same model initialization
+        seed = random.randint(0, 2**32 - 1)
+
         # Run in eager mode (reference)
         eager_out, eager_grads = _run_model(
-            model_class, model_config, test_args, backend_enabled=False, kernel_dir=kernel_dir
+            model_class,
+            model_config,
+            test_args,
+            backend_enabled=False,
+            kernel_dir=kernel_dir,
+            seed=seed,
         )
 
         # Run with backend (implementation)
         backend_out, backend_grads = _run_model(
-            model_class, model_config, test_args, backend_enabled=True, kernel_dir=kernel_dir
-        )
-
-        # print out the max diff between eager_out and backend_out
-        print(
-            f"Max diff between eager_out and backend_out: {torch.max(torch.abs(eager_out - backend_out))}"
+            model_class,
+            model_config,
+            test_args,
+            backend_enabled=True,
+            kernel_dir=kernel_dir,
+            seed=seed,
         )
 
         # Compare outputs
-        output_match = torch.allclose(eager_out, backend_out, atol=atol, rtol=rtol)
+        output_match = allclose(eager_out, backend_out, atol=atol, rtol=rtol)
 
         # Compare gradients
         gradients_match = True
@@ -87,7 +97,7 @@ def eval_model_correctness_test(
             gradients_match = False
         else:
             for eager_grad, backend_grad in zip(eager_grads, backend_grads):
-                if not torch.allclose(eager_grad, backend_grad, atol=atol, rtol=rtol):
+                if not allclose(eager_grad, backend_grad, atol=atol, rtol=rtol):
                     gradients_match = False
                     break
 
@@ -217,6 +227,7 @@ def _run_model(
     test_args: str,
     backend_enabled: bool,
     kernel_dir: str = "generated_kernels",
+    seed: int = None,
 ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
     """Run model with or without backend enabled.
 
@@ -226,6 +237,7 @@ def _run_model(
         test_args: Serialized arguments string for forward pass
         backend_enabled: If True, use BackendBench context manager
         kernel_dir: Optional directory containing kernels
+        seed: Random seed for reproducibility. If None, generates a random seed.
 
     Returns:
         Tuple of (output, gradients) where:
@@ -233,15 +245,18 @@ def _run_model(
         - gradients: List of gradient tensors [input_grad, param1_grad, ...]
     """
 
-    # Deserialize test arguments
+    # Generate seed dynamically and set for deterministic behavior
+    # IMPORTANT: Must set seed BEFORE deserializing args, because deserialization
+    # may create random tensors!
+    if seed is None:
+        seed = random.randint(0, 2**32 - 1)
+    torch.manual_seed(seed)
+
+    # Deserialize test arguments (now uses the seed we just set)
     args, kwargs = deserialize_args(test_args)
 
     # Extract model initialization args
     init_args = model_config.get("init_args", {}).copy()
-
-    # Generate seed dynamically and set for deterministic behavior
-    seed = random.randint(0, 2**32 - 1)
-    torch.manual_seed(seed)
 
     # Create fresh model instance
     model = model_class(**init_args)

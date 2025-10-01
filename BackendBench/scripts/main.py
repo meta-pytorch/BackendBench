@@ -317,12 +317,15 @@ def cli(
 
     # Add full model testing for model suite
     if suite.name == "model":
-        logger.info("\n" + "=" * 60)
-        logger.info("MODEL EVALUATION")
-        logger.info("=" * 60)
+        all_results = []
         for model in suite.models:
             results = suite.eval_model(model, backend)
-            suite.print_results(results)
+            all_results.append(results)
+        logger.info("=" * 60)
+        logger.info("MODEL EVALUATION RESULTS")
+        logger.info("=" * 60)
+        for result in all_results:
+            suite.print_results(result)
         logger.info("=" * 60)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
