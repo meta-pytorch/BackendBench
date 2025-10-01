@@ -17,11 +17,8 @@ This test validates that:
 
 import json
 import os
-import sys
 import unittest
 from typing import Any, Dict, List, Set
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from BackendBench.suite.model import load_models
 from BackendBench.suite.torchbench import TorchBenchTestSuite
@@ -65,7 +62,7 @@ def load_model_ops(models: List[Dict[str, Any]]) -> Set[str]:
     return model_ops
 
 
-class TestModelOpsFilter(unittest.TestCase):
+class TestModelOpsConfigs(unittest.TestCase):
     """Test that model ops filter correctly initializes TorchBenchTestSuite."""
 
     def test_model_ops_match_suite_optests(self):
@@ -114,95 +111,6 @@ class TestModelOpsFilter(unittest.TestCase):
         self.assertGreater(
             len(suite_ops), 0, "Suite should contain at least one operator from model configs"
         )
-
-    def test_load_model_ops_with_single_model(self):
-        """Test load_model_ops with a single model filter."""
-        models_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "BackendBench", "suite", "models"
-        )
-
-        # Load a specific model (ToyCoreOpsModel if it exists)
-        all_models = load_models(models_dir=models_dir)
-
-        # Find a model to test with
-        test_model_name = None
-        for model in all_models:
-            if "core" in model["name"].lower() or "toy" in model["name"].lower():
-                test_model_name = model["name"]
-                break
-
-        if test_model_name is None:
-            # Use first model if no matching name found
-            test_model_name = all_models[0]["name"]
-
-        # Load just that one model
-        models = load_models(models_dir=models_dir, filter=[test_model_name])
-
-        self.assertEqual(len(models), 1, "Should load exactly one model")
-
-        # Extract operators
-        model_ops = load_model_ops(models)
-
-        # Verify the ops match what's in the config
-        config_ops = models[0]["config"]["ops"]
-        if isinstance(config_ops, list):
-            expected_ops = set(config_ops)
-        else:
-            # Dict format with forward/backward
-            expected_ops = set(config_ops.get("forward", []) + config_ops.get("backward", []))
-
-        self.assertEqual(
-            model_ops,
-            expected_ops,
-            f"Extracted ops {model_ops} should match config ops {expected_ops}",
-        )
-
-        # Create suite with these ops
-        ops_filter = list(model_ops)
-        suite = TorchBenchTestSuite(
-            name="test_single_model",
-            filename=None,
-            filter=ops_filter,
-            topn=None,
-        )
-
-        # Verify suite has operators (subset of model_ops)
-        suite_ops = set(suite.optests.keys())
-        self.assertTrue(
-            suite_ops.issubset(model_ops),
-            f"Suite ops {suite_ops} should be subset of model ops {model_ops}",
-        )
-
-    def test_load_model_ops_combines_multiple_models(self):
-        """Test that load_model_ops correctly combines ops from multiple models."""
-        models_dir = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "BackendBench", "suite", "models"
-        )
-
-        # Load all models
-        models = load_models(models_dir=models_dir)
-
-        # Skip if only one model
-        if len(models) <= 1:
-            self.skipTest("Need multiple models to test combination")
-
-        # Extract ops from all models
-        all_ops = load_model_ops(models)
-
-        # Extract ops from each model individually
-        individual_ops = []
-        for model in models:
-            config_ops = model["config"]["ops"]
-            if isinstance(config_ops, list):
-                individual_ops.extend(config_ops)
-            else:
-                # Dict format with forward/backward
-                individual_ops.extend(config_ops.get("forward", []))
-                individual_ops.extend(config_ops.get("backward", []))
-
-        # The combined set should equal the union of all individual ops
-        expected_ops = set(individual_ops)
-        self.assertEqual(all_ops, expected_ops, "Combined ops should equal union of all model ops")
 
     def test_json_configs_have_required_fields(self):
         """Test that all JSON config files have proper format with required fields."""

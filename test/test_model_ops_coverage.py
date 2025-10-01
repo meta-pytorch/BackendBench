@@ -15,13 +15,10 @@ This test validates that:
 
 import os
 import re
-import sys
 import unittest
 from typing import Dict, Set
 
 import torch
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from BackendBench.suite.model import load_models
 
@@ -91,13 +88,8 @@ class TestModelOpsCoverage(unittest.TestCase):
 
             # Get expected ops from config
             config_ops = config.get("ops", {})
-            if isinstance(config_ops, list):
-                # Legacy format - skip or treat as forward-only
-                expected_forward = set(config_ops)
-                expected_backward = set()
-            else:
-                expected_forward = set(config_ops.get("forward", []))
-                expected_backward = set(config_ops.get("backward", []))
+            expected_forward = set(config_ops.get("forward", []))
+            expected_backward = set(config_ops.get("backward", []))
 
             # Skip if no ops to check
             if not expected_forward and not expected_backward:

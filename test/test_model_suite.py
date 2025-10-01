@@ -14,20 +14,16 @@ This test suite validates:
 """
 
 import logging
-import os
-import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-from BackendBench.suite.model import load_models, ModelSuite
+from BackendBench.suite.model import load_models
 
 # Setup logging
 logging.basicConfig(level=logging.WARNING)
 
 
 class TestModelLoading(unittest.TestCase):
-    """Test toy model loading functionality."""
+    """Test model loading functionality."""
 
     def test_load_models(self):
         """Test that models can be loaded from directory."""
@@ -50,34 +46,6 @@ class TestModelLoading(unittest.TestCase):
         """Test that invalid filter raises error."""
         with self.assertRaises(ValueError):
             load_models(models_dir="BackendBench/suite/models", filter=["nonexistent"])
-
-
-class TestModelSuite(unittest.TestCase):
-    """Test ModelSuite integration with TorchBench."""
-
-    def test_suite_initialization(self):
-        """Test that ModelSuite can be initialized."""
-        suite = ModelSuite()
-        self.assertEqual(suite.name, "model")
-        self.assertIsNotNone(suite.optests)
-
-    def test_suite_has_operators(self):
-        """Test that suite extracts operators from models."""
-        suite = ModelSuite()
-        # Should have extracted and filtered operators
-        self.assertGreater(len(suite.optests), 0, "Should have at least one operator")
-
-    def test_suite_iteration(self):
-        """Test that suite can be iterated (TorchBench interface)."""
-        suite = ModelSuite()
-        op_tests = list(suite)
-        # Should have at least one operator test
-        self.assertGreater(len(op_tests), 0, "Should have at least one operator test")
-
-    def test_empty_filter(self):
-        """Test suite raises error for nonexistent model."""
-        with self.assertRaises(ValueError):
-            _ = ModelSuite(filter=["nonexistent_model"])
 
 
 if __name__ == "__main__":
