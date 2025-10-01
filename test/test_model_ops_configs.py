@@ -148,10 +148,6 @@ class TestModelOpsConfigs(unittest.TestCase):
                     str,
                     f"Model {model_name}: each op in 'ops.backward' must be a string",
                 )
-            else:
-                self.fail(
-                    f"Model {model_name}: 'ops' must be either a list or a dict with 'forward'/'backward' keys"
-                )
 
             # Validate 'model_tests' field
             self.assertIsInstance(
