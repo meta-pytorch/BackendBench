@@ -20,7 +20,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from BackendBench.suite.model import load_toy_models, ModelSuite
+from BackendBench.suite.model import load_models, ModelSuite
 
 # Setup logging
 logging.basicConfig(level=logging.WARNING)
@@ -31,7 +31,7 @@ class TestModelLoading(unittest.TestCase):
 
     def test_load_models(self):
         """Test that models can be loaded from directory."""
-        models = load_toy_models(toy_models_dir="BackendBench/suite/models")
+        models = load_models(models_dir="BackendBench/suite/models")
         self.assertGreater(len(models), 0, "Should load at least one model")
 
         # Verify model structure
@@ -42,16 +42,14 @@ class TestModelLoading(unittest.TestCase):
 
     def test_load_specific_model(self):
         """Test loading a specific model by name."""
-        models = load_toy_models(
-            toy_models_dir="BackendBench/suite/models", filter=["toy_core_ops"]
-        )
+        models = load_models(models_dir="BackendBench/suite/models", filter=["ToyCoreOpsModel"])
         self.assertEqual(len(models), 1)
-        self.assertEqual(models[0]["name"], "toy_core_ops")
+        self.assertEqual(models[0]["name"], "ToyCoreOpsModel")
 
     def test_invalid_filter(self):
         """Test that invalid filter raises error."""
         with self.assertRaises(ValueError):
-            load_toy_models(toy_models_dir="BackendBench/suite/models", filter=["nonexistent"])
+            load_models(models_dir="BackendBench/suite/models", filter=["nonexistent"])
 
 
 class TestModelSuite(unittest.TestCase):

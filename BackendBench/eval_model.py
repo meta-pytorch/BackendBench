@@ -7,13 +7,13 @@
 """Model-level evaluation utilities for testing full model correctness."""
 
 import logging
-import os
 import traceback
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
 
 import torch
 
+import BackendBench
 from BackendBench.utils import deserialize_args
 
 logger = logging.getLogger(__name__)
@@ -210,7 +210,7 @@ def _run_model(
     model_config: Dict[str, Any],
     test_args: str,
     backend_enabled: bool,
-    kernel_dir: str = None,
+    kernel_dir: str = "generated_kernels",
 ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
     """Run model with or without backend enabled.
 
@@ -226,7 +226,6 @@ def _run_model(
         - output: Model output tensor (detached)
         - gradients: List of gradient tensors [input_grad, param1_grad, ...]
     """
-    import BackendBench
 
     # Deserialize test arguments
     args, kwargs = deserialize_args(test_args)
@@ -258,10 +257,6 @@ def _run_model(
 
     # Run forward + backward with or without backend
     if backend_enabled:
-        # Use context manager to enable backend
-        if kernel_dir is None:
-            kernel_dir = os.path.join(os.getcwd(), "generated_kernels")
-
         with BackendBench.BackendBench.enable(kernel_dir=kernel_dir):
             output = model(*args, **kwargs)
             loss = output.sum()

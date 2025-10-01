@@ -18,26 +18,20 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from BackendBench.data_loaders import load_ops_from_source, op_list_to_benchmark_dict
+from BackendBench.eval_model import eval_model_correctness_test
 
 from .torchbench import TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
 
-def _get_torchbench_ops():
-    """Get list of available ops from torchbench dataset."""
-    ops_list = load_ops_from_source(source=None, format="parquet")
-    return op_list_to_benchmark_dict(ops_list)
-
-
-def load_toy_models(
-    toy_models_dir: str = "models", filter: Optional[List[str]] = None
+def load_models(
+    models_dir: str = "models", filter: Optional[List[str]] = None
 ) -> List[Dict[str, Any]]:
     """Load models using strict naming convention: folder_name/folder_name.py + folder_name.json
 
     Args:
-        toy_models_dir: Directory containing toy models (default: "models")
+        models_dir: Directory containing models (default: "models")
         filter: Optional list of model names to load. If None, loads all models.
 
     Returns:
@@ -48,12 +42,16 @@ def load_toy_models(
     """
     models = []
 
-    if not os.path.exists(toy_models_dir):
-        raise FileNotFoundError(f"Toy models directory not found: {toy_models_dir}")
+    if not os.path.exists(models_dir):
+        raise FileNotFoundError(f"Models directory not found: {models_dir}")
 
-    for model_name in os.listdir(toy_models_dir):
-        model_dir = os.path.join(toy_models_dir, model_name)
-        if not os.isdir(model_dir):
+    for model_name in os.listdir(models_dir):
+        model_dir = os.path.join(models_dir, model_name)
+        if not os.path.isdir(model_dir):
+            continue
+
+        # Skip if not in filter
+        if filter is not None and model_name not in filter:
             continue
 
         # Strict naming convention: folder_name/folder_name.py and folder_name/folder_name.json
@@ -91,6 +89,9 @@ def load_toy_models(
         except Exception as e:
             raise RuntimeError(f"Failed to load model {model_name}: {e}")
 
+    if filter is not None and len(models) == 0:
+        raise ValueError(f"No models found matching filter: {filter}")
+
     return models
 
 
@@ -106,7 +107,6 @@ class ModelSuite(TorchBenchTestSuite):
         self,
         name: str = "model",
         filter: Optional[List[str]] = None,
-        models_dir: str = None,
         topn: Optional[int] = None,
     ):
         """Initialize ModelSuite.
@@ -114,72 +114,52 @@ class ModelSuite(TorchBenchTestSuite):
         Args:
             name: Suite name (default: "model")
             filter: Optional list of model names to load
-            models_dir: Optional directory for models (default: "BackendBench/suite/models")
             topn: Optional limit on number of tests per operator
         """
-        # Default to models under suite/models
-        if models_dir is None:
-            models_dir = os.path.join(os.path.dirname(__file__), "models")
+        models_dir = os.path.join(os.path.dirname(__file__), "models")
 
         # Load models
-        models = load_toy_models(toy_models_dir=models_dir, filter=filter)
+        models = load_models(models_dir=models_dir, filter=filter)
         logger.info(f"ModelSuite: Loaded {len(models)} models from {models_dir}")
+        model_ops = self.get_model_ops(models)
+        filter = list(model_ops)
+        # Store loaded models for evaluation
+        self.models = models
 
+        self._initialize_torchbench_suite(name, None, filter, topn, False)
+
+    def get_model_ops(self, models: List[Dict[str, Any]]) -> List[str]:
         # Extract operators from model configs
         model_ops = set()
         for model in models:
-            config_ops = model["config"].get("ops", [])
+            config_ops = model["config"].get("ops")
             if not config_ops:
                 raise ValueError(f"Model {model['name']} has no 'ops' field in config")
-            model_ops.update(config_ops)
-            logger.info(f"Model {model['name']}: {len(config_ops)} operators defined in config")
+
+            # Support both list format (legacy) and dict format (forward/backward)
+            if isinstance(config_ops, list):
+                # Legacy format: ops is a flat list
+                ops_list = config_ops
+            elif isinstance(config_ops, dict):
+                # New format: ops is a dict with 'forward' and 'backward' keys
+                ops_list = []
+                if "forward" in config_ops:
+                    ops_list.extend(config_ops["forward"])
+                if "backward" in config_ops:
+                    ops_list.extend(config_ops["backward"])
+            else:
+                raise ValueError(
+                    f"Model {model['name']}: 'ops' must be either a list or a dict with 'forward'/'backward' keys"
+                )
+
+            if not ops_list:
+                raise ValueError(f"Model {model['name']}: 'ops' field is empty")
+
+            model_ops.update(ops_list)
+            logger.info(f"Model {model['name']}: {len(ops_list)} operators defined in config")
 
         logger.info(f"ModelSuite: Total {len(model_ops)} unique operators across all models")
-
-        # Get torchbench ops and filter
-        torchbench_ops = _get_torchbench_ops()
-
-        # Filter torchbench ops to only include those in model configs
-        filtered_ops = {}
-        unsupported_ops = []
-        for model_op in model_ops:
-            # Find matching torchbench ops
-            matched = False
-            for op_name, op_inputs in torchbench_ops.items():
-                if model_op in op_name:
-                    filtered_ops[op_name] = op_inputs
-                    matched = True
-            if not matched:
-                unsupported_ops.append(model_op)
-
-        # Error out if any ops are not supported by torchbench
-        if unsupported_ops:
-            raise ValueError(
-                f"The following operators are not supported by TorchBench: {unsupported_ops}"
-            )
-
-        if not filtered_ops:
-            raise ValueError(
-                f"No operators from models found in TorchBench dataset. "
-                f"Model operators: {model_ops}"
-            )
-
-        logger.info(
-            f"ModelSuite: Filtered to {len(filtered_ops)} operators "
-            f"(from {len(torchbench_ops)} total)"
-        )
-
-        # Initialize parent class with filtered ops
-        self.name = name
-        self.topn = topn
-        self.optests = filtered_ops
-
-        # Deduplicate strings in self.optests
-        for op in self.optests:
-            self.optests[op] = list(set(self.optests[op]))
-
-        # Store loaded models for evaluation
-        self.models = models
+        return model_ops
 
     def eval_model(self, model_dict: Dict[str, Any], backend) -> Dict[str, Any]:
         """Run evaluation on a single model.
@@ -191,7 +171,6 @@ class ModelSuite(TorchBenchTestSuite):
         Returns:
             Dictionary with evaluation results including correctness and performance
         """
-        from BackendBench.eval_model import eval_model_correctness_test
 
         model_class = model_dict["class"]
         model_name = model_dict["name"]
