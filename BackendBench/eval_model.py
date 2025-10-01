@@ -162,32 +162,6 @@ def _move_model_to_input_device(
     return model
 
 
-def _ensure_input_requires_grad(
-    args: List[Any], kwargs: Dict[str, Any]
-) -> Tuple[List[Any], Dict[str, Any]]:
-    """Ensure input tensor has requires_grad=True for gradient computation.
-
-    Args:
-        args: Positional arguments list
-        kwargs: Keyword arguments dict
-
-    Returns:
-        Updated (args, kwargs) with input tensor requiring gradients
-    """
-    if args and isinstance(args[0], torch.Tensor):
-        x = args[0]
-        if not x.requires_grad:
-            x = x.clone().detach().requires_grad_(True)
-            args = [x] + list(args[1:])
-    elif "x" in kwargs and isinstance(kwargs["x"], torch.Tensor):
-        x = kwargs["x"]
-        if not x.requires_grad:
-            x = x.clone().detach().requires_grad_(True)
-            kwargs["x"] = x
-
-    return args, kwargs
-
-
 def _collect_gradients(
     model: torch.nn.Module, args: List[Any], kwargs: Dict[str, Any]
 ) -> List[torch.Tensor]:
@@ -264,9 +238,6 @@ def _run_model(
 
     # Move model to same device as input
     model = _move_model_to_input_device(model, args, kwargs)
-
-    # Ensure input has requires_grad for gradient computation
-    args, kwargs = _ensure_input_requires_grad(args, kwargs)
 
     # Run forward + backward with or without backend
     if backend_enabled:
