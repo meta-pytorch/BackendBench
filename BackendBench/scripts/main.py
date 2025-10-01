@@ -212,8 +212,12 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "model": lambda: ModelSuite(filter=model_filter),
+        "model": lambda: ModelSuite(filter=model_filter, topn=topn_inputs),
     }[suite]()
+
+    # model suite only supports directory backend
+    if suite == "model" and backend != "directory":
+        raise ValueError("model suite only supports directory backend")
 
     backend_name = backend
     if backend == "llm-relay":

@@ -56,7 +56,6 @@ class ToyCoreOpsModel(nn.Module):
         hidden_channels: int = 32,
         out_channels: int = 8,
         num_groups: int = 8,
-        seed: int = 42,
     ):
         """
         Initialize the ToyCoreOpsModel.
@@ -66,7 +65,6 @@ class ToyCoreOpsModel(nn.Module):
             hidden_channels: Number of hidden channels in conv layers
             out_channels: Number of output channels
             num_groups: Number of groups for GroupNorm (must divide hidden_channels)
-            seed: Random seed for deterministic weight initialization
 
         Raises:
             ValueError: If hidden_channels is not divisible by num_groups
@@ -106,28 +104,6 @@ class ToyCoreOpsModel(nn.Module):
         self.conv_out = nn.Conv2d(
             in_channels=hidden_channels, out_channels=out_channels, kernel_size=1
         )
-
-        # Initialize weights deterministically
-        self._initialize_weights(seed)
-
-    def _initialize_weights(self, seed: int):
-        """
-        Initialize model weights deterministically using the given seed.
-
-        Args:
-            seed: Random seed for reproducible initialization
-        """
-        # Set random seed for deterministic initialization
-        torch.manual_seed(seed)
-
-        for module in self.modules():
-            if isinstance(module, nn.Conv2d):
-                nn.init.kaiming_normal_(module.weight, mode="fan_out", nonlinearity="relu")
-                if module.bias is not None:
-                    nn.init.constant_(module.bias, 0)
-            elif isinstance(module, nn.GroupNorm):
-                nn.init.constant_(module.weight, 1)
-                nn.init.constant_(module.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -185,7 +161,6 @@ def main():
         hidden_channels=32,
         out_channels=8,
         num_groups=8,
-        seed=42,  # Deterministic initialization
     )
 
     # Create sample input

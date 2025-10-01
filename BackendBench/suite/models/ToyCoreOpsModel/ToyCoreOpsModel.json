@@ -1,6 +1,5 @@
 {
   "model_config": {
-    "requires_init_seed": true,
     "init_args": {
       "in_channels": 3,
       "hidden_channels": 32,

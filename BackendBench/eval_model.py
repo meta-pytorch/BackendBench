@@ -7,6 +7,7 @@
 """Model-level evaluation utilities for testing full model correctness."""
 
 import logging
+import random
 import traceback
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple
@@ -233,16 +234,8 @@ def _run_model(
     # Extract model initialization args
     init_args = model_config.get("init_args", {}).copy()
 
-    # Handle seed: use runtime_seed if required, otherwise use seed from init_args
-    if model_config.get("requires_init_seed", False):
-        # Use the generated runtime seed
-        seed = model_config["runtime_seed"]
-        init_args["seed"] = seed
-    else:
-        # Use seed from init_args or default
-        seed = init_args.get("seed", 42)
-
-    # Set seed for deterministic behavior
+    # Generate seed dynamically and set for deterministic behavior
+    seed = random.randint(0, 2**32 - 1)
     torch.manual_seed(seed)
 
     # Create fresh model instance
