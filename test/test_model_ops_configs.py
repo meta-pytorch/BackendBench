@@ -38,25 +38,9 @@ def load_model_ops(models: List[Dict[str, Any]]) -> Set[str]:
         config_ops = model["config"].get("ops")
         if not config_ops:
             raise ValueError(f"Model {model['name']} has no 'ops' field in config")
-
-        # Support both list format (legacy) and dict format (forward/backward)
-        if isinstance(config_ops, list):
-            # Legacy format: ops is a flat list
-            ops_list = config_ops
-        elif isinstance(config_ops, dict):
-            # New format: ops is a dict with 'forward' and 'backward' keys
-            ops_list = []
-            if "forward" in config_ops:
-                ops_list.extend(config_ops["forward"])
-            if "backward" in config_ops:
-                ops_list.extend(config_ops["backward"])
-        else:
-            raise ValueError(
-                f"Model {model['name']}: 'ops' must be either a list or a dict with 'forward'/'backward' keys"
-            )
-
-        if not ops_list:
-            raise ValueError(f"Model {model['name']}: 'ops' field is empty")
+        assert "forward" in config_ops, f"Model {model['name']} has no 'forward' field in config"
+        assert "backward" in config_ops, f"Model {model['name']} has no 'backward' field in config"
+        ops_list = config_ops["forward"] + config_ops["backward"]
 
         model_ops.update(ops_list)
     return model_ops
@@ -133,49 +117,53 @@ class TestModelOpsConfigs(unittest.TestCase):
 
             # Validate 'ops' field - can be list or dict
             config_ops = config["ops"]
-            if isinstance(config_ops, list):
-                # Legacy format: flat list
-                self.assertGreater(
-                    len(config_ops), 0, f"Model {model_name}: 'ops' list must not be empty"
+            self.assertGreater(
+                len(config_ops["forward"] + config_ops["backward"]),
+                0,
+                f"Model {model_name}: 'ops' list must not be empty",
+            )
+            for op in config_ops["forward"] + config_ops["backward"]:
+                self.assertIsInstance(
+                    op, str, f"Model {model_name}: each op in 'ops' must be a string"
                 )
-                for op in config_ops:
-                    self.assertIsInstance(
-                        op, str, f"Model {model_name}: each op in 'ops' must be a string"
-                    )
-            elif isinstance(config_ops, dict):
-                # New format: dict with forward/backward
-                self.assertTrue(
-                    "forward" in config_ops or "backward" in config_ops,
-                    f"Model {model_name}: 'ops' dict must contain 'forward' or 'backward' keys",
+            self.assertIsInstance(
+                config_ops["forward"],
+                list,
+                f"Model {model_name}: 'ops.forward' must be a list",
+            )
+            for op in config_ops["forward"]:
+                self.assertIsInstance(
+                    op,
+                    str,
+                    f"Model {model_name}: each op in 'ops.forward' must be a string",
                 )
-                if "forward" in config_ops:
-                    self.assertIsInstance(
-                        config_ops["forward"],
-                        list,
-                        f"Model {model_name}: 'ops.forward' must be a list",
-                    )
-                    for op in config_ops["forward"]:
-                        self.assertIsInstance(
-                            op,
-                            str,
-                            f"Model {model_name}: each op in 'ops.forward' must be a string",
-                        )
-                if "backward" in config_ops:
-                    self.assertIsInstance(
-                        config_ops["backward"],
-                        list,
-                        f"Model {model_name}: 'ops.backward' must be a list",
-                    )
-                    for op in config_ops["backward"]:
-                        self.assertIsInstance(
-                            op,
-                            str,
-                            f"Model {model_name}: each op in 'ops.backward' must be a string",
-                        )
+            self.assertIsInstance(
+                config_ops["backward"],
+                list,
+                f"Model {model_name}: 'ops.backward' must be a list",
+            )
+            for op in config_ops["backward"]:
+                self.assertIsInstance(
+                    op,
+                    str,
+                    f"Model {model_name}: each op in 'ops.backward' must be a string",
+                )
             else:
                 self.fail(
                     f"Model {model_name}: 'ops' must be either a list or a dict with 'forward'/'backward' keys"
                 )
+
+            # Validate 'model_tests' field
+            self.assertIsInstance(
+                config["model_tests"],
+                dict,
+                f"Model {model_name}: 'model_tests' must be a dictionary",
+            )
+            self.assertGreater(
+                len(config["model_tests"]),
+                0,
+                f"Model {model_name}: 'model_tests' must not be empty",
+            )
 
             # Validate 'model_tests' field
             self.assertIsInstance(
