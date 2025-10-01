@@ -37,7 +37,7 @@ touch MyModel.py MyModel.json
 **Key Fields:**
 - `model_config.init_args` - Args for `__init__()`, must match your defaults
 - `ops.forward` / `ops.backward` - Aten operators to test (format: `"aten.<op>.default"`)
-- `model_tests` - Test inputs as `"([], {kwarg: T([shape], dtype)})"`
+- `model_tests` - Test inputs as `"([], {kwarg: T([shape], dtype)})"` The format is further described [here](https://huggingface.co/datasets/GPUMODE/backendbench_tests#serialized-arguments-in-backendbench)
   - Supported dtypes: `f32`, `f64`, `i32`, `i64`, `bool`, etc.
 - `metadata.description` - What this model tests
 - Look in this directory for examples
