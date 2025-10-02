@@ -19,6 +19,7 @@ from BackendBench.llm_client import LLMKernelGenerator, LLMRelayKernelGenerator
 from BackendBench.output import save_results
 from BackendBench.suite import (
     FactoTestSuite,
+    ModelSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
     TorchBenchTestSuite,
@@ -50,7 +51,7 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "model"]),
     help="Which suite to run",
 )
 @click.option(
@@ -63,7 +64,13 @@ def setup_logging(log_level):
     "--ops",
     default=None,
     type=str,
-    help="Comma-separated list of ops to run",
+    help="Comma-separated list of ops to run (not supported for model suite)",
+)
+@click.option(
+    "--model-filter",
+    default=None,
+    type=str,
+    help="Comma-separated list of models to run (only for model suite)",
 )
 @click.option(
     "--topn-inputs",
@@ -147,6 +154,7 @@ def cli(
     suite,
     backend,
     ops,
+    model_filter,
     topn_inputs,
     llm_attempts,
     llm_model,
@@ -161,14 +169,28 @@ def cli(
     p,
 ):
     if suite != "torchbench":
-        if topn_inputs is not None:
-            raise ValueError("topn-inputs is only supported for torchbench suite")
         if check_overhead_dominated_ops:
             raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
+
+    if suite == "model":
+        if backend != "directory":
+            raise ValueError("model suite only supports directory backend")
+        if ops is not None:
+            raise ValueError(
+                "--ops filter is not supported for model suite. Use --model-filter instead"
+            )
+
+    if suite != "model" and model_filter is not None:
+        raise ValueError("--model-filter is only supported for model suite")
+
+    if (suite != "torchbench" and suite != "model") and topn_inputs is not None:
+        raise ValueError("topn-inputs is only supported for torchbench suite")
 
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
+    if model_filter:
+        model_filter = model_filter.split(",")
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -191,6 +213,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
+        "model": lambda: ModelSuite(filter=model_filter, topn=topn_inputs),
     }[suite]()
 
     backend_name = backend
@@ -291,6 +314,19 @@ def cli(
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
+
+    # Add full model testing for model suite
+    if suite.name == "model":
+        all_results = []
+        for model in suite.models:
+            results = suite.eval_model(model, backend)
+            all_results.append(results)
+        logger.info("=" * 60)
+        logger.info("MODEL EVALUATION RESULTS")
+        logger.info("=" * 60)
+        for result in all_results:
+            suite.print_results(result)
+        logger.info("=" * 60)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
