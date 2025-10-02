@@ -5,7 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 """
-Model Suite for testing models defined in configs.
+Model Suite for testing operators defined in toy model configs.
+
+This suite extends TorchBenchTestSuite by reading operator lists from
+model configs, validating they exist in the TorchBench dataset, then
+filtering to include only those operators.
 """
 
 import importlib.util
@@ -15,6 +19,8 @@ import os
 from typing import Any, Dict, List, Optional
 
 from BackendBench.eval_model import eval_model_correctness_test
+
+from .torchbench import TorchBenchTestSuite
 
 logger = logging.getLogger(__name__)
 
@@ -89,29 +95,52 @@ def load_models(
     return models
 
 
-class ModelSuite:
-    """Model Suite for end-to-end model testing."""
+class ModelSuite(TorchBenchTestSuite):
+    """Model Suite that filters TorchBench operators based on model configs.
+
+    This suite reads operator lists from model configs, validates they exist
+    in the TorchBench dataset, then creates a filtered suite containing only
+    those operators.
+    """
 
     def __init__(
         self,
         name: str = "model",
         filter: Optional[List[str]] = None,
+        topn: Optional[int] = None,
     ):
         """Initialize ModelSuite.
 
         Args:
             name: Suite name (default: "model")
             filter: Optional list of model names to load
+            topn: Optional limit on number of tests per operator
         """
         models_dir = os.path.join(os.path.dirname(__file__), "models")
 
         # Load models
         models = load_models(models_dir=models_dir, filter=filter)
         logger.info(f"ModelSuite: Loaded {len(models)} models from {models_dir}")
-
-        # Store loaded models
+        model_ops = self.get_model_ops(models)
+        filter = list(model_ops)
+        # Store loaded models for evaluation
         self.models = models
-        self.name = name
+
+        self._initialize_torchbench_suite(name, None, filter, topn, False)
+
+    def get_model_ops(self, models: List[Dict[str, Any]]) -> List[str]:
+        # Extract operators from model configs
+        model_ops = set()
+        for model in models:
+            config_ops = model["config"]["ops"]
+            ops_list = config_ops["forward"]
+            ops_list.extend(config_ops["backward"])
+
+            model_ops.update(ops_list)
+            logger.info(f"Model {model['name']}: {len(ops_list)} operators defined in config")
+
+        logger.info(f"ModelSuite: Total {len(model_ops)} unique operators across all models")
+        return model_ops
 
     def eval_model(self, model_dict: Dict[str, Any], backend) -> Dict[str, Any]:
         """Run evaluation on a single model.
