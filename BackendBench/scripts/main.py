@@ -184,8 +184,6 @@ def cli(
     p,
 ):
     if suite != "torchbench":
-        if topn_inputs is not None:
-            raise ValueError("topn-inputs is only supported for torchbench suite")
         if check_overhead_dominated_ops:
             raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
 
@@ -197,6 +195,10 @@ def cli(
 
     if suite != "model" and model_filter is not None:
         raise ValueError("--model-filter is only supported for model suite")
+
+    if suite != "model" and suite != "torchbench":
+        if topn_inputs is not None:
+            raise ValueError("topn-inputs is only supported for torchbench suite")
 
     setup_logging(log_level)
     if ops:
@@ -225,7 +227,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
-        "model": lambda: ModelSuite(filter=model_filter),
+        "model": lambda: ModelSuite(filter=model_filter, topn=topn_inputs),
     }[suite]()
 
     backend_name = backend
@@ -258,11 +260,6 @@ def cli(
             # For other backends, create timestamped directory
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             log_dir = f"backendbench_output_{timestamp}"
-
-    if suite.name == "model":
-        _test_full_models(suite, backend)
-        # currently model suite does not support op testing so now we're done
-        return
 
     overall_correctness = []
     overall_performance = []
@@ -331,6 +328,9 @@ def cli(
     print(
         f"perf@p score (rate of correct samples with a speedup greater than p, p={p}): {perf_at_p_score:.2f}"
     )
+
+    if suite.name == "model":
+        _test_full_models(suite, backend)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
