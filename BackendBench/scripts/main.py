@@ -43,17 +43,33 @@ def setup_logging(log_level):
 
 # Helper function as model suite gets fleshed out
 def _test_full_models(suite, backend):
+    """Test full model evaluation including both correctness and performance."""
     assert suite.name == "model"
     all_results = []
     for model in suite.models:
         results = suite.eval_model(model, backend)
         all_results.append(results)
+
     logger.info("=" * 60)
     logger.info("MODEL EVALUATION RESULTS")
     logger.info("=" * 60)
     for result in all_results:
         suite.print_results(result)
     logger.info("=" * 60)
+
+    # Calculate overall model suite performance
+    all_speedups = []
+    for result in all_results:
+        for perf in result.get("performance_results", []):
+            if perf.successfully_ran:
+                all_speedups.append(perf.speedup)
+
+    if all_speedups:
+        overall_speedup = torch.tensor(all_speedups).log().mean().exp().item()
+        logger.info(f"Overall Model Suite Performance: {overall_speedup:.2f}x geomean speedup")
+        logger.info("=" * 60)
+
+    return all_results
 
 
 @click.command()
@@ -330,7 +346,13 @@ def cli(
     )
 
     if suite.name == "model":
-        _test_full_models(suite, backend)
+        model_results = _test_full_models(suite, backend)
+        # Extract performance results for saving
+        for result in model_results:
+            for perf in result.get("performance_results", []):
+                all_performance_results.append(perf)
+            for corr in result.get("correctness_results", []):
+                all_correctness_results.append(corr)
 
     command = "python -m BackendBench.scripts.main " + " ".join(sys.argv[1:])
 
