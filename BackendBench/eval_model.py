@@ -37,6 +37,20 @@ class ModelCorrectnessTestResult:
     num_gradients: int = 0
 
 
+@dataclass
+class ModelPerformanceTestResult:
+    """Result from benchmarking a model configuration."""
+
+    model_name: str
+    test_name: str
+    speedup: float
+    eager_time_ms: float
+    backend_time_ms: float
+    error_msg: str = ""
+    successfully_ran: bool = False
+    test_type: str = "performance"
+
+
 def eval_model_correctness_test(
     model_name: str,
     model_class: type,
@@ -239,3 +253,126 @@ def _run_model(
     grads = _collect_gradients(model, args, kwargs)
 
     return output.detach(), grads
+
+
+def _get_bench_function():
+    """Get appropriate benchmarking function based on hardware availability."""
+    try:
+        if torch.cuda.is_available():
+            import triton.testing
+
+            return triton.testing.do_bench
+    except ImportError:
+        pass
+
+    # Fall back to CPU benchmarking
+    from BackendBench.eval import cpu_bench
+
+    return cpu_bench
+
+
+def eval_model_performance_test(
+    model_name: str,
+    model_class: type,
+    model_config: Dict[str, Any],
+    test_name: str,
+    test_args: str,
+    kernel_dir: str = None,
+    atol: float = 1e-2,
+    rtol: float = 1e-2,
+) -> ModelPerformanceTestResult:
+    """Benchmark model performance comparing eager vs backend execution.
+
+    Similar to eval_performance in eval.py, but for full models instead of individual ops.
+
+    Args:
+        model_name: Name of the model being tested
+        model_class: Model class to instantiate
+        model_config: Model configuration dict with init_args
+        test_name: Name of this test configuration
+        test_args: Serialized arguments string for forward pass
+        kernel_dir: Optional directory containing kernels for backend
+        atol: Absolute tolerance for allclose
+        rtol: Relative tolerance for allclose
+
+    Returns:
+        ModelPerformanceTestResult with timing and speedup information
+    """
+    try:
+        # 1. Choose benchmarking function (CUDA vs CPU)
+        bench_fn = _get_bench_function()
+
+        # 2. Generate seed for reproducibility
+        seed = random.randint(0, 2**32 - 1)
+
+        # 3. First verify correctness (don't benchmark incorrect implementations!)
+        correctness_result = eval_model_correctness_test(
+            model_name=model_name,
+            model_class=model_class,
+            model_config=model_config,
+            test_name=test_name,
+            test_args=test_args,
+            kernel_dir=kernel_dir,
+            atol=atol,
+            rtol=rtol,
+        )
+
+        if not correctness_result.is_correct:
+            return ModelPerformanceTestResult(
+                model_name=model_name,
+                test_name=test_name,
+                speedup=0.0,
+                eager_time_ms=0.0,
+                backend_time_ms=0.0,
+                successfully_ran=False,
+                error_msg=f"Correctness check failed: {correctness_result.error_msg}",
+            )
+
+        # 4. Benchmark eager mode
+        eager_time = bench_fn(
+            lambda: _run_model(
+                model_class,
+                model_config,
+                test_args,
+                backend_enabled=False,
+                kernel_dir=None,
+                seed=seed,
+            )
+        )
+
+        # 5. Benchmark backend mode
+        backend_time = bench_fn(
+            lambda: _run_model(
+                model_class,
+                model_config,
+                test_args,
+                backend_enabled=True,
+                kernel_dir=kernel_dir,
+                seed=seed,
+            )
+        )
+
+        # 6. Calculate speedup (eager_time / backend_time)
+        speedup = eager_time / backend_time if backend_time > 0 else 0.0
+
+        return ModelPerformanceTestResult(
+            model_name=model_name,
+            test_name=test_name,
+            speedup=speedup,
+            eager_time_ms=eager_time * 1000,  # Convert to ms
+            backend_time_ms=backend_time * 1000,
+            successfully_ran=True,
+        )
+
+    except Exception as e:
+        error_msg = f"Model {model_name}::{test_name} benchmark failed: {e}"
+        logger.error(error_msg)
+        return ModelPerformanceTestResult(
+            model_name=model_name,
+            test_name=test_name,
+            speedup=0.0,
+            eager_time_ms=0.0,
+            backend_time_ms=0.0,
+            successfully_ran=False,
+            error_msg=error_msg,
+        )

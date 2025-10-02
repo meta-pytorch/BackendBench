@@ -18,7 +18,12 @@ import logging
 import os
 from typing import Any, Dict, List, Optional
 
-from BackendBench.eval_model import eval_model_correctness_test
+import torch
+
+from BackendBench.eval_model import (
+    eval_model_correctness_test,
+    eval_model_performance_test,
+)
 
 from .torchbench import TorchBenchTestSuite
 
@@ -166,16 +171,20 @@ class ModelSuite(TorchBenchTestSuite):
                 "model_name": model_name,
                 "passed": False,
                 "error": "No model_tests found in config",
-                "test_results": [],
+                "correctness_results": [],
+                "performance_results": [],
             }
 
         # Get kernel_dir from backend if available
         kernel_dir = getattr(backend, "ops_dir", None)
 
-        # Run each test
-        test_results = []
+        # Run both correctness and performance tests
+        correctness_results = []
+        performance_results = []
+
         for test_name, test_args in model_tests.items():
-            result = eval_model_correctness_test(
+            # Correctness test
+            corr_result = eval_model_correctness_test(
                 model_name=model_name,
                 model_class=model_class,
                 model_config=model_config,
@@ -183,19 +192,36 @@ class ModelSuite(TorchBenchTestSuite):
                 test_args=test_args,
                 kernel_dir=kernel_dir,
             )
-            test_results.append(result)
+            correctness_results.append(corr_result)
+
+            # Performance test
+            perf_result = eval_model_performance_test(
+                model_name=model_name,
+                model_class=model_class,
+                model_config=model_config,
+                test_name=test_name,
+                test_args=test_args,
+                kernel_dir=kernel_dir,
+            )
+            performance_results.append(perf_result)
 
         # Aggregate results
-        all_passed = all(r.is_correct for r in test_results)
-        num_passed = sum(1 for r in test_results if r.is_correct)
-        num_total = len(test_results)
+        all_passed = all(r.is_correct for r in correctness_results)
+        num_passed = sum(1 for r in correctness_results if r.is_correct)
+        num_total = len(correctness_results)
+
+        # Calculate average speedup (geometric mean like operators)
+        speedups = [r.speedup for r in performance_results if r.successfully_ran]
+        avg_speedup = torch.tensor(speedups).log().mean().exp().item() if speedups else 0.0
 
         return {
             "model_name": model_name,
             "passed": all_passed,
             "num_passed": num_passed,
             "num_total": num_total,
-            "test_results": test_results,
+            "correctness_results": correctness_results,
+            "performance_results": performance_results,
+            "avg_speedup": avg_speedup,
         }
 
     def print_results(self, results: Dict[str, Any]) -> None:
@@ -208,29 +234,51 @@ class ModelSuite(TorchBenchTestSuite):
         passed = results.get("passed", False)
         num_passed = results.get("num_passed", 0)
         num_total = results.get("num_total", 0)
+        avg_speedup = results.get("avg_speedup", 0.0)
 
         logger.info(f"\nModel: {model_name}")
         logger.info(
             f"Status: {'✓ Passed' if passed else '✗ Failed'} ({num_passed}/{num_total} tests)"
         )
+        logger.info(f"Performance: {avg_speedup:.2f}x average speedup")
 
         # Print details for each test
-        test_results = results.get("test_results", [])
-        for result in test_results:
-            status = "✓" if result.is_correct else "✗"
-            logger.info(f"  {status} {result.test_name}")
+        correctness_results = results.get("correctness_results", [])
+        performance_results = results.get("performance_results", [])
 
-            if not result.is_correct:
-                if result.error_msg:
-                    logger.info(f"    Error: {result.error_msg}")
+        # Handle backward compatibility
+        if not correctness_results:
+            correctness_results = results.get("test_results", [])
+
+        for corr_result in correctness_results:
+            # Find corresponding performance result
+            perf_result = None
+            for p in performance_results:
+                if p.test_name == corr_result.test_name:
+                    perf_result = p
+                    break
+
+            status = "✓" if corr_result.is_correct else "✗"
+            speedup_str = ""
+            if perf_result and perf_result.successfully_ran:
+                speedup_str = f" ({perf_result.speedup:.2f}x speedup)"
+
+            logger.info(f"  {status} {corr_result.test_name}{speedup_str}")
+
+            if not corr_result.is_correct:
+                if corr_result.error_msg:
+                    logger.info(f"    Error: {corr_result.error_msg}")
                 else:
                     # Show what failed
-                    if not result.output_match:
+                    if not corr_result.output_match:
                         logger.info("    Output mismatch")
-                    if not result.gradients_match:
-                        logger.info(f"    Gradient mismatch ({result.num_gradients} gradients)")
+                    if not corr_result.gradients_match:
+                        logger.info(
+                            f"    Gradient mismatch ({corr_result.num_gradients} gradients)"
+                        )
             else:
                 # Show success details
-                logger.info(
-                    f"    Output match: ✓  Gradients match: ✓ ({result.num_gradients} gradients)"
-                )
+                details = f"    Output match: ✓  Gradients match: ✓ ({corr_result.num_gradients} gradients)"
+                if perf_result and perf_result.successfully_ran:
+                    details += f"  Time: eager={perf_result.eager_time_ms:.2f}ms, backend={perf_result.backend_time_ms:.2f}ms"
+                logger.info(details)
