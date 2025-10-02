@@ -82,7 +82,7 @@ export ANTHROPIC_API_KEY=your_api_key_here
         except anthropic.AnthropicError as e:
             raise e
         except Exception as e:
-            raise ConnectionError(f"API error: Unexpected error: {e}")
+            raise RuntimeError(f"API error: Unexpected error: {e}")
 
     def generate_kernel(
         self,
