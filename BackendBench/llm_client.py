@@ -73,14 +73,14 @@ export ANTHROPIC_API_KEY=your_api_key_here
             )
             content = response.content[0].text
             if not content:
-                raise ConnectionError(
+                raise RuntimeError(
                     "API error: Empty response from LLM API (possible rate limit or outage)."
                 )
             if "rate limit" in content.lower():
-                raise ConnectionError("API error: Rate limit encountered from LLM API.")
+                raise RuntimeError("API error: Rate limit encountered from LLM API.")
             return content
         except anthropic.AnthropicError as e:
-            raise ConnectionError(f"API error: Anthropic API error: {e}")
+            raise e
         except Exception as e:
             raise ConnectionError(f"API error: Unexpected error: {e}")
 
@@ -201,8 +201,6 @@ buck run @//mode/inplace run_plugboard_server -- --model gcp-claude-4-sonnet --p
                 raise RuntimeError("Empty response or rate limit encountered.")
             return content
         except requests.exceptions.RequestException as e:
-            raise ConnectionError(
-                f"Agent error: Failed to communicate with LLM relay server: {str(e)}"
-            )
+            raise ConnectionError(f"Failed to communicate with LLM relay server: {str(e)}")
         except Exception as e:
-            raise RuntimeError(f"Agent error: Unexpected error in LLM relay call: {e}")
+            raise RuntimeError(f"Unexpected error in LLM relay call: {e}")
