@@ -41,6 +41,21 @@ def setup_logging(log_level):
     )
 
 
+# Helper function as model suite gets fleshed out
+def _test_full_models(suite, backend):
+    assert suite.name == "model"
+    all_results = []
+    for model in suite.models:
+        results = suite.eval_model(model, backend)
+        all_results.append(results)
+    logger.info("=" * 60)
+    logger.info("MODEL EVALUATION RESULTS")
+    logger.info("=" * 60)
+    for result in all_results:
+        suite.print_results(result)
+    logger.info("=" * 60)
+
+
 @click.command()
 @click.option(
     "--log-level",
@@ -210,6 +225,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
+        "model": lambda: ModelSuite(filter=model_filter),
     }[suite]()
 
     backend_name = backend
@@ -242,6 +258,11 @@ def cli(
             # For other backends, create timestamped directory
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             log_dir = f"backendbench_output_{timestamp}"
+
+    if suite.name == "model":
+        _test_full_models(suite, backend)
+        # currently model suite does not support op testing so now we're done
+        return
 
     overall_correctness = []
     overall_performance = []
