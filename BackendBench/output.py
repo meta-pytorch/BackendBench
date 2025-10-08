@@ -219,11 +219,11 @@ def _get_summary_op_results(
     for op in op_names:
         if len(correctness_results_dict[op]) > 0:
             correctness = sum(correctness_results_dict[op]) / len(correctness_results_dict[op])
-            correctness = f"{correctness:.4f}%"
+            correctness = f"{correctness * 100:.4f}%"
         else:
             correctness = "N/A"
         if len(speedups_dict[op]) > 0:
-            speedup = sum(speedups_dict[op]) / len(speedups_dict[op])
+            speedup = torch.tensor(speedups_dict[op]).log().mean().exp()
             speedup = f"{speedup:.4f}x"
         else:
             speedup = "N/A"
