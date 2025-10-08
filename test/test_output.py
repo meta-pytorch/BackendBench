@@ -144,7 +144,7 @@ class TestOutputFunctions:
         # Check that results are sorted properly (by speedup descending, then correctness)
         assert_expected_inline(
             str(op_results),
-            """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
+            """[('torch.ops.aten.add.Tensor', '100.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '100.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
         )
 
     def test_save_results_integration(self):
