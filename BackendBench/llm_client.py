@@ -75,17 +75,15 @@ export ANTHROPIC_API_KEY=your_api_key_here
         op_name: str,
         op_signature: str,
         op_description: str,
-        framework: str = "triton",
+        dsl: str = "triton",
         feedback: Optional[str] = None,
     ) -> str:
         if feedback:
             prompt = self.template_manager.create_refinement_prompt(
-                op_name, op_signature, op_description, framework, feedback
+                op_name, op_signature, op_description, dsl, feedback
             )
         else:
-            prompt = self.template_manager.create_prompt(
-                op_name, op_signature, op_description, framework
-            )
+            prompt = self.template_manager.create_prompt(op_name, op_signature, op_description, dsl)
 
         print("\n=== DEBUG: PROMPT SENT TO LLM RELAY ===")
         print(prompt)
