@@ -79,7 +79,7 @@ class PyTorchKernelTemplate(KernelTemplate):
         )
 
 
-class CuteDSLKernelTemplate(KernelTemplate):
+class CuTeDSLKernelTemplate(KernelTemplate):
     """Template for CuTeDSL kernel generation."""
 
     def __init__(self):
@@ -118,7 +118,7 @@ class KernelTemplateManager:
         self.templates: Dict[str, KernelTemplate] = {
             "triton": TritonKernelTemplate(),
             "pytorch": PyTorchKernelTemplate(),
-            "cutedsl": CuteDSLKernelTemplate(),
+            "cutedsl": CuTeDSLKernelTemplate(),
             # TODO: Add cuda, cutile, whatever we want
         }
 
