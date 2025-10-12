@@ -27,28 +27,28 @@ class TestOutputFunctions:
             CorrectnessTestResult(
                 op_name="torch.ops.aten.add.Tensor",
                 args="[tensor([1, 2]), tensor([3, 4])]",
-                is_correct=True,
+                has_correct_output=True,
                 max_abs_error=0.001,
                 max_rel_error=0.0001,
             ),
             CorrectnessTestResult(
                 op_name="torch.ops.aten.add.Tensor",
                 args="[tensor([5, 6]), tensor([7, 8])]",
-                is_correct=True,
+                has_correct_output=True,
                 max_abs_error=0.002,
                 max_rel_error=0.0002,
             ),
             CorrectnessTestResult(
                 op_name="torch.ops.aten.mul.Tensor",
                 args="[tensor([1, 2]), tensor([3, 4])]",
-                is_correct=False,
+                has_correct_output=False,
                 error_msg="Tensor mismatch",
                 error_type="AssertionError",
             ),
             CorrectnessTestResult(
                 op_name="torch.ops.aten.sin.default",
                 args="[tensor([0.5])]",
-                is_correct=True,
+                has_correct_output=True,
                 max_abs_error=0.0,
                 max_rel_error=0.0,
             ),
@@ -144,7 +144,7 @@ class TestOutputFunctions:
         # Check that results are sorted properly (by speedup descending, then correctness)
         assert_expected_inline(
             str(op_results),
-            """[('torch.ops.aten.add.Tensor', '1.0000%', '1.7500x'), ('torch.ops.aten.sin.default', '1.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
+            """[('torch.ops.aten.add.Tensor', '100.0000%', '1.7321x'), ('torch.ops.aten.sin.default', '100.0000%', '1.0000x'), ('torch.ops.aten.mul.Tensor', '0.0000%', '1.0000x')]""",
         )
 
     def test_save_results_integration(self):
@@ -250,7 +250,7 @@ class TestOutputFunctions:
             CorrectnessTestResult(
                 op_name="edge_case_op",
                 args="[tensor([nan])]",
-                is_correct=True,
+                has_correct_output=True,
                 max_abs_error=float("inf"),
                 max_rel_error=-math.inf,
             ),

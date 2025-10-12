@@ -43,6 +43,7 @@ class EvalTask:
     correctness_tests: List[Any]
     performance_tests: List[Any]
     device: str
+    check_gradients: bool = False
 
 
 @dataclass
@@ -116,7 +117,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         performance_score,
                         correctness_results,
                         performance_results,
-                    ) = eval_one_op(op, impl, correctness_tests, performance_tests)
+                    ) = eval_one_op(op, impl, correctness_tests, performance_tests, check_gradients=task.check_gradients)
                     result = EvalResult(
                         task_id=task.task_id,
                         correctness_score=correctness_score,
@@ -141,7 +142,7 @@ def _worker_process(worker_id, task_queue, result_queue):
                         CorrectnessTestResult(
                             op_name=op.__name__,
                             args=test.args,
-                            is_correct=False,
+                            has_correct_output=False,
                             error_msg=error_msg,
                         )
                         for test in correctness_results
@@ -239,7 +240,7 @@ class MultiprocessingEvaluator:
 
         logger.info(f"Initialized MultiprocessingEvaluator with {num_workers} workers")
 
-    def submit_task(self, op, impl, correctness_tests, performance_tests) -> int:
+    def submit_task(self, op, impl, correctness_tests, performance_tests, check_gradients=False) -> int:
         task_id = self.next_task_id
         self.next_task_id += 1
         if not is_pickleable(op):
@@ -276,6 +277,7 @@ class MultiprocessingEvaluator:
             correctness_tests=cpu_correctness_tests,
             performance_tests=cpu_performance_tests,
             device=str(orig_device),
+            check_gradients=check_gradients,
         )
 
         self.task_queue.put(task)

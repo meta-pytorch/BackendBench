@@ -180,6 +180,18 @@ def _test_full_models(suite, backend):
         "requiring a higher speedup to meet the performance criteria."
     ),
 )
+@click.option(
+    "--dsl",
+    default="triton",
+    type=click.Choice(["triton", "pytorch", "cutedsl"]),
+    help="Which DSL to use for LLM backend",
+)
+@click.option(
+    "--check-gradients",
+    default=False,
+    is_flag=True,
+    help="Check gradients of the result and reference",
+)
 def cli(
     log_level,
     suite,
@@ -198,6 +210,8 @@ def cli(
     num_workers,
     check_overhead_dominated_ops,
     p,
+    dsl,
+    check_gradients,
 ):
     if suite != "torchbench":
         if check_overhead_dominated_ops:
@@ -250,11 +264,11 @@ def cli(
     if backend == "llm-relay":
         llm_client = LLMRelayKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts)
+        backend.generate_kernels(suite, llm_attempts, dsl)
     elif backend == "llm":
         llm_client = LLMKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts)
+        backend.generate_kernels(suite, llm_attempts, dsl)
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")
@@ -277,6 +291,9 @@ def cli(
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             log_dir = f"backendbench_output_{timestamp}"
 
+    if check_gradients:
+        assert backend_name == "directory" or backend_name == "aten", "check-gradients is only supported for directory backend or aten backend (for smoketests)"
+
     overall_correctness = []
     overall_performance = []
     all_correctness_results = []
@@ -294,9 +311,10 @@ def cli(
                 backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
+                check_gradients=check_gradients,
             )
 
-            overall_correctness.append(all(result.is_correct for result in correctness_results))
+            overall_correctness.append(all(result.has_correct_output for result in correctness_results))
             overall_performance.append(perf)
             all_correctness_results.extend(correctness_results)
             all_performance_results.extend(performance_results)
@@ -316,6 +334,7 @@ def cli(
                     backend[test.op],
                     test.correctness_tests,
                     test.performance_tests,
+                    check_gradients=check_gradients,
                 )
 
             # Start evaluation
@@ -326,7 +345,7 @@ def cli(
 
         for result in results:
             correctness_score = all(
-                correctness_result.is_correct for correctness_result in result.correctness_results
+                correctness_result.has_correct_output for correctness_result in result.correctness_results
             )
             performance_score = result.performance_score
             overall_correctness.append(correctness_score)

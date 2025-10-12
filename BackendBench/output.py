@@ -56,7 +56,7 @@ def _prepare_results_data(
         ]
 
         # Calculate operator-level summary
-        correct_correctness_tests = sum(1 for result in op_correctness_results if result.is_correct)
+        correct_correctness_tests = sum(1 for result in op_correctness_results if result.has_correct_output)
         passed_performance_tests = sum(
             1 for result in op_performance_results if result.successfully_ran
         )
@@ -103,7 +103,7 @@ def _prepare_results_data(
         }
 
     # Prepare failed operations log
-    failed_tests = [asdict(result) for result in correctness_results if not result.is_correct] + [
+    failed_tests = [asdict(result) for result in correctness_results if not result.has_correct_output] + [
         asdict(result) for result in performance_results if not result.successfully_ran
     ]
 
@@ -211,7 +211,7 @@ def _get_summary_op_results(
         speedups_dict[result.op_name].append(speedup)
         op_names.add(result.op_name)
     for result in correctness_results:
-        correctness_results_dict[result.op_name].append(1.0 if result.is_correct else 0.0)
+        correctness_results_dict[result.op_name].append(1.0 if result.has_correct_output else 0.0)
         op_names.add(result.op_name)
 
     # string formatting
@@ -219,11 +219,11 @@ def _get_summary_op_results(
     for op in op_names:
         if len(correctness_results_dict[op]) > 0:
             correctness = sum(correctness_results_dict[op]) / len(correctness_results_dict[op])
-            correctness = f"{correctness:.4f}%"
+            correctness = f"{correctness * 100:.4f}%"
         else:
             correctness = "N/A"
         if len(speedups_dict[op]) > 0:
-            speedup = sum(speedups_dict[op]) / len(speedups_dict[op])
+            speedup = torch.tensor(speedups_dict[op]).log().mean().exp()
             speedup = f"{speedup:.4f}x"
         else:
             speedup = "N/A"
