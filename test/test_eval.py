@@ -108,7 +108,7 @@ class TestEvalCorrectness:
         test = TestCase([torch.tensor([-1.0, 0.0, 1.0])], {})
 
         result = eval_correctness_test(op, impl, test)
-        assert result.is_correct is True
+        assert result.has_correct_output is True
 
     def test_eval_correctness_test_fail(self):
         # Use different operations that produce different results
@@ -125,7 +125,7 @@ class TestEvalCorrectness:
         test = TestCase([torch.tensor([1.0, 2.0, 3.0])], {})
 
         result = eval_correctness_test(op, impl, test)
-        assert result.is_correct is False
+        assert result.has_correct_output is False
 
     def test_eval_correctness_test_exception(self):
         op = torch.relu
@@ -142,7 +142,7 @@ class TestEvalCorrectness:
 
         # Just test that it returns False on exception
         result = eval_correctness_test(op, impl_with_error, test)
-        assert result.is_correct is False
+        assert result.has_correct_output is False
         assert result.error_msg is not None  # Should have an error message
 
     def test_eval_correctness_multiple_tests(self):

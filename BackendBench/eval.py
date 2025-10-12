@@ -8,25 +8,62 @@ import logging
 import math
 import traceback
 from dataclasses import dataclass
+from types import NotImplementedType
 from typing import List, Tuple
+import time
 
 import torch
 
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
+from collections import defaultdict
+from BackendBench.scripts.op_map import query
 
+# todo: Eventaully we should move whether or not we test the backwards pass to the suite
+BACKWARDS_PASS_TESTING_EXCEMPTIONS = [
+    # We skip this op for 2 reasons.
+    # 1) This op has the args (shape, stride, storage_offset) where storage offset would change if a gradient is included in the tensor. 
+    # Our suites (ie. opinfo) assumes we are doing inference so storage is set to a bad value here. We'd have to write a custom suite for this
+    # 2) As this is a tensor manipulation op, it doesn't really make sense to test a backwards pass for this yet.
+    "as_strided.default", 
+    # The function <op_name> is not differentiable with respect to argument 'running_mean'. This input cannot have requires_grad True.
+    # we likely need to handle this on the suite level
+    "native_batch_norm.default",
+    "_native_batch_norm_legit.default",
+    "_batch_norm_with_update.default",
+    "native_batch_norm_backward.default", # in torchbench only 
+    # The function 'soft_margin_loss' is not differentiable with respect to argument 'target'. This input cannot have requires_grad True.
+    "soft_margin_loss.default",
+    # The function 'multi_margin_loss' is not differentiable with respect to argument 'weight'. This input cannot have requires_grad True.
+    "multi_margin_loss.default",
+    
+
+    # there isn't a good way of detecting the fact that this op has no derivative. I think we gave it a grad function (NextafterBackward) which happens to raise a NotImplemented Error. /shrug
+    "nextafter.default",
+
+    # this is the only op that does not pass opinfo + aten on backwars passes figure out why
+    "grid_sampler_2d.default",
+    # torchbench: gets IMA error when adding in the gradient on B200 
+    "max_pool2d_with_indices_backward.default",
+]
+
+# delete this
+REF_TYPES = defaultdict(lambda: [])
 
 @dataclass
 class CorrectnessTestResult:
     op_name: str
     args: str
-    is_correct: bool = False
+    has_correct_output: bool = False
     error_msg: str = ""
     error_type: str = ""
     traceback: str = ""
     max_abs_error: float = -math.inf
     max_rel_error: float = -math.inf
     test_type: str = "correctness"
-
+    has_correct_gradients: bool = False
+    checked_backwards: bool = False
+    non_non_grads: int = 0
+    requires_grads_count: int = 0
 
 @dataclass
 class PerformanceTestResult:
@@ -64,7 +101,110 @@ def format_exception(e, op, args, kwargs, traceback=None):
     op_name = getattr(op, "__name__", str(op))
     return EXC_MSG.format(op=op_name, args=serialize_args(args, kwargs), exc=e, traceback=traceback)
 
+def compare_gradients(res_grad, ref_grad, atol=1e-2, rtol=1e-2):
+    if res_grad is None and ref_grad is None:
+        return True
+    if res_grad is None or ref_grad is None:
+        raise ValueError(f"One of the gradients is None while the other is not.")
+    return allclose(res_grad, ref_grad, atol=atol, rtol=rtol)
 
+def _apply_to_tensors(obj, tensor_fn, container_fn=None, accumulator=None):
+    """
+    Generic functor to apply operations to tensors in nested data structures.
+
+    Args:
+        obj: The object to traverse (tensor, list, tuple, dict, or other)
+        tensor_fn: Function to apply to each tensor. Should have signature (tensor, accumulator) -> Any
+        container_fn: Optional function to handle container reconstruction.
+                     Signature: (container_type, transformed_items) -> Any
+        accumulator: Optional accumulator object passed to tensor_fn
+
+    Returns:
+        Transformed object or None for in-place operations
+    """
+    if isinstance(obj, torch.Tensor):
+        return tensor_fn(obj, accumulator)
+    elif isinstance(obj, list):
+        transformed = [_apply_to_tensors(item, tensor_fn, container_fn, accumulator) for item in obj]
+        return container_fn(list, transformed) if container_fn else transformed
+    elif isinstance(obj, tuple):
+        transformed = [_apply_to_tensors(item, tensor_fn, container_fn, accumulator) for item in obj]
+        return container_fn(tuple, transformed) if container_fn else tuple(transformed)
+    elif isinstance(obj, dict):
+        transformed = {key: _apply_to_tensors(value, tensor_fn, container_fn, accumulator)
+                     for key, value in obj.items()}
+        return container_fn(dict, transformed) if container_fn else transformed
+    else:
+        # For immutable types or unknown types
+        return obj
+
+
+def collect_gradients(args, kwargs) -> List[torch.Tensor]:
+    """
+    Collect all gradients from args and kwargs into a flat list.
+
+    Order is well-defined:
+    1. Iterate through args in order
+       - If arg is a tensor with grad, append grad
+       - If arg is a list/tuple, iterate through elements in order and append tensor grads
+    2. Iterate through kwargs in sorted key order
+       - If kwarg is a tensor with grad, append grad
+       - If kwarg is a list/tuple, iterate through elements in order and append tensor grads
+
+    Args:
+        args: The arguments (can contain tensors or lists/tuples of tensors).
+        kwargs: The keyword arguments (can contain tensors or lists/tuples of tensors).
+
+    Returns:
+        List of gradients (torch.Tensor) in the order specified above.
+        Returns empty list if no gradients are found.
+    """
+    gradients = []
+
+    def collect_grad_fn(tensor, accumulator):
+        if tensor.grad is not None:
+            accumulator.append(tensor.grad)
+
+    # Collect from args
+    for arg in args:
+        _apply_to_tensors(arg, collect_grad_fn, accumulator=gradients)
+
+    # Collect from kwargs in sorted key order for deterministic ordering
+    for key in sorted(kwargs.keys()):
+        _apply_to_tensors(kwargs[key], collect_grad_fn, accumulator=gradients)
+
+    return gradients
+
+
+def check_input_gradients(res_args, res_kwargs, ref_args, ref_kwargs, atol=1e-2, rtol=1e-2) -> bool:
+    """
+    Check if the gradients of the result and reference are close.
+    Args:
+        res_args: The arguments of the result.
+        res_kwargs: The keyword arguments of the result.
+        ref_args: The arguments of the reference.
+        ref_kwargs: The keyword arguments of the reference.
+        atol: The absolute tolerance.
+        rtol: The relative tolerance.
+    Returns:
+        True if the gradients are close, False otherwise. If there are no gradients, return True.
+    """
+    res_grads = collect_gradients(res_args, res_kwargs)
+    ref_grads = collect_gradients(ref_args, ref_kwargs)
+
+    if len(res_grads) != len(ref_grads):
+        raise ValueError(f"The number of gradients is not the same. {len(res_grads)} vs {len(ref_grads)}")
+
+    for res_grad, ref_grad in zip(res_grads, ref_grads):
+        if a is None and b is None:
+            continue
+        elif a is None or b is None:
+            return False
+        if not allclose(res_grad, ref_grad, atol=atol, rtol=rtol):
+            return False
+
+    return True
+    
 def _allclose(a, b, atol=1e-2, rtol=1e-2):
     # using a stack to avoid recursion overflow issues
     stack = [(a, b)]
@@ -89,26 +229,119 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
     except Exception:
         return False
 
+def make_tensors_require_gradients(args, kwargs):
+    def make_require_grad_fn(tensor, _):
+        # check dtype is floating or complex
+        if tensor.dtype not in [torch.float32, torch.float64, torch.float16, torch.bfloat16, torch.complex64, torch.complex128]:
+            return
+        tensor.requires_grad = True
+    _apply_to_tensors(args, make_require_grad_fn)
+    _apply_to_tensors(kwargs, make_require_grad_fn)
 
-def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
+
+def clear_gradients(args, kwargs):
+    def clear_grad_fn(tensor, _):
+        if tensor.grad is not None:
+            tensor.grad = None
+    _apply_to_tensors(args, clear_grad_fn)
+    _apply_to_tensors(kwargs, clear_grad_fn)
+
+def count_requires_grad(args, kwargs):
+    def check_requires_grad(tensor, _):
+        if tensor.requires_grad:
+            return 1
+        return 0
+    accumulator_args = []
+    accumulator_kwargs = []
+    _apply_to_tensors(args, check_requires_grad, accumulator=accumulator_args)
+    _apply_to_tensors(kwargs, check_requires_grad, accumulator=accumulator_kwargs)
+    return sum(accumulator_args) + sum(accumulator_kwargs)
+
+def _check_if_output_has_backwards(output):
+    if isinstance(output, torch.Tensor):
+        # todo: ask why we have to do this and why isinstance(output.grad_fn, NotImplementedType) doesn't work for outputs of ops with no derivative like floor_divide.default
+        has_grad_fn =  not (type(output.grad_fn).__name__ == 'NotImplemented')
+        return output.requires_grad == True and has_grad_fn
+    elif isinstance(output, list) or isinstance(output, tuple):
+        return all(_check_if_output_has_backwards(x) for x in output) and len(output) > 0
+    else:
+        return False
+
+def _compute_loss(output):
+    if isinstance(output, torch.Tensor):
+        return output.sum()
+    elif isinstance(output, list) or isinstance(output, tuple):
+        return sum(_compute_loss(x) for x in output)
+    else:
+        raise ValueError(f"Unsupported type: {type(output)}")
+
+def eval_correctness_test(op, impl, test, check_backwards=False) -> CorrectnessTestResult:
     """Evaluate impl of op against test.
 
     Returns:
         Tuple of (is_correct, error_message, absolute_error, relative_error)
     """
+
+    # do not check backwards if the op is in our testing excemptions
+    # it's important to do this check before adding gradients as we expempt things as adding a gradient would make the forward pass invalid (like as_strided)
+    if op.__name__ in BACKWARDS_PASS_TESTING_EXCEMPTIONS:
+        check_backwards=False
+    
+    # we don't support in place ops right now
+    
+    op_map_entries = query(op.__name__)
+    assert len(op_map_entries) == 1
+    check_backwards = check_backwards and not op_map_entries[0]['is_inplace']
+
     args, kwargs = test.args, test.kwargs
+    if check_backwards:
+        make_tensors_require_gradients(args, kwargs)
     ref = op(*args, **kwargs)
+    # REF_TYPES[type(ref)].append(op.__name__)
+    # print(f" ref types types are currently {REF_TYPES.keys()}")
+
+    # we now modify check_backwards with another check. Specifically that ref is something that has gradients (aka returns a torch.tensor or a collection of torch.tensors as we cannot perform a backwards pass otherwise)
+    backwards_possible = _check_if_output_has_backwards(ref)
+
+    check_backwards = backwards_possible and check_backwards
+    if check_backwards:
+        loss = _compute_loss(ref)
+        loss.backward()
+        ref_grads = collect_gradients(args, kwargs)
+        clear_gradients(args, kwargs)
+    else:
+        ref_grads = None
+
     try:
         res = impl(*args, **kwargs)
-        is_correct = allclose(ref, res)
+        if check_backwards:
+            loss = _compute_loss(res)
+            loss.backward()
+            res_grads = collect_gradients(args, kwargs)
+            clear_gradients(args, kwargs)
+            has_correct_gradients = compare_gradients(ref_grads, res_grads)
+            non_non_grads = len([g for g in res_grads if g is not None])
+        else:
+            res_grads = None
+            has_correct_gradients = False
+            non_non_grads = 0
+        has_correct_output = allclose(ref, res)
+        requires_grads_count = count_requires_grad(args, kwargs)
+
 
         abs_error, rel_error = compute_errors(ref, res)
+        if check_backwards and not has_correct_gradients:
+            raise ValueError(f"Gradients are not correct for {op.__name__} with args {serialize_args(args, kwargs)}")
         result = CorrectnessTestResult(
             op_name=op.__name__,
             args=serialize_args(args, kwargs),
-            is_correct=is_correct,
+            has_correct_output=has_correct_output,
             max_abs_error=abs_error,
             max_rel_error=rel_error,
+            has_correct_gradients=has_correct_gradients,
+            checked_backwards=check_backwards,
+            non_non_grads=non_non_grads,
+            requires_grads_count=requires_grads_count,
         )
         return result
     except Exception as e:
@@ -116,7 +349,7 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
         result = CorrectnessTestResult(
             op_name=op.__name__,
             args=serialize_args(args, kwargs),
-            is_correct=False,
+            has_correct_output=False,
             error_msg=error_msg,
             error_type=str(type(e)),
             traceback=traceback.format_exc(),
@@ -125,16 +358,16 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
         return result
 
 
-def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
+def eval_correctness(op, impl, tests, check_backwards=False) -> Tuple[float, List[CorrectnessTestResult]]:
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     test_results: List[CorrectnessTestResult] = []
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        result = eval_correctness_test(op, impl, test)
+        result = eval_correctness_test(op, impl, test, check_backwards)
         test_results.append(result)
-        if result.is_correct:
+        if result.has_correct_output:
             correct += 1
         total += 1
 
@@ -148,7 +381,6 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
 
 def cpu_bench(fn, num_runs=100):
     """Simple CPU benchmarking using time.perf_counter."""
-    import time
 
     for _ in range(10):
         fn()
@@ -161,9 +393,10 @@ def cpu_bench(fn, num_runs=100):
 
 def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
     """Evaluate performance of impl against tests."""
-    bench_fn = (
-        triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
-    )
+    if TRITON_AVAILABLE and torch.cuda.is_available():
+        bench_fn = lambda fn: triton.testing.do_bench(fn, warmup=25, rep=100)
+    else:
+        bench_fn = cpu_bench
     base_times = []
     test_times = []
     args_strs = []
@@ -176,6 +409,12 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
         args_str = serialize_args(cached_args, cached_kwargs)
         args_strs.append(args_str)
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
+        # Warmup: run both operations to compile CUDA kernels and warm up caches
+        for _ in range(25):
+            _ = op(*cached_args, **cached_kwargs)
+            _ = impl(*cached_args, **cached_kwargs)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         base_time = bench_fn(lambda: op(*cached_args, **cached_kwargs))
         base_times.append(base_time)
         # Note: If the test fails we consider the speedup to be 1.0
@@ -192,6 +431,11 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                 raise ValueError(
                     f"Reference and result tensors are not close: max absolute error {abs_error}, max relative error {rel_error}"
                 )
+            # Warmup impl again before benchmarking
+            for _ in range(25):
+                _ = impl(*cached_args, **cached_kwargs)
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
             test_time = bench_fn(lambda: impl(*cached_args, **cached_kwargs))
             performance_results.append(
                 PerformanceTestResult(
@@ -225,7 +469,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
 
 
 def eval_one_op(
-    op, impl, correctness_tests, performance_tests
+    op, impl, correctness_tests, performance_tests, check_backwards=False
 ) -> Tuple[float, float, List[CorrectnessTestResult], List[PerformanceTestResult]]:
     """Evaluate impl of op against correctness_tests and performance_tests.
 
@@ -243,7 +487,7 @@ def eval_one_op(
                 CorrectnessTestResult(
                     op_name=op.__name__,
                     args=args_str,
-                    is_correct=False,
+                    has_correct_output=False,
                     error_msg="Skipped: uses CUDA stream",
                 )
             )
@@ -261,7 +505,7 @@ def eval_one_op(
             )
         return 0, 1.0, correctness_results, performance_results
 
-    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
+    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests, check_backwards)
     performance_score, performance_results = eval_performance(op, impl, performance_tests)
     return (
         correctness_score,
