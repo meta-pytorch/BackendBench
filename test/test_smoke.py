@@ -33,7 +33,7 @@ class TestSmoke:
                 test.performance_tests,
             )
 
-            is_correct = all(result.is_correct for result in correctness_results)
+            is_correct = all(result.has_correct_output for result in correctness_results)
             overall_correctness.append(is_correct)
             overall_performance.append(perf)
 
