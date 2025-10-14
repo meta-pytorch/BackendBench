@@ -466,7 +466,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         op_name: str,
         op_signature: str,
         op_description: str,
-        framework: str = "triton",
+        dsl: str = "triton",
         attempts: int = 5,
     ) -> Tuple[str, int, bool]:
         """
@@ -478,7 +478,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             op_name: Name of the operation for which to generate a kernel.
             op_signature: Function signature of the operation.
             op_description: Detailed description of the operation.
-            framework: Target framework for the kernel (default: "triton").
+            dsl: Target DSL for the kernel (default: "triton").
             attempts: Maximum number of generation attempts (default: 5).
 
         Returns:
@@ -503,7 +503,7 @@ You can inspect these files to debug kernel generation, manually test implementa
 
             try:
                 kernel_code = self.llm_client.generate_kernel(
-                    op_name, op_signature, op_description, framework, feedback_str
+                    op_name, op_signature, op_description, dsl, feedback_str
                 )
             except Exception as e:
                 logger.info(f"  ✗ Failed to generate kernel: {e}")
@@ -575,7 +575,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             best_kernel_feedback_info.is_correct,
         )
 
-    def generate_kernels(self, suite, attempts=5):
+    def generate_kernels(self, suite, attempts=5, dsl="triton"):
         """Generate kernels for all operators in the suite with comprehensive feedback."""
         successful_ops = 0
         total_ops = 0
@@ -595,6 +595,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 op_name=op_name,
                 op_signature=f"def {op_name}(*args, **kwargs) -> torch.Tensor",
                 op_description=f"PyTorch operation: {op_name}",
+                dsl=dsl,
                 attempts=attempts,
             )
 

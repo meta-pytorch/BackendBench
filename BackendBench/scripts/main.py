@@ -142,6 +142,12 @@ def setup_logging(log_level):
         "requiring a higher speedup to meet the performance criteria."
     ),
 )
+@click.option(
+    "--dsl",
+    default="triton",
+    type=click.Choice(["triton", "pytorch", "cutedsl"]),
+    help="Which DSL to use for LLM backend",
+)
 def cli(
     log_level,
     suite,
@@ -159,6 +165,7 @@ def cli(
     num_workers,
     check_overhead_dominated_ops,
     p,
+    dsl,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
@@ -197,11 +204,11 @@ def cli(
     if backend == "llm-relay":
         llm_client = LLMRelayKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts)
+        backend.generate_kernels(suite, llm_attempts, dsl)
     elif backend == "llm":
         llm_client = LLMKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts)
+        backend.generate_kernels(suite, llm_attempts, dsl)
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")

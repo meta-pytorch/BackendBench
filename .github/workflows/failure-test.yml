@@ -14,7 +14,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
       - name: Set up Python
-        run: uv python install
+        run: uv python install 3.13
       - name: Install package and dependencies
         run: uv sync --dev
       - name: Run smoke test
@@ -37,7 +37,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
       - name: Set up Python
-        run: uv python install
+        run: uv python install 3.13
       - name: Install package and dependencies
         run: uv sync --dev
       - name: Run opinfo test
@@ -60,7 +60,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v3
       - name: Set up Python
-        run: uv python install
+        run: uv python install 3.13
       - name: Install package and dependencies
         run: uv sync --dev
       - name: Clone FACTO source
