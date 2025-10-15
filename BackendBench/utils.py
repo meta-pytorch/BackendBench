@@ -20,9 +20,9 @@ from torch.testing import make_tensor
 
 logger = logging.getLogger(__name__)
 
-# Escape sequence for converting operator names to filesystem-safe names
-# PyTorch operators use dots (e.g., "add.Tensor", "nn.functional.relu")
-# which are not safe for folder names. We replace dots with this escape sequence.
+# Escape sequence for converting operator names to Python-safe names
+# PyTorch operators use dots (e.g., "add.Tensor", "nn.functional.relu") which are
+# not valid in Python function/variable names. We replace dots with this escape sequence.
 # Using double underscores avoids conflicts with single underscores in operator names.
 OP_NAME_ESCAPE_SEQUENCE = "__"
 

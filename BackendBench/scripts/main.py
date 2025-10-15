@@ -237,10 +237,7 @@ def cli(
     all_performance_results = []
 
     if num_workers is None:
-        print(f"Running {backend_name} backend with {suite.name} suite...")
-        print(suite)
         for test in suite:
-            print(f"Running {test.op}...")
             if test.op not in backend:
                 continue
 

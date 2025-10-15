@@ -27,17 +27,16 @@ class DirectoryBackend(Backend):
         """
         Discovers and loads kernel implementations from the operator directory structure.
 
+        This method scans the ops_dir for subdirectories named after PyTorch operators
+        (e.g., "add", "mul", "conv2d") or overloads (e.g., "add__Tensor" for add.Tensor
+        and "add__Scalar" for add.Scalar). Each subdirectory should contain Python files
+        with kernel implementations following the naming pattern: {op_name}_implementation*.py
+
         This method supports two directory naming formats:
         1. Base op name format (e.g., "add"): Registers the kernel for ALL variants of the op
            (add.Tensor, add.Scalar, add.out, add_.Tensor, etc.)
-        2. Op overload format (e.g., "add_Tensor" for "add.Tensor"): Registers the kernel
+        2. Op overload format (e.g., "add__Tensor" for "add.Tensor"): Registers the kernel
            for ONLY that specific overload
-
-        The method automatically detects which format is used by:
-        - First querying with the directory name as-is (for base op names)
-        - If no results, converts underscores to dots and queries again (for overload names)
-
-        Implementation files should follow the naming pattern: {dir_name}_implementation*.py
         """
         if not os.path.exists(self.ops_dir):
             logger.warning(f"ops directory {self.ops_dir} does not exist")
