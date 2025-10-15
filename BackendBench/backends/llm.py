@@ -55,7 +55,7 @@ class FeedbackInfo:
         """Returns True if all correctness tests passed and no compilation errors."""
         if self.compilation_error:
             return False
-        return all(result.is_correct for result in self.correctness_results) and all(
+        return all(result.has_correct_output for result in self.correctness_results) and all(
             r.successfully_ran for r in self.performance_results
         )
 
@@ -83,14 +83,16 @@ class FeedbackInfo:
         assert len(self.correctness_results), "No correctness tests ran for this kernel"
 
         return (
-            sum(1 for r in self.correctness_results if r.is_correct)
+            sum(1 for r in self.correctness_results if r.has_correct_output)
             + sum(1 for r in self.performance_results if r.successfully_ran)
         ) / (len(self.correctness_results) + len(self.performance_results))
 
     def format_for_llm(self) -> str:
         """Format feedback information for LLM consumption."""
         feedback_parts = []
-        failed_tests = [result for result in self.correctness_results if not result.is_correct]
+        failed_tests = [
+            result for result in self.correctness_results if not result.has_correct_output
+        ]
         failed_perf_tests = [r for r in self.performance_results if not r.successfully_ran]
 
         if self.compilation_error:
@@ -362,7 +364,9 @@ You can inspect these files to debug kernel generation, manually test implementa
             for result in results:
                 feedback_info.correctness_results.extend(result.correctness_results)
 
-            correct_count = len([r for r in feedback_info.correctness_results if r.is_correct])
+            correct_count = len(
+                [r for r in feedback_info.correctness_results if r.has_correct_output]
+            )
             total_count = len(feedback_info.correctness_results)
 
             is_correct = correct_count == total_count and total_count > 0

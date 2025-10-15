@@ -56,7 +56,9 @@ def _prepare_results_data(
         ]
 
         # Calculate operator-level summary
-        correct_correctness_tests = sum(1 for result in op_correctness_results if result.is_correct)
+        correct_correctness_tests = sum(
+            1 for result in op_correctness_results if result.has_correct_output
+        )
         passed_performance_tests = sum(
             1 for result in op_performance_results if result.successfully_ran
         )
@@ -103,9 +105,9 @@ def _prepare_results_data(
         }
 
     # Prepare failed operations log
-    failed_tests = [asdict(result) for result in correctness_results if not result.is_correct] + [
-        asdict(result) for result in performance_results if not result.successfully_ran
-    ]
+    failed_tests = [
+        asdict(result) for result in correctness_results if not result.has_correct_output
+    ] + [asdict(result) for result in performance_results if not result.successfully_ran]
 
     # sort failed_tests
     failed_tests.sort(key=lambda x: (x["op_name"], x["args"]))
@@ -211,7 +213,7 @@ def _get_summary_op_results(
         speedups_dict[result.op_name].append(speedup)
         op_names.add(result.op_name)
     for result in correctness_results:
-        correctness_results_dict[result.op_name].append(1.0 if result.is_correct else 0.0)
+        correctness_results_dict[result.op_name].append(1.0 if result.has_correct_output else 0.0)
         op_names.add(result.op_name)
 
     # string formatting
