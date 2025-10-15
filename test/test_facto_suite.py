@@ -65,7 +65,7 @@ class TestFactoSuite:
             assert len(correctness_results) == ctest_count, (
                 f"Number of correctness results for {test.op} is not {ctest_count}"
             )
-            is_correct = all(result.is_correct for result in correctness_results)
+            is_correct = all(result.has_correct_output for result in correctness_results)
             overall_correctness.append(is_correct)
 
             # Individual test assertions

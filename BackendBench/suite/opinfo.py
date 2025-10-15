@@ -9,6 +9,7 @@ from collections import defaultdict
 
 from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
+from BackendBench.backwards_utils import should_check_backwards_for_op
 
 from BackendBench.eval import allclose
 
@@ -18,24 +19,32 @@ logger = logging.getLogger(__name__)
 
 
 class OpInfoTest:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, test_backwards=False, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.test_backwards = test_backwards
 
 
 class OpInfoOpTest(OpTest):
-    def __init__(self, op, correctness_tests, indices):
+    def __init__(self, op, correctness_tests, indices, check_backwards=False):
         self.op = op
         self._correctness_tests = correctness_tests
         self.indices = set(indices)
         self.performance_tests = []
+        self._check_backwards = check_backwards
 
     @property
     def correctness_tests(self):
+
+        # Determine if this op should check backwards
+        test_backwards = should_check_backwards_for_op(self.op.__name__, self._check_backwards)
+
         for idx, test in enumerate(self._correctness_tests):
             if idx in self.indices:
                 # print(f"{idx} {test.input=} {test.args=} {test.kwargs=}")
-                yield OpInfoTest(test.input, *test.args, **test.kwargs)
+                yield OpInfoTest(
+                    test.input, *test.args, test_backwards=test_backwards, **test.kwargs
+                )
 
 
 class OpTracerMode(TorchDispatchMode):
@@ -51,7 +60,7 @@ class OpTracerMode(TorchDispatchMode):
         return fn(*args, **kwargs)
 
 
-def build_op_tests(device, dtype, filter=None):
+def build_op_tests(device, dtype, filter=None, check_backwards=False):
     op_info_op_tests = []
     for op in op_db:
         if filter and op.name not in filter:
@@ -85,11 +94,13 @@ def build_op_tests(device, dtype, filter=None):
 
         for overload, indices in op_indices.items():
             if len(indices) > 0:
-                op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
+                op_info_op_tests.append(
+                    OpInfoOpTest(overload, sample_inputs, indices, check_backwards)
+                )
 
     return op_info_op_tests
 
 
 class OpInfoTestSuite(TestSuite):
-    def __init__(self, name, device, dtype, filter=None):
-        super().__init__(name, build_op_tests(device, dtype, filter))
+    def __init__(self, name, device, dtype, filter=None, check_backwards=False):
+        super().__init__(name, build_op_tests(device, dtype, filter, check_backwards))
