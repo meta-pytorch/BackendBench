@@ -1,0 +1,37 @@
+warning: `VIRTUAL_ENV=/home/dev/pytorch_env` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
+warning: The workspace `requires-python` value (`==3.13`) contains an exact match without a patch version. When omitted, the patch version is implicitly `0` (e.g., `==3.13.0`). Did you mean `==3.13.*`?
+Traceback (most recent call last):
+  File "/home/dev/sapling_repos/BackendBench/BackendBench/scripts/main.py", line 463, in <module>
+    cli()
+    ~~~^^
+  File "/home/dev/sapling_repos/BackendBench/.venv/lib/python3.13/site-packages/click/core.py", line 1462, in __call__
+    return self.main(*args, **kwargs)
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/dev/sapling_repos/BackendBench/.venv/lib/python3.13/site-packages/click/core.py", line 1383, in main
+    rv = self.invoke(ctx)
+  File "/home/dev/sapling_repos/BackendBench/.venv/lib/python3.13/site-packages/click/core.py", line 1246, in invoke
+    return ctx.invoke(self.callback, **ctx.params)
+           ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dev/sapling_repos/BackendBench/.venv/lib/python3.13/site-packages/click/core.py", line 814, in invoke
+    return callback(*args, **kwargs)
+  File "/home/dev/sapling_repos/BackendBench/BackendBench/scripts/main.py", line 256, in cli
+    _, perf, correctness_results, performance_results = eval.eval_one_op(
+                                                        ~~~~~~~~~~~~~~~~^
+        test.op,
+        ^^^^^^^^
+    ...<3 lines>...
+        check_backwards=check_backwards,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/dev/sapling_repos/BackendBench/BackendBench/eval.py", line 521, in eval_one_op
+    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests, check_backwards)
+                                             ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/dev/sapling_repos/BackendBench/BackendBench/eval.py", line 381, in eval_correctness
+    result = eval_correctness_test(op, impl, test, check_backwards)
+  File "/home/dev/sapling_repos/BackendBench/BackendBench/eval.py", line 300, in eval_correctness_test
+    ref = op(*args, **kwargs)
+  File "/home/dev/sapling_repos/BackendBench/.venv/lib/python3.13/site-packages/torch/_ops.py", line 829, in __call__
+    return self._op(*args, **kwargs)
+           ~~~~~~~~^^^^^^^^^^^^^^^^^
+RuntimeError: The function 'native_batch_norm_backward' is not differentiable with respect to argument 'running_mean'. This input cannot have requires_grad True.
