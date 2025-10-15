@@ -148,6 +148,12 @@ def setup_logging(log_level):
     type=click.Choice(["triton", "pytorch", "cutedsl"]),
     help="Which DSL to use for LLM backend",
 )
+@click.option(
+    "--check-backwards",
+    default=False,
+    is_flag=True,
+    help="Check gradients of the result and reference",
+)
 def cli(
     log_level,
     suite,
@@ -166,6 +172,7 @@ def cli(
     check_overhead_dominated_ops,
     p,
     dsl,
+    check_backwards,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
@@ -184,6 +191,7 @@ def cli(
             "cuda",
             torch.bfloat16,
             filter=ops,
+            check_backwards=check_backwards,
         ),
         "torchbench": lambda: TorchBenchTestSuite(
             "torchbench",
@@ -191,6 +199,7 @@ def cli(
             filter=ops,
             topn=topn_inputs,
             check_overhead_dominated_ops=check_overhead_dominated_ops,
+            check_backwards=check_backwards,
         ),
         "facto": lambda: FactoTestSuite(
             "facto_cuda_bfloat16",
@@ -231,6 +240,11 @@ def cli(
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
             log_dir = f"backendbench_output_{timestamp}"
 
+    if check_backwards:
+        assert backend_name == "directory" or backend_name == "aten", (
+            "check-backwards is only supported for directory backend or aten backend (for smoketests)"
+        )
+
     overall_correctness = []
     overall_performance = []
     all_correctness_results = []
@@ -248,6 +262,7 @@ def cli(
                 backend[test.op],
                 test.correctness_tests,
                 test.performance_tests,
+                check_backwards=check_backwards,
             )
 
             overall_correctness.append(all(result.is_correct for result in correctness_results))
@@ -270,6 +285,7 @@ def cli(
                     backend[test.op],
                     test.correctness_tests,
                     test.performance_tests,
+                    check_backwards=check_backwards,
                 )
 
             # Start evaluation

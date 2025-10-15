@@ -6,9 +6,10 @@
 
 
 class Test:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, test_backwards=False, **kwargs):
         self._args = args
         self._kwargs = kwargs
+        self.test_backwards = test_backwards
 
     @property
     def args(self):
