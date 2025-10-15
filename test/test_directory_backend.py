@@ -93,6 +93,19 @@ def test_sum_operation(backend):
     assert torch.allclose(result, expected)
 
 
+def test_sub_Tensor_operation(backend):
+    sub_op = torch.ops.aten.sub.Tensor
+    assert sub_op in backend
+
+    our_impl = backend[sub_op]
+    a = torch.tensor([1.0, 2.0, 3.0])
+    b = torch.tensor([4.0, 5.0, 6.0])
+    result = our_impl(a, b)
+    expected = sub_op(a, b)
+
+    assert torch.allclose(result, expected)
+
+
 def test_backend_loading(backend):
     loaded_ops = set(backend.compiled_kernels.keys())
     assert len(loaded_ops) > 0
@@ -109,7 +122,7 @@ def test_backend_loading(backend):
 def test_kernel_directories_exist(backend):
     assert os.path.exists("generated_kernels")
 
-    expected_dirs = ["relu", "add", "mul", "abs", "sum"]
+    expected_dirs = ["relu", "add", "mul", "abs", "sum", "sub__Tensor"]
     for expected_dir in expected_dirs:
         dir_path = os.path.join("generated_kernels", expected_dir)
         assert os.path.isdir(dir_path)

@@ -45,6 +45,7 @@ class TorchBenchTest:
 class TorchBenchOpTest:
     def __init__(self, op, inputs, topn):
         self.op = eval(f"torch.ops.{op}")
+        print(self.op)
         self.inputs = inputs
         self.topn = topn
 

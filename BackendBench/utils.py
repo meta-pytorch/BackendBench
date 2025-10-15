@@ -20,6 +20,12 @@ from torch.testing import make_tensor
 
 logger = logging.getLogger(__name__)
 
+# Escape sequence for converting operator names to filesystem-safe names
+# PyTorch operators use dots (e.g., "add.Tensor", "nn.functional.relu")
+# which are not safe for folder names. We replace dots with this escape sequence.
+# Using double underscores avoids conflicts with single underscores in operator names.
+OP_NAME_ESCAPE_SEQUENCE = "__"
+
 dtype_abbrs = {
     torch.bfloat16: "bf16",
     torch.float64: "f64",
@@ -280,6 +286,72 @@ def extract_operator_name(op_str: str) -> str:
         return op_str.split(".")[0]
     else:
         return op_str
+
+
+def op_name_to_folder_name(op_name: str) -> str:
+    """
+    Convert a PyTorch operator name to a filesystem-safe folder name.
+
+    Replaces dots with the escape sequence to avoid conflicts with actual
+    underscores in operator names.
+
+    Examples:
+        "add.Tensor" → "add__Tensor"
+        "nn.functional.relu" → "nn__functional__relu"
+        "aten.add.Tensor" → "aten__add__Tensor"
+        "_native_batch_norm" → "_native_batch_norm" (unchanged)
+
+    Args:
+        op_name: PyTorch operator name (e.g., "add.Tensor")
+
+    Returns:
+        Filesystem-safe name with dots replaced by OP_NAME_ESCAPE_SEQUENCE
+    """
+    return op_name.replace(".", OP_NAME_ESCAPE_SEQUENCE)
+
+
+def folder_name_to_op_name(folder_name: str) -> str:
+    """
+    Convert a filesystem-safe folder name back to a PyTorch operator name.
+
+    Replaces the escape sequence with dots.
+
+    Examples:
+        "add__Tensor" → "add.Tensor"
+        "nn__functional__relu" → "nn.functional.relu"
+        "aten__add__Tensor" → "aten.add.Tensor"
+        "_native_batch_norm" → "_native_batch_norm" (unchanged)
+
+    Args:
+        folder_name: Filesystem-safe name (e.g., "add__Tensor")
+
+    Returns:
+        PyTorch operator name with OP_NAME_ESCAPE_SEQUENCE replaced by "."
+    """
+    return folder_name.replace(OP_NAME_ESCAPE_SEQUENCE, ".")
+
+
+def is_overload_folder_name(folder_name: str) -> bool:
+    """
+    Check if a folder name contains the escape sequence.
+
+    This indicates the folder represents a specific operator overload rather than
+    a base operator name.
+
+    Examples:
+        "add__Tensor" → True (overload format)
+        "nn__functional__relu" → True (overload format)
+        "add" → False (base op format)
+        "_native_batch_norm" → False (single underscores don't count)
+        "my_op_name" → False (single underscores)
+
+    Args:
+        folder_name: Name of the folder to check
+
+    Returns:
+        True if folder name contains OP_NAME_ESCAPE_SEQUENCE, False otherwise
+    """
+    return OP_NAME_ESCAPE_SEQUENCE in folder_name
 
 
 def save_kernel_to_file(kernel_code: str, kernel_file_path: str) -> None:

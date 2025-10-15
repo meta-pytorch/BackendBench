@@ -10,7 +10,7 @@ import os
 from typing import Callable, Dict
 
 from ..scripts.op_map import query
-from ..utils import get_pytorch_op
+from ..utils import folder_name_to_op_name, get_pytorch_op, is_overload_folder_name
 from .base import Backend
 
 logger = logging.getLogger(__name__)
@@ -27,17 +27,17 @@ class DirectoryBackend(Backend):
         """
         Discovers and loads kernel implementations from the operator directory structure.
 
-        This method scans the ops_dir for subdirectories named after PyTorch operators
-        (e.g., "add", "mul", "conv2d"). Each subdirectory should contain Python files
-        with kernel implementations following the naming pattern: {op_name}_implementation*.py
+        This method supports two directory naming formats:
+        1. Base op name format (e.g., "add"): Registers the kernel for ALL variants of the op
+           (add.Tensor, add.Scalar, add.out, add_.Tensor, etc.)
+        2. Op overload format (e.g., "add_Tensor" for "add.Tensor"): Registers the kernel
+           for ONLY that specific overload
 
-        The loading process:
-        1. Finds implementation files in each operator directory
-        2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
-           that should map to this directory (e.g., add.Tensor, add_.Scalar, add.out)
-        3. Registers the same kernel implementation for all discovered variants
-        4. This ensures comprehensive coverage - a single "add" implementation handles
-           all add variants: functional (add.Tensor), in-place (add_.Tensor), out (add.out)
+        The method automatically detects which format is used by:
+        - First querying with the directory name as-is (for base op names)
+        - If no results, converts underscores to dots and queries again (for overload names)
+
+        Implementation files should follow the naming pattern: {dir_name}_implementation*.py
         """
         if not os.path.exists(self.ops_dir):
             logger.warning(f"ops directory {self.ops_dir} does not exist")
@@ -63,19 +63,30 @@ class DirectoryBackend(Backend):
 
             try:
                 kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                op_variants = query(op_name)
 
-                if op_variants:
-                    for variant_info in op_variants:
-                        op_full_name = variant_info["op"]
-                        pytorch_op = get_pytorch_op(op_full_name)
-                        if pytorch_op:
-                            self.compiled_kernels[pytorch_op] = kernel_func
-                            logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
+                if is_overload_folder_name(op_name):
+                    # Overload format: register only the specific overload
+                    op_full_name = folder_name_to_op_name(op_name)
+                    pytorch_op = get_pytorch_op(op_full_name)
+                    if pytorch_op:
+                        self.compiled_kernels[pytorch_op] = kernel_func
+                        logger.info(f"Loaded {op_full_name} from {impl_file} -> {op_full_name}")
 
                     loaded_count += 1
                 else:
-                    logger.warning(f"Could not find operator variants for {op_name} in op_map")
+                    op_variants = query(op_name)
+
+                    if op_variants:
+                        for variant_info in op_variants:
+                            op_full_name = variant_info["op"]
+                            pytorch_op = get_pytorch_op(op_full_name)
+                            if pytorch_op:
+                                self.compiled_kernels[pytorch_op] = kernel_func
+                                logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
+
+                        loaded_count += 1
+                    else:
+                        logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
