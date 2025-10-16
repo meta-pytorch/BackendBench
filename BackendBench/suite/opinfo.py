@@ -88,7 +88,7 @@ def build_op_tests(device, dtype, filter=None):
                 if len(tracer.ops) == 1:
                     res = tracer.ops[0](test.input, *test.args, **test.kwargs)
                     if allclose(ref, res):
-                        if filter and tracer.ops[0].name not in filter:
+                        if filter and extract_operator_name(str(tracer.ops[0])) not in filter:
                             continue
                         if (
                             extract_operator_name(str(tracer.ops[0]))
