@@ -6,12 +6,18 @@
 
 import logging
 import math
+import time
 import traceback
 from dataclasses import dataclass
 from typing import List, Tuple
 
 import torch
 
+from BackendBench.backwards_utils import (
+    clear_gradients,
+    collect_gradients,
+    make_tensors_require_gradients,
+)
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 
@@ -26,6 +32,8 @@ class CorrectnessTestResult:
     max_abs_error: float = -math.inf
     max_rel_error: float = -math.inf
     test_type: str = "correctness"
+    has_correct_gradients: bool = False
+    checked_backwards: bool = False
 
 
 @dataclass
@@ -90,25 +98,91 @@ def allclose(a, b, atol=1e-2, rtol=1e-2):
         return False
 
 
-def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
+def compare_gradients(res_grad, ref_grad, atol=1e-2, rtol=1e-2):
+    if res_grad is None and ref_grad is None:
+        return True
+    if res_grad is None or ref_grad is None:
+        raise ValueError("One of the gradients is None while the other is not.")
+    return allclose(res_grad, ref_grad, atol=atol, rtol=rtol)
+
+
+def _check_if_output_has_backwards(output):
+    if isinstance(output, torch.Tensor):
+        # todo: ask why we have to do this and why isinstance(output.grad_fn, NotImplementedType) doesn't work for outputs of ops with no derivative like floor_divide.default
+        has_grad_fn = not (type(output.grad_fn).__name__ == "NotImplemented")
+        return output.requires_grad and has_grad_fn
+    elif isinstance(output, list) or isinstance(output, tuple):
+        return all(_check_if_output_has_backwards(x) for x in output) and len(output) > 0
+    else:
+        return False
+
+
+def _compute_loss(output):
+    if isinstance(output, torch.Tensor):
+        return output.sum()
+    elif isinstance(output, list) or isinstance(output, tuple):
+        return sum(_compute_loss(x) for x in output)
+    else:
+        raise ValueError(f"Unsupported type: {type(output)}")
+
+
+def eval_correctness_test(op, impl, test, check_backwards=False) -> CorrectnessTestResult:
     """Evaluate impl of op against test.
 
     Returns:
         Tuple of (is_correct, error_message, absolute_error, relative_error)
     """
+
+    # Get the test_backwards flag from the test object if it exists
+    # The suite is responsible for setting this based on op capabilities
+    test_backwards = getattr(test, "test_backwards", False)
+
+    # Combine with global check_backwards flag
+    check_backwards = check_backwards and test_backwards
+
     args, kwargs = test.args, test.kwargs
+    if check_backwards:
+        make_tensors_require_gradients(args, kwargs)
     ref = op(*args, **kwargs)
+
+    # we now modify check_backwards with another check. Specifically that ref is something that has gradients (aka returns a torch.tensor or a collection of torch.tensors as we cannot perform a backwards pass otherwise)
+    backwards_possible = _check_if_output_has_backwards(ref)
+
+    check_backwards = backwards_possible and check_backwards
+    if check_backwards:
+        loss = _compute_loss(ref)
+        loss.backward()
+        ref_grads = collect_gradients(args, kwargs)
+        clear_gradients(args, kwargs)
+    else:
+        ref_grads = None
+
     try:
         res = impl(*args, **kwargs)
+        if check_backwards:
+            loss = _compute_loss(res)
+            loss.backward()
+            res_grads = collect_gradients(args, kwargs)
+            clear_gradients(args, kwargs)
+            has_correct_gradients = compare_gradients(ref_grads, res_grads)
+        else:
+            res_grads = None
+            has_correct_gradients = False
         is_correct = allclose(ref, res)
 
         abs_error, rel_error = compute_errors(ref, res)
+        if check_backwards and not has_correct_gradients:
+            raise ValueError(
+                f"Gradients are not correct for {op.__name__} with args {serialize_args(args, kwargs)}"
+            )
         result = CorrectnessTestResult(
             op_name=op.__name__,
             args=serialize_args(args, kwargs),
             is_correct=is_correct,
             max_abs_error=abs_error,
             max_rel_error=rel_error,
+            has_correct_gradients=has_correct_gradients,
+            checked_backwards=check_backwards,
         )
         return result
     except Exception as e:
@@ -125,14 +199,16 @@ def eval_correctness_test(op, impl, test) -> CorrectnessTestResult:
         return result
 
 
-def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult]]:
+def eval_correctness(
+    op, impl, tests, check_backwards=False
+) -> Tuple[float, List[CorrectnessTestResult]]:
     """Evaluate correctness of impl against tests."""
     correct, total = 0, 0
     test_results: List[CorrectnessTestResult] = []
     for test in tests:
         args_str = serialize_args(test.args, test.kwargs)
         logging.debug(f"Testing {op.__name__} with args {args_str}")
-        result = eval_correctness_test(op, impl, test)
+        result = eval_correctness_test(op, impl, test, check_backwards)
         test_results.append(result)
         if result.is_correct:
             correct += 1
@@ -148,7 +224,6 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
 
 def cpu_bench(fn, num_runs=100):
     """Simple CPU benchmarking using time.perf_counter."""
-    import time
 
     for _ in range(10):
         fn()
@@ -164,6 +239,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
     bench_fn = (
         triton.testing.do_bench if TRITON_AVAILABLE and torch.cuda.is_available() else cpu_bench
     )
+
     base_times = []
     test_times = []
     args_strs = []
@@ -176,6 +252,12 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
         args_str = serialize_args(cached_args, cached_kwargs)
         args_strs.append(args_str)
         logging.debug(f"Benchmarking {op.__name__} with args {args_str}")
+        # Warmup: run both operations to compile CUDA kernels and warm up caches
+        for _ in range(25):
+            _ = op(*cached_args, **cached_kwargs)
+            _ = impl(*cached_args, **cached_kwargs)
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         base_time = bench_fn(lambda: op(*cached_args, **cached_kwargs))
         base_times.append(base_time)
         # Note: If the test fails we consider the speedup to be 1.0
@@ -225,7 +307,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
 
 
 def eval_one_op(
-    op, impl, correctness_tests, performance_tests
+    op, impl, correctness_tests, performance_tests, check_backwards=False
 ) -> Tuple[float, float, List[CorrectnessTestResult], List[PerformanceTestResult]]:
     """Evaluate impl of op against correctness_tests and performance_tests.
 
@@ -261,7 +343,9 @@ def eval_one_op(
             )
         return 0, 1.0, correctness_results, performance_results
 
-    correctness_score, correctness_results = eval_correctness(op, impl, correctness_tests)
+    correctness_score, correctness_results = eval_correctness(
+        op, impl, correctness_tests, check_backwards
+    )
     performance_score, performance_results = eval_performance(op, impl, performance_tests)
     return (
         correctness_score,
