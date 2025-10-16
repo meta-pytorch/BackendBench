@@ -27,6 +27,10 @@ Use scripts/parquet_to_trace.py to generate and upload new datasets to HuggingFa
 
 import torch  # noqa: F401
 
+from BackendBench.backwards_utils import (
+    make_tensors_require_gradients,
+    should_check_backwards_for_op,
+)
 from BackendBench.data_loaders import (
     _args_size,
     load_ops_from_source,
@@ -37,16 +41,18 @@ from BackendBench.utils import deserialize_args
 
 
 class TorchBenchTest:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, test_backwards=False, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        self.test_backwards = test_backwards
 
 
 class TorchBenchOpTest:
-    def __init__(self, op, inputs, topn):
+    def __init__(self, op, inputs, topn, check_backwards=False):
         self.op = eval(f"torch.ops.{op}")
         self.inputs = inputs
         self.topn = topn
+        self._check_backwards = check_backwards
 
     def tests(self):
         inputs_and_sizes = []
@@ -59,9 +65,14 @@ class TorchBenchOpTest:
 
     @property
     def correctness_tests(self):
+        # Determine if this op should check backwards
+        test_backwards = should_check_backwards_for_op(self.op.__name__, self._check_backwards)
+
         for inp in self.tests():
             args, kwargs = deserialize_args(inp)
-            yield TorchBenchTest(*args, **kwargs)
+            if test_backwards:
+                make_tensors_require_gradients(args, kwargs)
+            yield TorchBenchTest(*args, test_backwards=test_backwards, **kwargs)
 
     @property
     def performance_tests(self):
@@ -78,9 +89,11 @@ class TorchBenchTestSuite:
         filter=None,
         topn=None,
         check_overhead_dominated_ops=False,
+        check_backwards=False,
     ):
         self.name = name
         self.topn = topn
+        self.check_backwards = check_backwards
         # Load operations using the shared data loader
         ops_list = load_ops_from_source(
             source=filename,
@@ -102,4 +115,4 @@ class TorchBenchTestSuite:
         for op, inputs in self.optests.items():
             if any(s in op for s in UNSUPPORTED_OPERATORS):
                 continue
-            yield TorchBenchOpTest(op, inputs, self.topn)
+            yield TorchBenchOpTest(op, inputs, self.topn, self.check_backwards)
