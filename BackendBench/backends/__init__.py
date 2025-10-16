@@ -20,6 +20,7 @@ from .directory import DirectoryBackend
 from .flag_gems import FlagGemsBackend
 from .kernel_agent import KernelAgentBackend
 from .llm import LLMBackend
+from .private_use1 import PrivateUse1Backend
 
 __all__ = [
     "Backend",
@@ -27,6 +28,7 @@ __all__ = [
     "AtenBackend",
     "FlagGemsBackend",
     "LLMBackend",
+    "PrivateUse1Backend",
 ]
 
 if importlib.util.find_spec("triton_kernel_agent") is not None:

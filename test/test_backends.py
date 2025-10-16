@@ -13,6 +13,7 @@ from BackendBench.backends import (
     AtenBackend,
     FlagGemsBackend,
     KernelAgentBackend,
+    PrivateUse1Backend,
 )
 
 HAS_KERNEL_AGENT = KernelAgentBackend is not None
@@ -122,3 +123,34 @@ class TestBackendIntegration:
             assert hasattr(backend, "__contains__")
             assert hasattr(backend, "__getitem__")
             assert isinstance(backend.name, str)
+
+
+class TestPrivateUse1Backend:
+    def test_private_use1_backend_initialization(self):
+        backend = PrivateUse1Backend()
+        assert backend.name == "privateuse1"
+        assert isinstance(backend.ops, dict)
+
+    def test_private_use1_backend_register_and_contains_op(self):
+        backend = PrivateUse1Backend()
+
+        def dummy_op(x):
+            return x
+
+        backend.register_op("dummy_op", dummy_op)
+
+        assert backend.is_registered("dummy_op")
+        assert not backend.is_registered("non_existent_op")
+
+    def test_private_use1_backend_getitem(self):
+        backend = PrivateUse1Backend()
+
+        def dummy_op(x):
+            return x
+
+        backend.register_op("dummy_op", dummy_op)
+
+        assert backend["dummy_op"] == dummy_op
+
+        with pytest.raises(KeyError):
+            _ = backend["non_existent_op"]
