@@ -281,9 +281,7 @@ def get_pytorch_op(op_name: str):
 def extract_operator_name(op_str: str) -> str:
     """Extract clean operator name from various operator string formats."""
     if "aten." in op_str:
-        return op_str.split("aten.")[-1].split(".")[0]
-    elif "." in op_str:
-        return op_str.split(".")[0]
+        return op_str.split("aten.")[-1]
     else:
         return op_str
 
@@ -398,9 +396,9 @@ import torch.nn.functional as F
 def compile_kernel_from_string(
     kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str, module_name: str
 ) -> tuple[Callable | None, list[str]]:
-    def _find_kernel_function(module, op_name: str) -> Callable:
+    def _find_kernel_function(module, folder_name: str) -> Callable:
         """Find the main kernel function in the compiled module."""
-        expected_name = f"{op_name}_kernel_impl"
+        expected_name = f"{folder_name}_kernel_impl"
 
         if hasattr(module, expected_name):
             return getattr(module, expected_name)
@@ -414,7 +412,7 @@ def compile_kernel_from_string(
         raise ValueError(
             f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
             f"Available functions: {available_functions}. "
-            f"Please ensure the LLM generated code follows the naming convention: {op_name}_kernel_impl"
+            f"Please ensure the LLM generated code follows the naming convention: {folder_name}_kernel_impl"
         )
 
     try:

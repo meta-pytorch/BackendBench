@@ -51,8 +51,17 @@ class OpTracerMode(TorchDispatchMode):
         return fn(*args, **kwargs)
 
 
+def get_op_base_name(op_name):
+    if "." in op_name:
+        return op_name.split(".")[0]
+    return op_name
+
+
 def build_op_tests(device, dtype, filter=None):
     op_info_op_tests = []
+
+    filter = [get_op_base_name(overload) for overload in filter]
+
     for op in op_db:
         if filter and op.name not in filter:
             continue
@@ -86,7 +95,6 @@ def build_op_tests(device, dtype, filter=None):
         for overload, indices in op_indices.items():
             if len(indices) > 0:
                 op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
-
     return op_info_op_tests
 
 

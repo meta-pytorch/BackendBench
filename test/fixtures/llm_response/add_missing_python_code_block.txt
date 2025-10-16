@@ -23,7 +23,7 @@ def add_triton_kernel(
     output = x + y
     tl.store(output_ptr + offsets, output, mask=mask)
 
-def add_kernel_impl(*args, **kwargs):
+def add__Tensor_kernel_impl(*args, **kwargs):
     # Handle both positional and keyword arguments
     if len(args) >= 2:
         input_tensor = args[0]

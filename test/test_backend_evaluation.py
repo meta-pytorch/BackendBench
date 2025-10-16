@@ -29,7 +29,14 @@ class TestBackendEvaluation(unittest.TestCase):
         from pathlib import Path
 
         base_dir = Path("generated_kernels")
-        test_ops = ["bitwise_and", "fmod", "relu", "add", "mul", "div"]
+        test_ops = [
+            "bitwise_and__Tensor",
+            "fmod__Tensor",
+            "relu__default",
+            "add__Tensor",
+            "mul__Tensor",
+            "div__Tensor",
+        ]
 
         for op_name in test_ops:
             op_dir = base_dir / op_name

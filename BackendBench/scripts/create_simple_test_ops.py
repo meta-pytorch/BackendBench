@@ -18,17 +18,17 @@ logger = logging.getLogger(__name__)
 
 
 def create_relu():
-    os.makedirs("generated_kernels/relu", exist_ok=True)
-    with open("generated_kernels/relu/relu_implementation_v1.py", "w") as f:
+    os.makedirs("generated_kernels/relu__default", exist_ok=True)
+    with open("generated_kernels/relu__default/relu__default_implementation_v1.py", "w") as f:
         f.write('''import torch
 
-def relu_kernel_impl(input):
+def relu__default_kernel_impl(input):
     """Simple ReLU implementation."""
     return torch.ops.aten.relu.default(input)
 
 if __name__ == "__main__":
     x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
-    result = relu_kernel_impl(x)
+    result = relu__default_kernel_impl(x)
     expected = torch.tensor([0.0, 0.0, 0.0, 1.0, 2.0])
     print(f"ReLU test passed: {torch.allclose(result, expected)}")
 ''')
@@ -36,18 +36,18 @@ if __name__ == "__main__":
 
 
 def create_add():
-    os.makedirs("generated_kernels/add", exist_ok=True)
-    with open("generated_kernels/add/add_implementation_v1.py", "w") as f:
+    os.makedirs("generated_kernels/add__Tensor", exist_ok=True)
+    with open("generated_kernels/add__Tensor/add__Tensor_implementation_v1.py", "w") as f:
         f.write('''import torch
 
-def add_kernel_impl(input, other):
+def add__Tensor_kernel_impl(input, other):
     """Simple add implementation."""
     return torch.ops.aten.add.Tensor(input, other)
 
 if __name__ == "__main__":
     a = torch.tensor([1.0, 2.0, 3.0])
     b = torch.tensor([4.0, 5.0, 6.0])
-    result = add_kernel_impl(a, b)
+    result = add__Tensor_kernel_impl(a, b)
     expected = torch.tensor([5.0, 7.0, 9.0])
     print(f"Add test passed: {torch.allclose(result, expected)}")
 ''')
@@ -55,18 +55,18 @@ if __name__ == "__main__":
 
 
 def create_mul():
-    os.makedirs("generated_kernels/mul", exist_ok=True)
-    with open("generated_kernels/mul/mul_implementation_v1.py", "w") as f:
+    os.makedirs("generated_kernels/mul__Tensor", exist_ok=True)
+    with open("generated_kernels/mul__Tensor/mul__Tensor_implementation_v1.py", "w") as f:
         f.write('''import torch
 
-def mul_kernel_impl(input, other):
+def mul__Tensor_kernel_impl(input, other):
     """Simple mul implementation."""
     return torch.ops.aten.mul.Tensor(input, other)
 
 if __name__ == "__main__":
     a = torch.tensor([1.0, 2.0, 3.0])
     b = torch.tensor([4.0, 5.0, 6.0])
-    result = mul_kernel_impl(a, b)
+    result = mul__Tensor_kernel_impl(a, b)
     expected = torch.tensor([4.0, 10.0, 18.0])
     print(f"Mul test passed: {torch.allclose(result, expected)}")
 ''')
@@ -74,17 +74,17 @@ if __name__ == "__main__":
 
 
 def create_abs():
-    os.makedirs("generated_kernels/abs", exist_ok=True)
-    with open("generated_kernels/abs/abs_implementation_v1.py", "w") as f:
+    os.makedirs("generated_kernels/abs__default", exist_ok=True)
+    with open("generated_kernels/abs__default/abs__default_implementation_v1.py", "w") as f:
         f.write('''import torch
 
-def abs_kernel_impl(input):
+def abs__default_kernel_impl(input):
     """Simple abs implementation."""
     return torch.ops.aten.abs.default(input)
 
 if __name__ == "__main__":
     x = torch.tensor([-2.0, -1.0, 0.0, 1.0, 2.0])
-    result = abs_kernel_impl(x)
+    result = abs__default_kernel_impl(x)
     expected = torch.tensor([2.0, 1.0, 0.0, 1.0, 2.0])
     print(f"Abs test passed: {torch.allclose(result, expected)}")
 ''')
@@ -92,40 +92,21 @@ if __name__ == "__main__":
 
 
 def create_sum():
-    os.makedirs("generated_kernels/sum", exist_ok=True)
-    with open("generated_kernels/sum/sum_implementation_v1.py", "w") as f:
+    os.makedirs("generated_kernels/sum__default", exist_ok=True)
+    with open("generated_kernels/sum__default/sum__default_implementation_v1.py", "w") as f:
         f.write('''import torch
 
-def sum_kernel_impl(input, *args, **kwargs):
+def sum__default_kernel_impl(input, *args, **kwargs):
     """Simple sum implementation."""
     return torch.ops.aten.sum.default(input, *args, **kwargs)
 
 if __name__ == "__main__":
     x = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
-    result = sum_kernel_impl(x)
+    result = sum__default_kernel_impl(x)
     expected = torch.tensor(10.0)
     print(f"Sum test passed: {torch.allclose(result, expected)}")
 ''')
     logger.info("Created sum implementation")
-
-
-def create_sub__Tensor():
-    os.makedirs("generated_kernels/sub__Tensor", exist_ok=True)
-    with open("generated_kernels/sub__Tensor/sub__Tensor_implementation_v1.py", "w") as f:
-        f.write('''import torch
-
-def sub__Tensor_kernel_impl(input, other):
-    """Simple sub.Tensor implementation."""
-    return torch.ops.aten.sub.Tensor(input, other)
-
-if __name__ == "__main__":
-    a = torch.tensor([1.0, 2.0, 3.0])
-    b = torch.tensor([4.0, 5.0, 6.0])
-    result = add_kernel_impl(a, b)
-    expected = torch.tensor([-3.0, -3.0, -3.0])
-    print(f"Add test passed: {torch.allclose(result, expected)}")
-''')
-    logger.info("Created sub.Tensor implementation")
 
 
 def main():
@@ -138,12 +119,11 @@ def main():
     create_mul()
     create_abs()
     create_sum()
-    create_sub__Tensor()
 
-    logger.info("Created 6 simple kernel implementations in generated_kernels/")
+    logger.info("Created 5 simple kernel implementations in generated_kernels/")
     logger.info("Test them individually:")
-    logger.info("  python generated_kernels/relu/relu_implementation_v1.py")
-    logger.info("  python generated_kernels/add/add_implementation_v1.py")
+    logger.info("  python generated_kernels/relu__default/relu__default_implementation_v1.py.py")
+    logger.info("  python generated_kernels/add__Tensor/add__Tensor_implementation_v1.py")
     logger.info("  etc.")
     logger.info("Or test all with the backend:")
     logger.info("  python test/test_simple_directory_backend.py")

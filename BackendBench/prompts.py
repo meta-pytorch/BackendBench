@@ -10,12 +10,12 @@ Operation: {op_signature}
 {op_description}
 
 Requirements:
-- Triton kernel function MUST be named: {op_name}_triton_kernel
-- Wrapper function MUST be named: {op_name}_kernel_impl
+- Triton kernel function MUST be named: {folder_name}_triton_kernel
+- Wrapper function MUST be named: {folder_name}_kernel_impl
 - Use modern Triton syntax with proper grid computation
 - Include all necessary imports (torch, triton, triton.language as tl)
 
-The {op_name}_kernel_impl wrapper function MUST handle complete device management:
+The {folder_name}_kernel_impl wrapper function MUST handle complete device management:
 - Move CPU tensors to GPU if needed (use .cuda() when torch.cuda.is_available())
 - Raise clear errors if CUDA is not available for GPU tensors
 - Call the triton kernel with GPU tensors
@@ -31,7 +31,7 @@ Operation: {op_signature}
 {op_description}
 
 Requirements:
-- Function name MUST be: {op_name}_kernel_impl
+- Function name MUST be: {folder_name}_kernel_impl
 - Handle edge cases
 - Match PyTorch reference behavior
 
@@ -49,13 +49,13 @@ Operation: {op_signature}
 {op_description}
 
 Requirements:
-- CuteDSL kernel function MUST be named: {op_name}_cutedsl_kernel
-- Launcher function MUST be named: {op_name}_kernel_launch
-- Wrapper function MUST be named: {op_name}_kernel_impl
+- CuteDSL kernel function MUST be named: {folder_name}_cutedsl_kernel
+- Launcher function MUST be named: {folder_name}_kernel_launch
+- Wrapper function MUST be named: {folder_name}_kernel_impl
 - Use modern CuteDSL syntax with proper grid computation
 - Include all necessary imports (torch, cutlass, cutlass.cute as cute)
 
-The {op_name}_kernel_impl wrapper function MUST handle complete device management:
+The {folder_name}_kernel_impl wrapper function MUST handle complete device management:
 - Move CPU tensors to GPU if needed (use .cuda() when torch.cuda.is_available())
 - Raise clear errors if CUDA is not available for GPU tensors
 - Call the CuteDSL kernel with GPU tensors
