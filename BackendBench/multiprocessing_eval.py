@@ -331,7 +331,6 @@ class MultiprocessingEvaluator:
             try:
                 # Get result from queue
                 result = self.result_queue.get(block=False)
-                logger.info(f"Result obtained: {result}")
 
                 if isinstance(result, ProcessDeathSignal):
                     self.completed_tasks += 1
