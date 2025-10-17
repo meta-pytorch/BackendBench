@@ -279,9 +279,9 @@ You can inspect these files to debug kernel generation, manually test implementa
         os.makedirs(op_dir, exist_ok=True)
         return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}_generated_feedback.txt")
 
-    def _make_error_func(self, error_msg):
+    def _make_error_func(self, error_msg, op_name: str = None):
         def error_func(*args, **kwargs):
-            raise RuntimeError(f"Compilation of kernel failed: {error_msg}")
+            raise RuntimeError(f"Compilation of kernel failed: {error_msg} for op {op_name}")
 
         return error_func
 
