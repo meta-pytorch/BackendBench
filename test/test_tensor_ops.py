@@ -1,5 +1,13 @@
-import torch
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD 3-Clause license found in the
+# LICENSE file in the root directory of this source tree.
+
 import os
+
+import torch
+
 from BackendBench.backends import LLMBackend
 from BackendBench.llm_client import LLMKernelGenerator
 from BackendBench.suite import OpInfoTestSuite
@@ -9,6 +17,8 @@ class TestCase:
     def __init__(self, args, kwargs):
         self.args = args
         self.kwargs = kwargs
+
+
 class TestTensorCreationOps:
     suite = OpInfoTestSuite(
         "tensor_creation_ops_test",
