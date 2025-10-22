@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from BackendBench.backends import DirectoryBackend
+from BackendBench.utils import op_name_to_folder_name
 
 
 @pytest.fixture(scope="module")
@@ -109,8 +110,9 @@ def test_backend_loading(backend):
 def test_kernel_directories_exist(backend):
     assert os.path.exists("generated_kernels")
 
-    expected_dirs = ["relu", "add", "mul", "abs", "sum"]
-    for expected_dir in expected_dirs:
+    expected_ops = ["relu.default", "add.Tensor", "mul.Tensor", "abs.default", "sum.default"]
+    for expected_op in expected_ops:
+        expected_dir = op_name_to_folder_name(expected_op)
         dir_path = os.path.join("generated_kernels", expected_dir)
         assert os.path.isdir(dir_path)
 

@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Set
 
 from BackendBench.scripts.op_map import op_map_data
-from BackendBench.utils import extract_operator_name
+from BackendBench.utils import extract_operator_name, op_name_to_folder_name
 
 
 def extract_aten_ops(op_strings):
@@ -35,13 +35,7 @@ def get_all_operators_from_op_map():
             canonical_part = line.split()[0]  # Get "canonical:add.Tensor"
             canonical_name = canonical_part.split(":", 1)[1]  # Get "add.Tensor"
 
-            # Extract folder name (base name without overload)
-            if "." in canonical_name:
-                folder_name = canonical_name.split(".")[0]
-            else:
-                folder_name = canonical_name
-
-            folder_names.add(folder_name)
+            folder_names.add(canonical_name)
 
     return sorted(folder_names)
 
@@ -109,7 +103,7 @@ def setup_operator_directories(
     else:
         raise ValueError(f"Invalid suite '{suite}'. Must be one of: torchbench, opinfo, all")
 
-    folder_names = sorted(selected_ops)
+    folder_names = [op_name_to_folder_name(op) for op in sorted(selected_ops)]
     print(f"Creating directories for {len(folder_names)} operators")
 
     base_path = Path(base_dir)

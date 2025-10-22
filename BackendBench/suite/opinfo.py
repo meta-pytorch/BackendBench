@@ -11,6 +11,12 @@ from torch.testing._internal.common_methods_invocations import op_db
 from torch.utils._python_dispatch import TorchDispatchMode
 
 from BackendBench.eval import allclose
+from BackendBench.op_categories import (
+    RANDOM_OPS,
+    TENSOR_CREATION_AND_MANIPULATION_OPS,
+    UNSUPPORTED_OPERATORS,
+)
+from BackendBench.utils import extract_operator_name
 
 from .base import OpTest, TestSuite
 
@@ -51,11 +57,16 @@ class OpTracerMode(TorchDispatchMode):
         return fn(*args, **kwargs)
 
 
+def get_op_base_name(op_name):
+    if "." in op_name:
+        return op_name.split(".")[0]
+    return op_name
+
+
 def build_op_tests(device, dtype, filter=None):
     op_info_op_tests = []
+
     for op in op_db:
-        if filter and op.name not in filter:
-            continue
         if "." in op.name and "nn.functional" not in op.name:
             continue
         if dtype not in op.supported_dtypes(device):
@@ -77,6 +88,15 @@ def build_op_tests(device, dtype, filter=None):
                 if len(tracer.ops) == 1:
                     res = tracer.ops[0](test.input, *test.args, **test.kwargs)
                     if allclose(ref, res):
+                        if filter and extract_operator_name(str(tracer.ops[0])) not in filter:
+                            continue
+                        if (
+                            extract_operator_name(str(tracer.ops[0]))
+                            in UNSUPPORTED_OPERATORS
+                            + RANDOM_OPS
+                            + TENSOR_CREATION_AND_MANIPULATION_OPS
+                        ):
+                            continue
                         op_indices[tracer.ops[0]].append(idx)
                 else:
                     logger.debug(f"opinfo {op.name} has {len(tracer.ops)} ops")
@@ -86,7 +106,6 @@ def build_op_tests(device, dtype, filter=None):
         for overload, indices in op_indices.items():
             if len(indices) > 0:
                 op_info_op_tests.append(OpInfoOpTest(overload, sample_inputs, indices))
-
     return op_info_op_tests
 
 

@@ -69,7 +69,7 @@ jobs:
         run: cd FACTO && uv pip install .
       - name: Run FACTO test
         run: |
-          uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" --log-dir facto_output
+          uv run python -m BackendBench.scripts.main --suite facto --backend aten --log-dir facto_output
       - name: Check FACTO test failures
         run: |
           if [ -s "facto_output/failed_ops.json" ] && [ "$(jq 'length' facto_output/failed_ops.json)" -ne 0 ]; then

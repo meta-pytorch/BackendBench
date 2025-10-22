@@ -20,6 +20,7 @@ import torch
 
 import BackendBench
 from BackendBench.scripts.create_watermarked_operators import get_operator_watermark_value
+from BackendBench.utils import op_name_to_folder_name
 
 
 class TestMonkeyPatch:
@@ -44,6 +45,7 @@ class TestMonkeyPatch:
         )
         # Clean up directory structure and only keep the specified ops
         if ops:
+            ops = [op_name_to_folder_name(op) for op in ops]
             for directory in os.listdir(kernel_dir):
                 if directory not in ops and os.path.isdir(os.path.join(kernel_dir, directory)):
                     shutil.rmtree(os.path.join(kernel_dir, directory))
@@ -69,8 +71,8 @@ class TestMonkeyPatch:
     @pytest.fixture(scope="module")
     def setup_dir_relu(self):
         """Generate required directory structure and operators."""
-        self.setup_watermarked_kernel_dir(self.kernel_dir_relu, ["relu"])
-        self.setup_watermarked_kernel_dir(self.kernel_dir_leaky_relu, ["leaky_relu"])
+        self.setup_watermarked_kernel_dir(self.kernel_dir_relu, ["relu.default"])
+        self.setup_watermarked_kernel_dir(self.kernel_dir_leaky_relu, ["leaky_relu.default"])
 
         yield
 
@@ -94,7 +96,7 @@ class TestMonkeyPatch:
         relu = torch.ops.aten.relu.default
         x = torch.tensor([-1.0, 0.0, 1.0], device=device)
         expected = torch.tensor([0.0, 0.0, 1.0], device=device)
-        watermarked = torch.full_like(x, get_operator_watermark_value("relu"))
+        watermarked = torch.full_like(x, get_operator_watermark_value("relu.default"))
 
         torch.testing.assert_close(relu(x), expected)
 
@@ -125,7 +127,7 @@ class TestMonkeyPatch:
         relu = torch.ops.aten.relu.default
         x = torch.tensor([-1.0, 0.0, 1.0], device=device)
         expected = torch.tensor([0.0, 0.0, 1.0], device=device)
-        watermarked = torch.full_like(x, get_operator_watermark_value("relu"))
+        watermarked = torch.full_like(x, get_operator_watermark_value("relu.default"))
 
         torch.testing.assert_close(relu(x), expected)
 
@@ -144,8 +146,10 @@ class TestMonkeyPatch:
         x = torch.tensor([-1.0, 0.0, 1.0])
         expected_relu = torch.tensor([0.0, 0.0, 1.0])
         expected_leaky_relu = torch.tensor([-0.01, 0.0, 1.0])
-        watermarked_relu = torch.full_like(x, get_operator_watermark_value("relu"))
-        watermarked_leaky_relu = torch.full_like(x, get_operator_watermark_value("leaky_relu"))
+        watermarked_relu = torch.full_like(x, get_operator_watermark_value("relu.default"))
+        watermarked_leaky_relu = torch.full_like(
+            x, get_operator_watermark_value("leaky_relu.default")
+        )
 
         BackendBench.enable(kernel_dir=self.kernel_dir_relu, dispatch_key="CPU")
 

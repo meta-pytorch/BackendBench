@@ -21,6 +21,11 @@ except ImportError:
 
 
 from BackendBench.eval import allclose
+from BackendBench.op_categories import (
+    RANDOM_OPS,
+    TENSOR_CREATION_AND_MANIPULATION_OPS,
+    UNSUPPORTED_OPERATORS,
+)
 from BackendBench.opregistry import get_operator
 
 from .base import OpTest, TestSuite
@@ -65,6 +70,11 @@ def build_facto_op_tests(device, dtype, filter=None, num_runs=10, empty=False, p
     for spec_name in SpecDictDB:
         try:
             if filter and spec_name not in filter:
+                continue
+            if (
+                spec_name
+                in UNSUPPORTED_OPERATORS + RANDOM_OPS + TENSOR_CREATION_AND_MANIPULATION_OPS
+            ):
                 continue
 
             # Get canonical operator from registry

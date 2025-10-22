@@ -41,7 +41,7 @@ class TestLLMBackend:
         "opinfo_cpu_bfloat16",
         "cpu",
         torch.bfloat16,
-        filter=["add"],
+        filter=["add.Tensor"],
     )
 
     def test_generate_kernels_good(self):
@@ -54,7 +54,7 @@ class TestLLMBackend:
         )
         backend.generate_kernels(self.suite, attempts)
 
-        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        summary_file = os.path.join(backend.kernels_dir, "add__Tensor", "add__Tensor_summary.txt")
         assert os.path.exists(summary_file)
 
         with open(summary_file, "r") as f:
@@ -72,7 +72,7 @@ class TestLLMBackend:
         )
         backend.generate_kernels(self.suite, attempts)
 
-        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        summary_file = os.path.join(backend.kernels_dir, "add__Tensor", "add__Tensor_summary.txt")
         assert os.path.exists(summary_file)
 
         with open(summary_file, "r") as f:
@@ -90,7 +90,7 @@ class TestLLMBackend:
         )
         backend.generate_kernels(self.suite, attempts)
 
-        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        summary_file = os.path.join(backend.kernels_dir, "add__Tensor", "add__Tensor_summary.txt")
         assert os.path.exists(summary_file)
 
         with open(summary_file, "r") as f:
@@ -108,7 +108,7 @@ class TestLLMBackend:
         )
         backend.generate_kernels(self.suite, attempts)
 
-        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        summary_file = os.path.join(backend.kernels_dir, "add__Tensor", "add__Tensor_summary.txt")
         assert os.path.exists(summary_file)
 
         with open(summary_file, "r") as f:
@@ -130,7 +130,7 @@ class TestLLMBackend:
         )
         backend.generate_kernels(self.suite, attempts)
 
-        summary_file = os.path.join(backend.kernels_dir, "add", "add_summary.txt")
+        summary_file = os.path.join(backend.kernels_dir, "add__Tensor", "add__Tensor_summary.txt")
         assert os.path.exists(summary_file)
 
         with open(summary_file, "r") as f:

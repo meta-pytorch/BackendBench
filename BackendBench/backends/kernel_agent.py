@@ -8,7 +8,7 @@ import logging
 import os
 from typing import Callable, Dict
 
-from BackendBench.utils import compile_kernel_from_string
+from BackendBench.utils import compile_kernel_from_string, op_name_to_folder_name
 
 from .base import Backend
 
@@ -154,7 +154,8 @@ Please generate a complete, production-ready Triton kernel implementation.
         Returns:
             Modified kernel code with correct function name
         """
-        expected_name = f"{op_name}_kernel_impl"
+        folder_name = os.path.basename(os.path.dirname(kernel_code))
+        expected_name = f"{folder_name}_kernel_impl"
 
         # Replace 'def kernel_function' with 'def {op_name}_kernel_impl'
         if "def kernel_function(" in kernel_code:
@@ -182,10 +183,11 @@ def {expected_name}(*args, **kwargs):
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
+        folder_name = op_name_to_folder_name(op_name)
         adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
-        kernel_file_path = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
-        expected_fn_name = f"{op_name}_kernel_impl"
-        module_name = f"kernel_agent_{op_name}"
+        kernel_file_path = os.path.join(self.kernels_dir, f"{folder_name}_kernel.py")
+        expected_fn_name = f"{folder_name}_kernel_impl"
+        module_name = f"kernel_agent_{folder_name}"
 
         try:
             kernel = compile_kernel_from_string(
@@ -205,7 +207,8 @@ def {expected_name}(*args, **kwargs):
         self.compiled_kernels[op] = compiled_kernel
 
         # Save the original KernelAgent code as well
-        original_file = os.path.join(self.kernels_dir, f"{op_name}_original_kernel_agent.py")
+        folder_name = op_name_to_folder_name(op_name)
+        original_file = os.path.join(self.kernels_dir, f"{folder_name}_original_kernel_agent.py")
         with open(original_file, "w") as f:
             f.write(kernel_code)
 
@@ -247,8 +250,9 @@ def {expected_name}(*args, **kwargs):
                 import shutil
 
                 session_name = os.path.basename(result["session_dir"])
+                folder_name = op_name_to_folder_name(op_name)
                 preserved_session = os.path.join(
-                    self.kernels_dir, f"{op_name}_session_{session_name}"
+                    self.kernels_dir, f"{folder_name}_session_{session_name}"
                 )
                 try:
                     shutil.copytree(result["session_dir"], preserved_session)
