@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "BackendBench"
+repository-code: "https://github.com/meta-pytorch/BackendBench"
+authors:
+  - family-names: "Saroufim"
+    given-names: "Mark"
+  - family-names: "Wang"
+    given-names: "Jiannan"
+  - family-names: "Maher"
+    given-names: "Bert"
+  - family-names: "Paliskara"
+    given-names: "Sahan"
+  - family-names: "Wang"
+    given-names: "Laura"
+  - family-names: "Candales"
+    given-names: "Manuel"

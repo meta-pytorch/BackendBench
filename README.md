@@ -41,6 +41,10 @@ python BackendBench/scripts/main.py --suite torchbench --backend directory
 
 See [BackendBench Example](https://github.com/jiannanWang/BackendBenchExamples) for a practical demonstration of how to use BackendBench for model convergence testing.
 
+## Citation
+
+If you use BackendBench in your research or projects, please cite it using the information in our [CITATION.cff](CITATION.cff) file, or use the "Cite this repository" feature on GitHub.
+
 ## License
 
 Source code is made available under a [BSD 3 license](LICENSE.md)
