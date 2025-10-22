@@ -43,7 +43,16 @@ See [BackendBench Example](https://github.com/jiannanWang/BackendBenchExamples) 
 
 ## Citation
 
-If you use BackendBench in your research or projects, please cite it using the information in our [CITATION.cff](CITATION.cff) file, or use the "Cite this repository" feature on GitHub.
+If you use BackendBench in your research or projects, please cite it as:
+
+```bibtex
+@software{saroufim2025backendbench,
+  author = {Mark Saroufim and Jiannan Wang and Bert Maher and Sahan Paliskara and Laura Wang and Shahin Sefati and Manuel Candales},
+  title = {BackendBench: An Evaluation Suite for Testing How Well LLMs and Humans Can Write PyTorch Backends},
+  year = {2025},
+  url = {https://github.com/meta-pytorch/BackendBench}
+}
+```
 
 ## License
 
