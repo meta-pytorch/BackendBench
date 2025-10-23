@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "datasets",
     "tenacity",
+    "transformers>=4.56.2",
 ]
 
 [project.optional-dependencies]
