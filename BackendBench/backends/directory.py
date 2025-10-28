@@ -9,6 +9,8 @@ import logging
 import os
 from typing import Callable, Dict
 
+from torch.utils.cpp_extension import load_inline
+
 from ..scripts.op_map import query
 from ..utils import get_pytorch_op
 from .base import Backend
@@ -52,7 +54,8 @@ class DirectoryBackend(Backend):
             impl_files = [
                 f
                 for f in os.listdir(op_dir)
-                if f.endswith(".py") and f.startswith(f"{op_name}_implementation")
+                if (f.endswith(".py") or f.endswith(".cu") or f.endswith(".cpp"))
+                and f.startswith(f"{op_name}_implementation")
             ]
             if not impl_files:
                 logger.debug(f"No implementation files found in {op_dir}")
@@ -69,6 +72,7 @@ class DirectoryBackend(Backend):
                     for variant_info in op_variants:
                         op_full_name = variant_info["op"]
                         pytorch_op = get_pytorch_op(op_full_name)
+                        print(f"pytorch_op: {pytorch_op}")
                         if pytorch_op:
                             self.compiled_kernels[pytorch_op] = kernel_func
                             logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
@@ -82,13 +86,9 @@ class DirectoryBackend(Backend):
 
         logger.info(f"DirectoryBackend loaded {loaded_count} kernels from {self.ops_dir}/")
 
-    def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+    def _load_python_kernel(self, file_path: str, op_name: str) -> Callable:
         """
-        Dynamically load a kernel implementation function from a Python file.
-
-        Each operator directory should contain implementation files that export a function
-        named {op_name}_kernel_impl. This function becomes the kernel implementation
-        that gets registered for all variants of the operator.
+        Load a kernel implementation from a Python file.
 
         Args:
             file_path: Path to the Python implementation file
@@ -109,6 +109,117 @@ class DirectoryBackend(Backend):
             return getattr(module, kernel_func_name)
         else:
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
+
+    def setup_cpp_extension(self):
+        global CPP_EXTENSION_IS_SETUP
+        if not CPP_EXTENSION_IS_SETUP:
+            from setuptools import setup
+            from torch.utils import cpp_extension
+
+            setup(
+                name="extension_cpp",
+                ext_modules=[
+                    cpp_extension.CppExtension(
+                        "extension_cpp",
+                        ["muladd.cpp"],
+                        # define Py_LIMITED_API with min version 3.9 to expose only the stable
+                        # limited API subset from Python.h
+                        extra_compile_args={"cxx": ["-DPy_LIMITED_API=0x03090000"]},
+                        py_limited_api=True,
+                    )
+                ],  # Build 1 wheel across multiple Python versions
+                cmdclass={"build_ext": cpp_extension.BuildExtension},
+                options={
+                    "bdist_wheel": {"py_limited_api": "cp39"}
+                },  # 3.9 is minimum supported Python version
+            )
+            CPP_EXTENSION_IS_SETUP = True
+
+    def _load_cuda_kernel(self, file_path: str, op_name: str) -> Callable:
+        """
+        Load and compile a kernel implementation from CUDA files using load_inline.
+
+        Args:
+            file_path: Path to the CUDA implementation file (.cu or .cpp)
+            op_name: Base name of the operator (e.g., "add__Tensor")
+
+        Returns:
+            Callable kernel implementation function
+
+        Raises:
+            ValueError: If the expected kernel function is not found in the compiled module
+        """
+        file_dir = os.path.dirname(file_path)
+        file_name = os.path.basename(file_path)
+        base_name = file_name.rsplit(".", 1)[0]
+
+        cu_file = os.path.join(file_dir, f"{base_name}.cu")
+        cpp_file = os.path.join(file_dir, f"{base_name}.cpp")
+
+        cpp_source = ""
+        cuda_source = ""
+
+        # Read both files if they exist
+        if os.path.exists(cu_file):
+            with open(cu_file, "r") as f:
+                cuda_source = f.read()
+        print(f"cuda_source: {cuda_source}")
+
+        if os.path.exists(cpp_file):
+            with open(cpp_file, "r") as f:
+                cpp_source = f.read()
+        print(f"cpp_source: {cpp_source}")
+
+        # Use load_inline for all cases
+        module_name = f"{op_name}_cuda_inline"
+        cuda_module = load_inline(
+            name=module_name,
+            cpp_sources=cpp_source,
+            cuda_sources=cuda_source,
+            functions=[op_name],
+            verbose=True,
+        )
+
+        # x = torch.randn(4, 4, device="cuda", dtype=torch.float32)
+        # y = torch.randn(4, 4, device="cuda", dtype=torch.float32)
+
+        # print(getattr(cuda_module, op_name)(x, y))
+
+        if hasattr(cuda_module, op_name):
+            return getattr(cuda_module, op_name)
+        else:
+            raise ValueError(
+                f"No function named {op_name} found in compiled CUDA module from {file_path}"
+            )
+
+    def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+        """
+        Dynamically load a kernel implementation function from a Python or CUDA file.
+
+        Dispatches to the appropriate loader based on file extension:
+        - .py files -> _load_python_kernel
+        - .cu or .cpp files -> _load_cuda_kernel
+
+        Args:
+            file_path: Path to the implementation file (Python or CUDA)
+            op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
+
+        Returns:
+            Callable kernel implementation function
+
+        Raises:
+            ValueError: If the file extension is unsupported or the kernel function is not found
+        """
+        file_ext = os.path.splitext(file_path)[1]
+
+        if file_ext == ".py":
+            return self._load_python_kernel(file_path, op_name)
+        elif file_ext in [".cu", ".cpp"]:
+            return self._load_cuda_kernel(file_path, op_name)
+        else:
+            raise ValueError(
+                f"Unsupported file extension {file_ext} for {file_path}. Expected .py, .cu, or .cpp"
+            )
 
     def __getitem__(self, key):
         if key in self.compiled_kernels:
