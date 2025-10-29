@@ -21,6 +21,7 @@ from contextlib import redirect_stdout
 import torch
 
 import BackendBench
+from BackendBench.utils import op_name_to_folder_name
 
 
 class SimpleMatMulModel(torch.nn.Module):
@@ -51,6 +52,7 @@ class TestModelWithGeneratedKernels(unittest.TestCase):
         # Create a temporary directory for this test
         self.test_dir = tempfile.mkdtemp()
         self.generated_kernels_dir = os.path.join(self.test_dir, "generated_kernels")
+        print(f"Created temporary directory: {self.generated_kernels_dir}")
 
         # Store original working directory
         self.original_cwd = os.getcwd()
@@ -75,17 +77,18 @@ class TestModelWithGeneratedKernels(unittest.TestCase):
         os.makedirs(self.generated_kernels_dir, exist_ok=True)
 
         # Define the operators we need implementations for
-        operators = ["add", "cos", "matmul", "mul", "sin"]
+        operators = ["add.Tensor", "cos.default", "matmul.default", "mul.Tensor", "sin.default"]
 
         for op in operators:
             self._create_operator_implementation(op)
 
     def _create_operator_implementation(self, op_name):
         """Create an implementation file for a specific operator with embedded working code."""
-        op_dir = os.path.join(self.generated_kernels_dir, op_name)
+        folder_name = op_name_to_folder_name(op_name)
+        op_dir = os.path.join(self.generated_kernels_dir, folder_name)
         os.makedirs(op_dir, exist_ok=True)
 
-        impl_file = os.path.join(op_dir, f"{op_name}_implementation_v1.py")
+        impl_file = os.path.join(op_dir, f"{folder_name}_implementation_v1.py")
 
         # Get the actual working implementation content
         content = self._get_implementation_content(op_name)
@@ -96,7 +99,7 @@ class TestModelWithGeneratedKernels(unittest.TestCase):
     def _get_implementation_content(self, op_name):
         """Get the actual working implementation content for each operator."""
 
-        if op_name == "add":
+        if op_name == "add.Tensor":
             return """import torch
 import triton
 import triton.language as tl
@@ -119,8 +122,8 @@ def add_triton_kernel(
     output = x + y
     tl.store(output_ptr + offsets, output, mask=mask)
 
-def add_kernel_impl(*args, **kwargs):
-    print("Hello from add_kernel_impl")
+def add__Tensor_kernel_impl(*args, **kwargs):
+    print("Hello from add__Tensor_kernel_impl")
     # Handle both positional and keyword arguments
     if len(args) >= 2:
         input_tensor = args[0]
@@ -205,7 +208,7 @@ def add_kernel_impl(*args, **kwargs):
     return output
 """
 
-        elif op_name == "cos":
+        elif op_name == "cos.default":
             return """import torch
 import triton
 import triton.language as tl
@@ -238,9 +241,9 @@ def cos_triton_kernel(
     
     tl.store(output_ptr + offsets, result, mask=mask)
 
-def cos_kernel_impl(*args, **kwargs):
+def cos__default_kernel_impl(*args, **kwargs):
     # Handle both positional and keyword arguments
-    print("Hello from cos_kernel_impl")
+    print("Hello from cos__default_kernel_impl")
     if args:
         input_tensor = args[0]
         extra_args = args[1:]
@@ -290,7 +293,7 @@ def cos_kernel_impl(*args, **kwargs):
     return output
 """
 
-        elif op_name == "matmul":
+        elif op_name == "matmul.default":
             return """import torch
 import triton
 import triton.language as tl
@@ -343,8 +346,8 @@ def mm_triton_kernel(
     c_mask = (offs_cm[:, None] < M) & (offs_cn[None, :] < N)
     tl.store(c_ptrs, c, mask=c_mask)
 
-def matmul_kernel_impl(*args, **kwargs):
-    print("Hello from matmul_kernel_impl")
+def matmul__default_kernel_impl(*args, **kwargs):
+    print("Hello from matmul__default_kernel_impl")
     # Handle both args and kwargs
     if len(args) >= 2:
         a, b = args[0], args[1]
@@ -423,7 +426,7 @@ def matmul_kernel_impl(*args, **kwargs):
     return c
 """
 
-        elif op_name == "mul":
+        elif op_name == "mul.Tensor":
             return """import torch
 import triton
 import triton.language as tl
@@ -451,8 +454,8 @@ def mul_triton_kernel(
     # Store results
     tl.store(output_ptr + offsets, output_vals, mask=mask)
 
-def mul_kernel_impl(*args, **kwargs):
-    print("Hello from mul_kernel_impl")
+def mul__Tensor_kernel_impl(*args, **kwargs):
+    print("Hello from mul__Tensor_kernel_impl")
     # Handle both positional and keyword arguments
     if len(args) >= 2:
         input_tensor = args[0]
@@ -540,7 +543,7 @@ def mul_kernel_impl(*args, **kwargs):
     return output
 """
 
-        elif op_name == "sin":
+        elif op_name == "sin.default":
             return """import torch
 import triton
 import triton.language as tl
@@ -568,9 +571,9 @@ def sin_triton_kernel(
     
     tl.store(output_ptr + offsets, result, mask=mask)
 
-def sin_kernel_impl(*args, **kwargs):
+def sin__default_kernel_impl(*args, **kwargs):
 
-    print("Hello from sin_kernel_impl")
+    print("Hello from sin__default_kernel_impl")
     # Handle both positional and keyword arguments
     if args:
         input_tensor = args[0]
@@ -661,9 +664,10 @@ def sin_kernel_impl(*args, **kwargs):
         self.assertEqual(output_custom.shape, output_baseline.shape)
 
         # Check that custom implementations were called
-        expected_ops = ["add", "cos", "matmul", "mul", "sin"]
+        expected_ops = ["add.Tensor", "cos.default", "matmul.default", "mul.Tensor", "sin.default"]
 
         for op in expected_ops:
+            op = op_name_to_folder_name(op)
             expected_message = f"Hello from {op}_kernel_impl"
             self.assertIn(
                 expected_message,

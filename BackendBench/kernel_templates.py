@@ -19,6 +19,7 @@ from .prompts import (
     TRITON_KERNEL_PROMPT,
     TRITON_OPTIMIZATIONS,
 )
+from .utils import op_name_to_folder_name
 
 
 class KernelTemplate:
@@ -50,6 +51,7 @@ class TritonKernelTemplate(KernelTemplate):
 
         return TRITON_KERNEL_PROMPT.format(
             op_name=op_name,
+            folder_name=op_name_to_folder_name(op_name),
             op_signature=op_signature,
             op_description=op_description,
             optimizations=optimizations,
@@ -96,6 +98,7 @@ class CuTeDSLKernelTemplate(KernelTemplate):
 
         return CUTEDSL_KERNEL_PROMPT.format(
             op_name=op_name,
+            folder_name=op_name_to_folder_name(op_name),
             op_signature=op_signature,
             op_description=op_description,
             optimizations=optimizations,
