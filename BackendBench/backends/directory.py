@@ -11,8 +11,7 @@ from typing import Callable, Dict
 
 from torch.utils.cpp_extension import load_inline
 
-from ..scripts.op_map import query
-from ..utils import get_pytorch_op
+from ..utils import folder_name_to_op_name, get_pytorch_op, op_name_to_folder_name
 from .base import Backend
 
 logger = logging.getLogger(__name__)
@@ -29,25 +28,21 @@ class DirectoryBackend(Backend):
         """
         Discovers and loads kernel implementations from the operator directory structure.
 
-        This method scans the ops_dir for subdirectories named after PyTorch operators
-        (e.g., "add", "mul", "conv2d"). Each subdirectory should contain Python files
-        with kernel implementations following the naming pattern: {op_name}_implementation*.py
+        This method scans the ops_dir for subdirectories named after PyTorch operator
+        overloads (e.g., "add__Tensor" for add.Tensor and "add__Scalar" for add.Scalar).
+        Each subdirectory should contain Python files with kernel implementations
+        following the naming pattern: {op_name}_implementation*.py
 
-        The loading process:
-        1. Finds implementation files in each operator directory
-        2. Uses the authoritative op_map.query() to discover all PyTorch operator variants
-           that should map to this directory (e.g., add.Tensor, add_.Scalar, add.out)
-        3. Registers the same kernel implementation for all discovered variants
-        4. This ensures comprehensive coverage - a single "add" implementation handles
-           all add variants: functional (add.Tensor), in-place (add_.Tensor), out (add.out)
+        This method uses the op overload format (e.g., "add__Tensor" for "add.Tensor") and
+        registers the kernel for ONLY that specific overload.
         """
         if not os.path.exists(self.ops_dir):
             logger.warning(f"ops directory {self.ops_dir} does not exist")
             return
 
         loaded_count = 0
-        for op_name in os.listdir(self.ops_dir):
-            op_dir = os.path.join(self.ops_dir, op_name)
+        for folder_name in os.listdir(self.ops_dir):
+            op_dir = os.path.join(self.ops_dir, folder_name)
             if not os.path.isdir(op_dir):
                 continue
 
@@ -55,7 +50,7 @@ class DirectoryBackend(Backend):
                 f
                 for f in os.listdir(op_dir)
                 if (f.endswith(".py") or f.endswith(".cu") or f.endswith(".cpp"))
-                and f.startswith(f"{op_name}_implementation")
+                and f.startswith(f"{folder_name}_implementation")
             ]
             if not impl_files:
                 logger.debug(f"No implementation files found in {op_dir}")
@@ -65,21 +60,14 @@ class DirectoryBackend(Backend):
             impl_path = os.path.join(op_dir, impl_file)
 
             try:
-                kernel_func = self._load_kernel_from_file(impl_path, op_name)
-                op_variants = query(op_name)
+                op_name = folder_name_to_op_name(folder_name)
+                kernel_func = self._load_kernel_from_file(impl_path, folder_name)
 
-                if op_variants:
-                    for variant_info in op_variants:
-                        op_full_name = variant_info["op"]
-                        pytorch_op = get_pytorch_op(op_full_name)
-                        print(f"pytorch_op: {pytorch_op}")
-                        if pytorch_op:
-                            self.compiled_kernels[pytorch_op] = kernel_func
-                            logger.info(f"Loaded {op_name} from {impl_file} -> {op_full_name}")
-
+                pytorch_op = get_pytorch_op(op_name)
+                if pytorch_op:
+                    self.compiled_kernels[pytorch_op] = kernel_func
+                    logger.info(f"Loaded {op_name} from {impl_file} -> {op_name}")
                     loaded_count += 1
-                else:
-                    logger.warning(f"Could not find operator variants for {op_name} in op_map")
 
             except Exception as e:
                 logger.error(f"Error loading {op_name} from {impl_file}: {e}")
@@ -100,11 +88,12 @@ class DirectoryBackend(Backend):
         Raises:
             ValueError: If the expected kernel function is not found in the file
         """
-        spec = importlib.util.spec_from_file_location(f"op_{op_name}", file_path)
+        folder_name = op_name_to_folder_name(op_name)
+        spec = importlib.util.spec_from_file_location(f"op_{folder_name}", file_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
 
-        kernel_func_name = f"{op_name}_kernel_impl"
+        kernel_func_name = f"{folder_name}_kernel_impl"
         if hasattr(module, kernel_func_name):
             return getattr(module, kernel_func_name)
         else:
