@@ -14,11 +14,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-
-    - name: Install CUDA Toolkit
-      uses: Jimver/cuda-toolkit@v0.2.18
-      with:
-        cuda: '12.4.0'
     
     - name: Install uv
       uses: astral-sh/setup-uv@v3
@@ -31,7 +26,13 @@ jobs:
     #     ls /usr/local | grep cuda
     
     - name: Install package and dependencies
-      run: uv sync --dev
+      run: |
+        uv sync --dev
+        uv pip install "nvidia-cuda-runtime-cu12==12.4.127" \
+                "nvidia-cublas-cu12==12.4.5.8" \
+                "nvidia-cuda-nvrtc-cu12==12.4.127" \
+                "nvidia-cuda-nvcc-cu12==12.4.131"
+        python -m pip list | grep nvidia
     
     - name: Clone FACTO source
       run: git clone https://github.com/pytorch-labs/FACTO.git
