@@ -143,6 +143,7 @@ def backend_cuda(request):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
+@pytest.mark.skipif("CUDA_HOME" not in os.environ, reason="CUDA_HOME is not available")
 class TestDirectoryBackendCUDA:
     base_dir = "generated_kernels_cuda"
 
