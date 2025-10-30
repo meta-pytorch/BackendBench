@@ -23,40 +23,7 @@ jobs:
     
     - name: Install package and dependencies
       run: uv sync --dev
-      
-    - name: Set CUDA_HOME
-      run: |
-        # Find CUDA installation
-        if [ -d "/usr/local/cuda" ]; then
-          echo "CUDA_HOME=/usr/local/cuda" >> $GITHUB_ENV
-          echo "Found CUDA at /usr/local/cuda"
-        elif [ -d "/usr/lib/cuda" ]; then
-          echo "CUDA_HOME=/usr/lib/cuda" >> $GITHUB_ENV
-          echo "Found CUDA at /usr/lib/cuda"
-        else
-          # Try to find CUDA using which nvcc
-          NVCC_PATH=$(which nvcc 2>/dev/null || echo "")
-          if [ -n "$NVCC_PATH" ]; then
-            CUDA_HOME=$(dirname $(dirname $NVCC_PATH))
-            echo "CUDA_HOME=$CUDA_HOME" >> $GITHUB_ENV
-            echo "Found CUDA at $CUDA_HOME"
-          else
-            echo "Warning: CUDA installation not found, tests may fail"
-          fi
-        fi
-        
-    - name: Verify CUDA setup
-      run: |
-        echo "CUDA_HOME: $CUDA_HOME"
-        if [ -n "$CUDA_HOME" ]; then
-          ls -la "$CUDA_HOME" || echo "CUDA_HOME directory does not exist"
-          if [ -f "$CUDA_HOME/bin/nvcc" ]; then
-            "$CUDA_HOME/bin/nvcc" --version
-          else
-            echo "nvcc not found at $CUDA_HOME/bin/nvcc"
-          fi
-        fi
-      
+    
     - name: Clone FACTO source
       run: git clone https://github.com/pytorch-labs/FACTO.git
     
