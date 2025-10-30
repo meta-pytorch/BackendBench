@@ -35,7 +35,6 @@ jobs:
     
     - name: Find CUDA version
       run: |
-        nvcc --version | grep -oP 'release \K[0-9]+\.[0-9]+'
         ls /usr/local | grep cuda
     
     - name: Run FACTO test
