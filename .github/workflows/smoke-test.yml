@@ -26,9 +26,9 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
     
-    - name: Find CUDA version
-      run: |
-        ls /usr/local | grep cuda
+    # - name: Find CUDA version
+    #   run: |
+    #     ls /usr/local | grep cuda
     
     - name: Install package and dependencies
       run: uv sync --dev
