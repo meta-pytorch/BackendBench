@@ -26,7 +26,7 @@ jobs:
     
     - name: Verify CUDA environment
       run: |
-        python - <<'PY'
+        uv run python - <<'PY'
         import torch, os, subprocess
         print("PyTorch version:", torch.__version__)
         print("CUDA available:", torch.cuda.is_available())
