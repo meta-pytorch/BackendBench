@@ -19,10 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 def create_add(base_dir):
-    os.makedirs(f"{base_dir}/add", exist_ok=True)
-    with open(f"{base_dir}/add/add_implementation_v1.cu", "w") as f:
+    os.makedirs(f"{base_dir}/add__Tensor", exist_ok=True)
+    with open(f"{base_dir}/add__Tensor/add__Tensor_implementation_v1.cu", "w") as f:
         f.write("""
-__global__ void add_kernel(
+__global__ void add__Tensor_kernel(
     const float* __restrict__ x,
     const float* __restrict__ y,
     float* __restrict__ output,
@@ -33,16 +33,16 @@ __global__ void add_kernel(
     }
 }
 
-torch::Tensor add(torch::Tensor x, torch::Tensor y) {
+torch::Tensor add__Tensor(torch::Tensor x, torch::Tensor y) {
     auto output = torch::zeros_like(x);
     const int threads = 1024;
     const int blocks = (output.numel() + threads - 1) / threads;
-    add_kernel<<<blocks, threads>>>(x.data<float>(), y.data<float>(), output.data<float>(), output.numel());
+    add__Tensor_kernel<<<blocks, threads>>>(x.data<float>(), y.data<float>(), output.data<float>(), output.numel());
     return output;
 }
 """)
-    with open(f"{base_dir}/add/add_implementation_v1.cpp", "w") as f:
-        f.write("""torch::Tensor add(torch::Tensor x, torch::Tensor y);""")
+    with open(f"{base_dir}/add__Tensor/add__Tensor_implementation_v1.cpp", "w") as f:
+        f.write("""torch::Tensor add__Tensor(torch::Tensor x, torch::Tensor y);""")
     logger.info("Created add implementation")
 
 

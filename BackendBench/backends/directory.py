@@ -126,12 +126,10 @@ class DirectoryBackend(Backend):
         if os.path.exists(cu_file):
             with open(cu_file, "r") as f:
                 cuda_source = f.read()
-        print(f"cuda_source: {cuda_source}")
 
         if os.path.exists(cpp_file):
             with open(cpp_file, "r") as f:
                 cpp_source = f.read()
-        print(f"cpp_source: {cpp_source}")
 
         # Use load_inline for all cases
         module_name = f"{folder_name}_cuda_inline"
@@ -142,11 +140,6 @@ class DirectoryBackend(Backend):
             functions=[folder_name],
             verbose=True,
         )
-
-        # x = torch.randn(4, 4, device="cuda", dtype=torch.float32)
-        # y = torch.randn(4, 4, device="cuda", dtype=torch.float32)
-
-        # print(getattr(cuda_module, op_name)(x, y))
 
         if hasattr(cuda_module, folder_name):
             return getattr(cuda_module, folder_name)
