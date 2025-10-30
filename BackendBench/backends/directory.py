@@ -61,7 +61,7 @@ class DirectoryBackend(Backend):
 
             try:
                 op_name = folder_name_to_op_name(folder_name)
-                kernel_func = self._load_kernel_from_file(impl_path, folder_name)
+                kernel_func = self._load_kernel_from_file(impl_path, op_name)
 
                 pytorch_op = get_pytorch_op(op_name)
                 if pytorch_op:
@@ -181,7 +181,7 @@ class DirectoryBackend(Backend):
                 f"No function named {op_name} found in compiled CUDA module from {file_path}"
             )
 
-    def _load_kernel_from_file(self, file_path: str, op_name: str) -> Callable:
+    def ß(self, file_path: str, op_name: str) -> Callable:
         """
         Dynamically load a kernel implementation function from a Python or CUDA file.
 
