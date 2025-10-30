@@ -21,18 +21,23 @@ jobs:
     - name: Set up Python
       run: uv python install 3.13
     
-    # - name: Find CUDA version
-    #   run: |
-    #     ls /usr/local | grep cuda
-    
     - name: Install package and dependencies
+      run: uv sync --dev
+    
+    - name: Verify CUDA environment
       run: |
-        uv sync --dev
-        uv pip install "nvidia-cuda-runtime-cu12==12.4.127" \
-                "nvidia-cublas-cu12==12.4.5.8" \
-                "nvidia-cuda-nvrtc-cu12==12.4.127" \
-                "nvidia-cuda-nvcc-cu12==12.4.131"
-        python -m pip list | grep nvidia
+        python - <<'PY'
+        import torch, os, subprocess
+        print("PyTorch version:", torch.__version__)
+        print("CUDA available:", torch.cuda.is_available())
+        print("CUDA device count:", torch.cuda.device_count())
+        print("CUDA_HOME:", torch.utils.cpp_extension.CUDA_HOME)
+        try:
+            out = subprocess.check_output(["python", "-m", "nvidia.cuda.nvcc", "--version"], text=True)
+            print("NVCC version:\n", out)
+        except Exception as e:
+            print("NVCC not found:", e)
+        PY
     
     - name: Clone FACTO source
       run: git clone https://github.com/pytorch-labs/FACTO.git
