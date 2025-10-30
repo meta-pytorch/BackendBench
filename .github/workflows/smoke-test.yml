@@ -31,7 +31,8 @@ jobs:
         print("PyTorch version:", torch.__version__)
         print("CUDA available:", torch.cuda.is_available())
         print("CUDA device count:", torch.cuda.device_count())
-        print("CUDA_HOME:", torch.utils.cpp_extension.CUDA_HOME)
+        from torch.utils.cpp_extension import CUDA_HOME
+        print("CUDA_HOME:", CUDA_HOME)
         try:
             out = subprocess.check_output(["python", "-m", "nvidia.cuda.nvcc", "--version"], text=True)
             print("NVCC version:\n", out)
