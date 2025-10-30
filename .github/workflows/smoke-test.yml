@@ -33,6 +33,9 @@ jobs:
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
     
+    - name: Find cuda version
+      run: nvcc --version | grep -oP 'release \K[0-9]+.[0- && ls /usr/local | grep cuda
+    
     - name: Run FACTO test
       run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
     
