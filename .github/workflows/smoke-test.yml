@@ -14,12 +14,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Install CUDA Toolkit
+      uses: Jimver/cuda-toolkit@v0.2.18
+      with:
+        cuda: '12.4.0'
     
     - name: Install uv
       uses: astral-sh/setup-uv@v3
     
     - name: Set up Python
       run: uv python install 3.13
+    
+    - name: Find CUDA version
+      run: |
+        ls /usr/local | grep cuda
     
     - name: Install package and dependencies
       run: uv sync --dev
@@ -33,9 +42,6 @@ jobs:
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
     
-    - name: Find CUDA version
-      run: |
-        ls /usr/local | grep cuda
     
     - name: Run FACTO test
       run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
