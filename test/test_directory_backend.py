@@ -19,6 +19,11 @@ import torch
 from BackendBench.backends import DirectoryBackend
 from BackendBench.utils import op_name_to_folder_name
 
+try:
+    from torch.utils.cpp_extension import CUDA_HOME
+except ImportError:
+    CUDA_HOME = None
+
 
 @pytest.fixture(scope="class")
 def backend(request):
@@ -144,7 +149,7 @@ def backend_cuda(request):
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
-# @pytest.mark.skipif("CUDA_HOME" not in os.environ, reason="CUDA_HOME is not available")
+@pytest.mark.skipif(CUDA_HOME is None, reason="CUDA_HOME is not available")
 class TestDirectoryBackendCUDA:
     base_dir = "generated_kernels_cuda"
 
