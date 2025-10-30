@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 def create_add(base_dir):
     os.makedirs(f"{base_dir}/add__Tensor", exist_ok=True)
     with open(f"{base_dir}/add__Tensor/add__Tensor_implementation_v1.cu", "w") as f:
-        f.write("""
+        f.write("""#include <torch/extension.h>
+#include <ATen/cuda/CUDAContext.h>
+
 __global__ void add__Tensor_kernel(
     const float* __restrict__ x,
     const float* __restrict__ y,
@@ -33,16 +35,21 @@ __global__ void add__Tensor_kernel(
     }
 }
 
-torch::Tensor add__Tensor(torch::Tensor x, torch::Tensor y) {
-    auto output = torch::zeros_like(x);
-    const int threads = 1024;
-    const int blocks = (output.numel() + threads - 1) / threads;
-    add__Tensor_kernel<<<blocks, threads>>>(x.data<float>(), y.data<float>(), output.data<float>(), output.numel());
-    return output;
+at::Tensor add__Tensor(const at::Tensor& a, const at::Tensor& b) {
+    auto out = at::empty_like(a);
+    int64_t numel = a.numel();
+    const int threads = 256;
+    const int blocks = (numel + threads - 1) / threads;
+    add__Tensor_kernel<<<blocks, threads, 0, c10::cuda::getCurrentCUDAStream()>>>(
+        a.data_ptr<float>(), b.data_ptr<float>(), out.data_ptr<float>(), numel
+    );
+    return out;
 }
 """)
     with open(f"{base_dir}/add__Tensor/add__Tensor_implementation_v1.cpp", "w") as f:
-        f.write("""torch::Tensor add__Tensor(torch::Tensor x, torch::Tensor y);""")
+        f.write("""#include <torch/extension.h>
+
+at::Tensor add__Tensor(const at::Tensor& a, const at::Tensor& b);""")
     logger.info("Created add implementation")
 
 

@@ -138,7 +138,7 @@ class DirectoryBackend(Backend):
             cpp_sources=cpp_source,
             cuda_sources=cuda_source,
             functions=[folder_name],
-            verbose=True,
+            no_implicit_headers=True,
         )
 
         if hasattr(cuda_module, folder_name):

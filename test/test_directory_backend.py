@@ -135,15 +135,16 @@ def backend_cuda(request):
         check=True,
     )
     backend_instance = DirectoryBackend(ops_dir=base_dir)
+
     yield backend_instance
-    # Optional: Teardown logic here (e.g., remove base_dir directory)
+
     import shutil
 
     shutil.rmtree(base_dir, ignore_errors=True)
 
 
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA is not available")
-@pytest.mark.skipif("CUDA_HOME" not in os.environ, reason="CUDA_HOME is not available")
+# @pytest.mark.skipif("CUDA_HOME" not in os.environ, reason="CUDA_HOME is not available")
 class TestDirectoryBackendCUDA:
     base_dir = "generated_kernels_cuda"
 
