@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "datasets",
     "tenacity",
+    "ninja",
 ]
 
 [project.optional-dependencies]
