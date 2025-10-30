@@ -26,6 +26,7 @@ from BackendBench.multiprocessing_eval import MultiprocessingEvaluator
 from BackendBench.utils import (
     compile_kernel_from_string,
     extract_operator_name,
+    op_name_to_folder_name,
     save_kernel_to_file,
 )
 
@@ -168,13 +169,14 @@ class PickleableKernel:
         import importlib.util
         import sys
 
-        module_name = f"{self.op_name}_implementation_v{self.attempt}"
+        folder_name = op_name_to_folder_name(self.op_name)
+        module_name = f"{folder_name}_implementation_v{self.attempt}"
         spec = importlib.util.spec_from_file_location(module_name, self.kernel_file)
         module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = module
         spec.loader.exec_module(module)
 
-        expected_name = f"{self.op_name}_kernel_impl"
+        expected_name = f"{folder_name}_kernel_impl"
         self.kernel = getattr(module, expected_name)
         self._module = module  # Keep reference
 
@@ -252,30 +254,33 @@ You can inspect these files to debug kernel generation, manually test implementa
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
-        kernel_file_path = self._generate_kernel_file_path(op_name, attempt)
-        module_name = f"{op_name}_implementation_v{attempt}"
+        folder_name = op_name_to_folder_name(op_name)
+        kernel_file_path = self._generate_kernel_file_path(folder_name, attempt)
+        module_name = f"{folder_name}_implementation_v{attempt}"
 
         try:
             kernel = compile_kernel_from_string(
                 kernel_code=kernel_code,
                 op_name=op_name,
                 kernel_file_path=kernel_file_path,
-                expected_fn_name=op_name,
+                expected_fn_name=folder_name,
                 module_name=module_name,
             )
         except Exception as e:
             raise e
         return kernel
 
-    def _generate_kernel_file_path(self, op_name: str, attempt: int) -> str:
-        op_dir = os.path.join(self.kernels_dir, op_name)
+    def _generate_kernel_file_path(self, folder_name: str, attempt: int) -> str:
+        op_dir = os.path.join(self.kernels_dir, folder_name)
         os.makedirs(op_dir, exist_ok=True)
-        return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}.py")
+        return os.path.join(op_dir, f"{folder_name}_implementation_v{attempt}.py")
 
-    def _generate_kernel_feedback_file_path(self, op_name: str, attempt: int) -> str:
-        op_dir = os.path.join(self.kernels_dir, op_name)
+    def _generate_kernel_feedback_file_path(self, folder_name: str, attempt: int) -> str:
+        op_dir = os.path.join(self.kernels_dir, folder_name)
         os.makedirs(op_dir, exist_ok=True)
-        return os.path.join(op_dir, f"{op_name}_implementation_v{attempt}_generated_feedback.txt")
+        return os.path.join(
+            op_dir, f"{folder_name}_implementation_v{attempt}_generated_feedback.txt"
+        )
 
     def _make_error_func(self, error_msg):
         def error_func(*args, **kwargs):
@@ -298,30 +303,31 @@ You can inspect these files to debug kernel generation, manually test implementa
         """Test kernel correctness and return detailed feedback."""
         op_str = str(op)
         if "aten." in op_str:
-            op_name = op_str.split("aten.")[-1].split(".")[0]
+            op_name = op_str.split("aten.")[-1]
         else:
-            op_name = op_str.split(".")[-1]
+            op_name = op_str
+        folder_name = op_name_to_folder_name(op_name)
 
         feedback_info = FeedbackInfo()
         feedback_info.kernel_code = kernel_code
 
         try:
-            kernel_file = self._generate_kernel_file_path(op_name, attempt)
+            kernel_file = self._generate_kernel_file_path(folder_name, attempt)
             if not os.path.exists(kernel_file):
                 save_kernel_to_file(kernel_code, kernel_file)
 
             spec = importlib.util.spec_from_file_location(
-                f"{op_name}_implementation_v{attempt}", kernel_file
+                f"{folder_name}_implementation_v{attempt}", kernel_file
             )
             module = importlib.util.module_from_spec(spec)
 
             # Add to sys.modules so triton can find it
-            sys.modules[f"{op_name}_implementation_v{attempt}"] = module
+            sys.modules[f"{folder_name}_implementation_v{attempt}"] = module
 
             try:
                 spec.loader.exec_module(module)
 
-                expected_name = f"{op_name}_kernel_impl"
+                expected_name = f"{folder_name}_kernel_impl"
                 if hasattr(module, expected_name):
                     # check if the kernel compile / is loadable
                     _ = getattr(module, expected_name)
@@ -336,8 +342,8 @@ You can inspect these files to debug kernel generation, manually test implementa
                     )
 
             finally:
-                if f"test_kernel_{op_name}_{attempt}" in sys.modules:
-                    del sys.modules[f"test_kernel_{op_name}_{attempt}"]
+                if f"test_kernel_{folder_name}_{attempt}" in sys.modules:
+                    del sys.modules[f"test_kernel_{folder_name}_{attempt}"]
 
                 # Clear CUDA cache and synchronize to prevent memory buildup
                 if torch.cuda.is_available():
@@ -387,16 +393,17 @@ You can inspect these files to debug kernel generation, manually test implementa
 
         op_str = str(op)
         op_name = extract_operator_name(op_str)
-        kernel_file = self._generate_kernel_file_path(op_name, attempt)
+        folder_name = op_name_to_folder_name(op_name)
+        kernel_file = self._generate_kernel_file_path(folder_name, attempt)
 
         # Use compile_kernel_from_string for consistent loading
-        module_name = f"{op_name}_implementation_v{attempt}"
+        module_name = f"{folder_name}_implementation_v{attempt}"
         try:
             kernel_impl = compile_kernel_from_string(
                 kernel_code=kernel_code,
                 op_name=op_name,
                 kernel_file_path=kernel_file,
-                expected_fn_name=op_name,
+                expected_fn_name=folder_name,
                 module_name=module_name,
             )
             performance_score, performance_results = eval_performance(
@@ -426,6 +433,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         llm_client,
         success,
     ):
+        folder_name = op_name_to_folder_name(op_name)
         with open(summary_file, "w") as f:
             f.write(f"Operation: {op_name}\n")
             f.write(f"Full op: {op_str}\n")
@@ -433,7 +441,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             f.write(f"Final Status: {'✓ Success' if success else '✗ Failure'}\n")
             f.write(f"Model: {llm_client.model}\n")
             f.write(f"Server: {llm_client.readme_server_description}\n")
-            f.write(f"Final kernel file: {op_name}_kernel_attempt_{best_kernel_attempt}.py\n")
+            f.write(f"Final kernel file: {folder_name}_kernel_attempt_{best_kernel_attempt}.py\n")
 
     def _get_kernel_feedback(
         self, op, op_test, kernel_code: str, attempt: int
@@ -488,6 +496,7 @@ You can inspect these files to debug kernel generation, manually test implementa
         best_kernel_code = None
         best_kernel_attempt = None
         best_kernel_feedback_info = None
+        folder_name = op_name_to_folder_name(op_name)
 
         kernel_gen_summary = []
 
@@ -508,7 +517,7 @@ You can inspect these files to debug kernel generation, manually test implementa
             kernel_gen_summary.append(
                 {
                     "attempt": attempt + 1,
-                    "kernel_file": self._generate_kernel_file_path(op_name, attempt + 1),
+                    "kernel_file": self._generate_kernel_file_path(folder_name, attempt + 1),
                     "compilation_error": feedback_info.compilation_error,
                     "overall_speedup": feedback_info.overall_speedup,
                     "correctness_score": feedback_info.correctness_score,
@@ -528,7 +537,7 @@ You can inspect these files to debug kernel generation, manually test implementa
 
             # write feedback to file
             feedback_file = self._generate_kernel_feedback_file_path(
-                op_name=op_name, attempt=attempt + 1
+                folder_name=folder_name, attempt=attempt + 1
             )
             with open(feedback_file, "w") as f:
                 f.write(feedback_str)
@@ -559,7 +568,9 @@ You can inspect these files to debug kernel generation, manually test implementa
             logger.info(f"  ✗ Failed to generate correct kernel after {attempts} attempts")
 
         # save kernel gen summary to file
-        summary_file = os.path.join(self.kernels_dir, op_name, f"{op_name}_kernel_gen_summary.json")
+        summary_file = os.path.join(
+            self.kernels_dir, folder_name, f"{folder_name}_kernel_gen_summary.json"
+        )
         with open(summary_file, "w") as f:
             json.dump(kernel_gen_summary, f, indent=4)
             logger.info(f"  ✅ Kernel gen summary saved at: {summary_file}")
@@ -576,10 +587,12 @@ You can inspect these files to debug kernel generation, manually test implementa
         total_ops = 0
 
         for op_test in suite:
+            print(f"Generating kernel for {op_test.op}")
             total_ops += 1
             op = op_test.op
             op_str = str(op)
             op_name = extract_operator_name(op_str)
+            folder_name = op_name_to_folder_name(op_name)
 
             logger.info(f"Generating kernel for {op_name} (full op: {op_str})")
 
@@ -588,7 +601,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                 op=op,
                 op_test=op_test,
                 op_name=op_name,
-                op_signature=f"def {op_name}(*args, **kwargs) -> torch.Tensor",
+                op_signature=f"def {folder_name}(*args, **kwargs) -> torch.Tensor",
                 op_description=f"PyTorch operation: {op_name}",
                 dsl=dsl,
                 attempts=attempts,
@@ -604,7 +617,7 @@ You can inspect these files to debug kernel generation, manually test implementa
 
             # Write operation summary
             self._write_summary(
-                os.path.join(self.kernels_dir, op_name, f"{op_name}_summary.txt"),
+                os.path.join(self.kernels_dir, folder_name, f"{folder_name}_summary.txt"),
                 op_name,
                 op_str,
                 best_kernel_attempt,

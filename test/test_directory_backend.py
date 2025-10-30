@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from BackendBench.backends import DirectoryBackend
+from BackendBench.utils import op_name_to_folder_name
 
 
 class TestDirectoryBackend:
