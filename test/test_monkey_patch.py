@@ -71,7 +71,9 @@ class TestMonkeyPatch:
     @pytest.fixture(scope="module")
     def setup_dir_relu(self):
         """Generate required directory structure and operators."""
-        self.setup_watermarked_kernel_dir(self.kernel_dir_relu, ["relu.default"])
+        self.setup_watermarked_kernel_dir(
+            self.kernel_dir_relu, ["relu.default", "add.Tensor", "add.Scalar"]
+        )
         self.setup_watermarked_kernel_dir(self.kernel_dir_leaky_relu, ["leaky_relu.default"])
 
         yield
@@ -108,6 +110,44 @@ class TestMonkeyPatch:
         # Disable monkey patching
         BackendBench.disable()
         torch.testing.assert_close(relu(x), expected)
+
+    @pytest.mark.parametrize(
+        "device",
+        [
+            "cpu",
+            pytest.param(
+                "cuda",
+                marks=pytest.mark.skipif(
+                    not torch.cuda.is_available(), reason="CUDA not available"
+                ),
+            ),
+        ],
+    )
+    def test_monkey_patch_add(self, setup_dir_relu, device):
+        # This test ensures that monkey patching is applied only to the add.Tensor overload,
+        # and not to add.Scalar.
+        BackendBench.disable()  # In case monkey patching is enabled from previous test
+        add__Scalar = torch.ops.aten.add.Scalar
+        add__Tensor = torch.ops.aten.add.Tensor
+        x = torch.tensor([-1.0, 0.0, 1.0], device=device)
+        y_tensor = torch.tensor([1.0, 1.0, 1.0], device=device)
+        y_scalar = 1.0
+        expected = torch.tensor([0.0, 1.0, 2.0], device=device)
+        watermarked = torch.full_like(x, get_operator_watermark_value("add.Tensor"))
+
+        torch.testing.assert_close(add__Tensor(x, y_tensor), expected)
+        torch.testing.assert_close(add__Scalar(x, y_scalar), expected)
+
+        # Enable monkey patching
+        BackendBench.enable(kernel_dir=self.kernel_dir_relu, dispatch_key=device.upper())
+
+        torch.testing.assert_close(add__Tensor(x, y_tensor), watermarked)
+        torch.testing.assert_close(add__Scalar(x, y_scalar), expected)
+
+        # Disable monkey patching
+        BackendBench.disable()
+        torch.testing.assert_close(add__Tensor(x, y_tensor), expected)
+        torch.testing.assert_close(add__Scalar(x, y_scalar), expected)
 
     @pytest.mark.parametrize(
         "device",
