@@ -15,6 +15,7 @@ backend implementations by comparing them against PyTorch operations.
 
 from .base import OpTest, Test, TestSuite
 from .facto import FactoTestSuite
+from .model import ModelSuite
 from .opinfo import OpInfoTestSuite
 from .smoke import randn, SmokeTestSuite
 from .torchbench import TorchBenchOpTest, TorchBenchTestSuite
@@ -24,6 +25,7 @@ __all__ = [
     "OpTest",
     "TestSuite",
     "FactoTestSuite",
+    "ModelSuite",
     "OpInfoTestSuite",
     "SmokeTestSuite",
     "randn",
