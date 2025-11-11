@@ -351,7 +351,7 @@ You can inspect these files to debug kernel generation, manually test implementa
                     torch.cuda.synchronize()
 
             # todo: this is to protect against IMA errors, however, we should make this work / make sense with multiple workers
-            with MultiprocessingEvaluator(1) as evaluator:
+            with MultiprocessingEvaluator(1, daemon=self.daemon) as evaluator:
                 loaded_kenrel = PickleableKernel(kernel_file, op_name, attempt)
                 _ = evaluator.submit_task(
                     op,
@@ -581,8 +581,9 @@ You can inspect these files to debug kernel generation, manually test implementa
             best_kernel_feedback_info.is_correct,
         )
 
-    def generate_kernels(self, suite, attempts=5, dsl="triton"):
+    def generate_kernels(self, suite, attempts=5, dsl="triton", daemon=True):
         """Generate kernels for all operators in the suite with comprehensive feedback."""
+        self.daemon = daemon
         successful_ops = 0
         total_ops = 0
 

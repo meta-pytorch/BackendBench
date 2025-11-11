@@ -366,6 +366,17 @@ import triton.language as tl
             kernel_code = imports + kernel_code
         return kernel_code
 
+    def _prepare_helion_code(kernel_code: str) -> str:
+        """Prepare Helion kernel code with necessary imports."""
+        imports = """
+import torch
+import helion
+import helion.language as hl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
     def _prepare_torch_code(kernel_code: str) -> str:
         """Prepare regular PyTorch kernel code with necessary imports."""
         imports = """
@@ -377,9 +388,12 @@ import torch.nn.functional as F
         return kernel_code
 
     is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+    is_helion = "helion.kernel" in kernel_code or "@helion.kernel" in kernel_code
 
     if is_triton:
         full_code = _prepare_triton_code(kernel_code)
+    elif is_helion:
+        full_code = _prepare_helion_code(kernel_code)
     else:
         full_code = _prepare_torch_code(kernel_code)
 

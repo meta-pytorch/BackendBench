@@ -224,7 +224,7 @@ def test_to_device(test, device):
 
 
 class MultiprocessingEvaluator:
-    def __init__(self, num_workers: int = 1):
+    def __init__(self, num_workers: int = 1, daemon: bool = True):
         assert num_workers <= torch.cuda.device_count(), "performance will be suboptimal"
 
         self.mp_context = mp.get_context("spawn")
@@ -236,6 +236,7 @@ class MultiprocessingEvaluator:
         self.next_worker_id = 0
         self.total_tasks = 0
         self.completed_tasks = 0
+        self.daemon = daemon
 
         logger.info(f"Initialized MultiprocessingEvaluator with {num_workers} workers")
 
@@ -288,7 +289,7 @@ class MultiprocessingEvaluator:
         process = self.mp_context.Process(
             target=_worker_process,
             args=(worker_id, self.task_queue, self.result_queue),
-            daemon=True,
+            daemon=self.daemon,
         )
         process.start()
         self.workers[worker_id] = process
@@ -309,7 +310,7 @@ class MultiprocessingEvaluator:
         process = self.mp_context.Process(
             target=_worker_process,
             args=(worker_id, self.task_queue, self.result_queue),
-            daemon=True,
+            daemon=self.daemon,
         )
         process.start()
         self.workers[worker_id] = process
