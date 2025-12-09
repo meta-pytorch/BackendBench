@@ -1,0 +1,81 @@
+name: Failure Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  smoke-failure-test:
+    runs-on: 4-core-ubuntu-gpu-t4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install package and dependencies
+        run: uv sync --dev
+      - name: Run smoke test
+        run: |
+          uv run python -m BackendBench.scripts.main --suite smoke --backend aten --log-dir smoke_output
+      - name: Check smoke test failures
+        run: |
+          if [ -s "smoke_output/failed_ops.json" ] && [ "$(jq 'length' smoke_output/failed_ops.json)" -ne 0 ]; then
+            echo "Some operations failed in the smoke test."
+            cat "smoke_output/failed_ops.json"
+            exit 1
+          else
+            echo "All operations passed the smoke test."
+          fi
+
+  opinfo-failure-test:
+    runs-on: 4-core-ubuntu-gpu-t4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install package and dependencies
+        run: uv sync --dev
+      - name: Run opinfo test
+        run: |
+          uv run python -m BackendBench.scripts.main --suite opinfo --backend aten --log-dir opinfo_output
+      - name: Check opinfo test failures
+        run: |
+          if [ -s "opinfo_output/failed_ops.json" ] && [ "$(jq 'length' opinfo_output/failed_ops.json)" -ne 0 ]; then
+            echo "Some operations failed in the opinfo test."
+            cat "opinfo_output/failed_ops.json"
+            exit 1
+          else
+            echo "All operations passed the opinfo test."
+          fi
+
+  facto-failure-test:
+    runs-on: 4-core-ubuntu-gpu-t4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+      - name: Set up Python
+        run: uv python install 3.13
+      - name: Install package and dependencies
+        run: uv sync --dev
+      - name: Clone FACTO source
+        run: git clone https://github.com/pytorch-labs/FACTO.git
+      - name: Build and install FACTO
+        run: cd FACTO && uv pip install .
+      - name: Run FACTO test
+        run: |
+          uv run python -m BackendBench.scripts.main --suite facto --backend aten --log-dir facto_output
+      - name: Check FACTO test failures
+        run: |
+          if [ -s "facto_output/failed_ops.json" ] && [ "$(jq 'length' facto_output/failed_ops.json)" -ne 0 ]; then
+            echo "Some operations failed in the FACTO test."
+            cat "facto_output/failed_ops.json"
+            exit 1
+          else
+            echo "All operations passed the FACTO test."
+          fi

@@ -20,23 +20,59 @@ from BackendBench.backends.directory import DirectoryBackend
 logger = logging.getLogger(__name__)
 
 __version__ = "0.1.0"
-__all__ = ["enable", "disable"]
+__all__ = ["enable", "disable", "BackendBench"]
 
 # Global state
 _lib = None
 
 
-def _monkey_patch_operators(op_custom_impl, namespace="aten", dispatch_key="CUDA"):
+class _BackendBenchContext:
+    """Context manager for BackendBench that enables on entry and disables on exit."""
+
+    def __init__(self, kernel_dir=None, namespace="aten", dispatch_key="CUDA"):
+        self.kernel_dir = kernel_dir
+        self.namespace = namespace
+        self.dispatch_key = dispatch_key
+        self.lib = torch.library.Library(namespace, "IMPL", dispatch_key)
+
+    def __enter__(self):
+        enable(self.kernel_dir, self.namespace, self.dispatch_key, self.lib)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.lib = None
+
+
+class BackendBench:
+    """BackendBench main class with context manager support."""
+
+    @classmethod
+    def enable(cls, kernel_dir=None, namespace="aten", dispatch_key="CUDA"):
+        """
+        Return a context manager that enables BackendBench on entry and disables on exit.
+
+        Args:
+            kernel_dir: Path to the directory containing custom kernels
+            namespace: PyTorch namespace to patch (default: "aten")
+            dispatch_key: Dispatch key for the kernels (default: "CUDA")
+
+        Returns:
+            Context manager that can be used with 'with' statement
+
+        Example:
+            with BackendBench.enable(kernel_dir="generated_kernels/"):
+                model.forward()  # uses LLM kernels
+            # On exit, uses aten kernels
+        """
+        return _BackendBenchContext(kernel_dir, namespace, dispatch_key)
+
+
+def _monkey_patch_operators(lib, op_custom_impl, namespace="aten", dispatch_key="CUDA"):
     """
     Replace PyTorch operators with custom implementations using torch.library.
     """
-    global _lib
 
     assert dispatch_key in ["CPU", "CUDA"], "Only CPU and CUDA dispatch keys are supported"
-
-    # Use torch.library to register custom implementations
-    if _lib is None:
-        _lib = torch.library.Library(namespace, "IMPL", dispatch_key)
 
     patched_count = 0
     for op, custom_impl in op_custom_impl.items():
@@ -52,7 +88,7 @@ def _monkey_patch_operators(op_custom_impl, namespace="aten", dispatch_key="CUDA
                 full_name = op_name
 
             # Register the custom implementation
-            _lib.impl(full_name, custom_impl, dispatch_key)
+            lib.impl(full_name, custom_impl, dispatch_key)
             patched_count += 1
 
         except Exception as e:
@@ -69,6 +105,7 @@ def enable(
     kernel_dir: Optional[Union[str, Path]] = None,
     namespace: str = "aten",
     dispatch_key: str = "CUDA",
+    lib=None,
 ) -> None:
     """
     Enable the DirectoryBackend to use custom operator implementations.
@@ -93,10 +130,17 @@ def enable(
         _current_backend = DirectoryBackend(str(kernel_dir))
 
         # Actually monkey-patch PyTorch operators
-        _monkey_patch_operators(_current_backend.compiled_kernels, namespace, dispatch_key)
+        if lib:
+            _monkey_patch_operators(lib, _current_backend.compiled_kernels, namespace, dispatch_key)
+        else:
+            global _lib
+            if _lib is None:
+                _lib = torch.library.Library(namespace, "IMPL", dispatch_key)
+            _monkey_patch_operators(
+                _lib, _current_backend.compiled_kernels, namespace, dispatch_key
+            )
     except Exception as e:
         logger.warn(f"Failed to enable DirectoryBackend: {e}")
-        disable()
 
 
 def disable() -> None:

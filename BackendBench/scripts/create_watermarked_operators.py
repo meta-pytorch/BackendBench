@@ -16,11 +16,14 @@ import hashlib
 import os
 from pathlib import Path
 
+from BackendBench.utils import op_name_to_folder_name
+
 WATERMARK_BASE = 42.0
 
 
 def get_operator_watermark_value(op_name: str, base_value: float = WATERMARK_BASE) -> float:
     """Generate a unique watermark value for each operator to catch cross-contamination."""
+    op_name = op_name_to_folder_name(op_name)  # if op_name is add.Tensor, convert to add__Tensor
     op_hash = hashlib.md5(op_name.encode("utf-8")).hexdigest()
     hash_int = int(op_hash[:8], 16)  # Use first 8 hex chars
     return base_value + (hash_int % 100)
@@ -32,10 +35,9 @@ def create_watermarked_impl(
     """Generate a watermarked implementation that returns a constant tensor."""
 
     if watermark_value is None:
-        if use_unique_watermarks:
-            watermark_value = get_operator_watermark_value(op_name)
-        else:
-            watermark_value = WATERMARK_BASE
+        watermark_value = WATERMARK_BASE
+    if use_unique_watermarks:
+        watermark_value = get_operator_watermark_value(op_name, watermark_value)
 
     return f'''# Watermarked implementation for {op_name} operator
 # This implementation returns a constant tensor to verify monkey patching
@@ -116,7 +118,7 @@ def create_watermarked_operators(
     verification_script = base_path / "verify_watermarks.py"
 
     # Generate some sample expected values for verification
-    sample_ops = ["relu", "add", "mul", "sub", "div"]
+    sample_ops = ["relu.default", "add.Tensor", "mul.Tensor", "sub.Tensor", "div.Tensor"]
     expected_values = {}
     for op in sample_ops:
         if use_unique_watermarks:

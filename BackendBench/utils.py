@@ -6,16 +6,25 @@
 
 import ast
 import gc
+import importlib.util
 import inspect
 import logging
 import math
+import os
 import re
 import textwrap
+from typing import Callable
 
 import torch
 from torch.testing import make_tensor
 
 logger = logging.getLogger(__name__)
+
+# Escape sequence for converting operator names to Python-safe names
+# PyTorch operators use dots (e.g., "add.Tensor", "nn.functional.relu") which are
+# not valid in Python function/variable names. We replace dots with this escape sequence.
+# Using double underscores avoids conflicts with single underscores in operator names.
+OP_NAME_ESCAPE_SEQUENCE = "__"
 
 dtype_abbrs = {
     torch.bfloat16: "bf16",
@@ -272,8 +281,163 @@ def get_pytorch_op(op_name: str):
 def extract_operator_name(op_str: str) -> str:
     """Extract clean operator name from various operator string formats."""
     if "aten." in op_str:
-        return op_str.split("aten.")[-1].split(".")[0]
-    elif "." in op_str:
-        return op_str.split(".")[0]
+        return op_str.split("aten.")[-1]
     else:
         return op_str
+
+
+def op_name_to_folder_name(op_name: str) -> str:
+    """
+    Convert a PyTorch operator name to a filesystem-safe folder name.
+
+    Replaces dots with the escape sequence to avoid conflicts with actual
+    underscores in operator names.
+
+    Examples:
+        "add.Tensor" → "add__Tensor"
+        "nn.functional.relu" → "nn__functional__relu"
+        "aten.add.Tensor" → "aten__add__Tensor"
+        "_native_batch_norm" → "_native_batch_norm" (unchanged)
+
+    Args:
+        op_name: PyTorch operator name (e.g., "add.Tensor")
+
+    Returns:
+        Filesystem-safe name with dots replaced by OP_NAME_ESCAPE_SEQUENCE
+    """
+    return op_name.replace(".", OP_NAME_ESCAPE_SEQUENCE)
+
+
+def folder_name_to_op_name(folder_name: str) -> str:
+    """
+    Convert a filesystem-safe folder name back to a PyTorch operator name.
+
+    Replaces the escape sequence with dots.
+
+    Examples:
+        "add__Tensor" → "add.Tensor"
+        "nn__functional__relu" → "nn.functional.relu"
+        "aten__add__Tensor" → "aten.add.Tensor"
+        "_native_batch_norm" → "_native_batch_norm" (unchanged)
+
+    Args:
+        folder_name: Filesystem-safe name (e.g., "add__Tensor")
+
+    Returns:
+        PyTorch operator name with OP_NAME_ESCAPE_SEQUENCE replaced by "."
+    """
+    return folder_name.replace(OP_NAME_ESCAPE_SEQUENCE, ".")
+
+
+def is_overload_folder_name(folder_name: str) -> bool:
+    """
+    Check if a folder name contains the escape sequence.
+
+    This indicates the folder represents a specific operator overload rather than
+    a base operator name.
+
+    Examples:
+        "add__Tensor" → True (overload format)
+        "nn__functional__relu" → True (overload format)
+        "add" → False (base op format)
+        "_native_batch_norm" → False (single underscores don't count)
+        "my_op_name" → False (single underscores)
+
+    Args:
+        folder_name: Name of the folder to check
+
+    Returns:
+        True if folder name contains OP_NAME_ESCAPE_SEQUENCE, False otherwise
+    """
+    return OP_NAME_ESCAPE_SEQUENCE in folder_name
+
+
+def save_kernel_to_file(kernel_code: str, kernel_file_path: str) -> None:
+    """Save kernel code to a file."""
+
+    def _prepare_triton_code(kernel_code: str) -> str:
+        """Prepare Triton kernel code with necessary imports."""
+        imports = """
+import torch
+import triton
+import triton.language as tl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def _prepare_helion_code(kernel_code: str) -> str:
+        """Prepare Helion kernel code with necessary imports."""
+        imports = """
+import torch
+import helion
+import helion.language as hl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    def _prepare_torch_code(kernel_code: str) -> str:
+        """Prepare regular PyTorch kernel code with necessary imports."""
+        imports = """
+import torch
+import torch.nn.functional as F
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
+    is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+    is_helion = "helion.kernel" in kernel_code or "@helion.kernel" in kernel_code
+
+    if is_triton:
+        full_code = _prepare_triton_code(kernel_code)
+    elif is_helion:
+        full_code = _prepare_helion_code(kernel_code)
+    else:
+        full_code = _prepare_torch_code(kernel_code)
+
+    # log if the file already exists
+    if os.path.exists(kernel_file_path):
+        logger.warning(f"Write kernel code to an existing file: {kernel_file_path}")
+
+    with open(kernel_file_path, "w") as f:
+        f.write(full_code)
+
+    logger.debug(f"Saved kernel to: {kernel_file_path}")
+
+
+def compile_kernel_from_string(
+    kernel_code: str, op_name: str, kernel_file_path: str, expected_fn_name: str, module_name: str
+) -> tuple[Callable | None, list[str]]:
+    def _find_kernel_function(module, folder_name: str) -> Callable:
+        """Find the main kernel function in the compiled module."""
+        expected_name = f"{folder_name}_kernel_impl"
+
+        if hasattr(module, expected_name):
+            return getattr(module, expected_name)
+
+        available_functions = [
+            name
+            for name in dir(module)
+            if callable(getattr(module, name)) and not name.startswith("_")
+        ]
+
+        raise ValueError(
+            f"Expected function '{expected_name}' not found in kernel code for {op_name}. "
+            f"Available functions: {available_functions}. "
+            f"Please ensure the LLM generated code follows the naming convention: {folder_name}_kernel_impl"
+        )
+
+    try:
+        save_kernel_to_file(kernel_code, kernel_file_path)
+
+        spec = importlib.util.spec_from_file_location(module_name, kernel_file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        kernel_func = _find_kernel_function(module, expected_fn_name)
+        return kernel_func
+
+    except Exception as e:
+        raise RuntimeError(f"Failed to compile kernel for {op_name}: {str(e)}") from e

@@ -1,0 +1,114 @@
+# This file deliberately mess up with the response payload
+# The kernel implementation is good but the response is missing the python code block
+
+import torch
+import triton
+import triton.language as tl
+
+@triton.jit
+def add_triton_kernel(
+    x_ptr,
+    y_ptr,
+    output_ptr,
+    n_elements,
+    BLOCK_SIZE: tl.constexpr,
+):
+    pid = tl.program_id(axis=0)
+    block_start = pid * BLOCK_SIZE
+    offsets = block_start + tl.arange(0, BLOCK_SIZE)
+    mask = offsets < n_elements
+
+    x = tl.load(x_ptr + offsets, mask=mask)
+    y = tl.load(y_ptr + offsets, mask=mask)
+    output = x + y
+    tl.store(output_ptr + offsets, output, mask=mask)
+
+def add__Tensor_kernel_impl(*args, **kwargs):
+    # Handle both positional and keyword arguments
+    if len(args) >= 2:
+        input_tensor = args[0]
+        other = args[1]
+        alpha = kwargs.get('alpha', 1.0)
+        out = kwargs.get('out', None)
+    elif len(args) == 1:
+        input_tensor = args[0]
+        other = kwargs.get('other', kwargs.get('input', None))
+        if other is None:
+            raise TypeError("add() missing required argument: 'other'")
+        alpha = kwargs.get('alpha', 1.0)
+        out = kwargs.get('out', None)
+    else:
+        input_tensor = kwargs.get('input', None)
+        other = kwargs.get('other', None)
+        if input_tensor is None or other is None:
+            raise TypeError("add() missing required arguments")
+        alpha = kwargs.get('alpha', 1.0)
+        out = kwargs.get('out', None)
+
+    # Store original devices
+    input_device = input_tensor.device
+    other_device = other.device if torch.is_tensor(other) else input_device
+
+    # Check CUDA availability
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available")
+
+    # Move tensors to GPU if needed
+    if input_tensor.device.type == 'cpu':
+        input_tensor = input_tensor.cuda()
+    if torch.is_tensor(other) and other.device.type == 'cpu':
+        other = other.cuda()
+
+    # Handle scalar other
+    if not torch.is_tensor(other):
+        other = torch.tensor(other, device=input_tensor.device, dtype=input_tensor.dtype)
+
+    # Broadcast tensors to same shape
+    broadcasted_shape = torch.broadcast_shapes(input_tensor.shape, other.shape)
+    input_tensor = input_tensor.broadcast_to(broadcasted_shape)
+    other = other.broadcast_to(broadcasted_shape)
+
+    # Apply alpha scaling
+    if alpha != 1.0:
+        other = other * alpha
+
+    # Ensure contiguous tensors
+    input_tensor = input_tensor.contiguous()
+    other = other.contiguous()
+
+    # Create output tensor
+    if out is not None:
+        if out.device.type == 'cpu':
+            out = out.cuda()
+        output = out.contiguous()
+        if output.shape != broadcasted_shape:
+            raise RuntimeError(f"Output tensor shape {output.shape} doesn't match broadcast shape {broadcasted_shape}")
+    else:
+        output = torch.empty(broadcasted_shape, dtype=input_tensor.dtype, device=input_tensor.device)
+
+    n_elements = input_tensor.numel()
+
+    if n_elements == 0:
+        # Handle empty tensors
+        result = output
+    else:
+        # Launch kernel
+        BLOCK_SIZE = 1024
+        grid = (triton.cdiv(n_elements, BLOCK_SIZE),)
+
+        add_triton_kernel[grid](
+            input_tensor,
+            other,
+            output,
+            n_elements,
+            BLOCK_SIZE=BLOCK_SIZE,
+        )
+
+        result = output
+
+    # Move result back to original device
+    target_device = input_device
+    if result.device != target_device:
+        result = result.to(target_device)
+
+    return result

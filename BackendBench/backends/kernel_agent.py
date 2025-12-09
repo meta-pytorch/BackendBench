@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
-import importlib.util
 import logging
 import os
 from typing import Callable, Dict
+
+from BackendBench.utils import compile_kernel_from_string, op_name_to_folder_name
 
 from .base import Backend
 
@@ -153,7 +154,8 @@ Please generate a complete, production-ready Triton kernel implementation.
         Returns:
             Modified kernel code with correct function name
         """
-        expected_name = f"{op_name}_kernel_impl"
+        folder_name = os.path.basename(os.path.dirname(kernel_code))
+        expected_name = f"{folder_name}_kernel_impl"
 
         # Replace 'def kernel_function' with 'def {op_name}_kernel_impl'
         if "def kernel_function(" in kernel_code:
@@ -181,67 +183,23 @@ def {expected_name}(*args, **kwargs):
         self, kernel_code: str, op_name: str, attempt: int = 1
     ) -> Callable:
         """Compile a kernel from string code and return a callable."""
+        folder_name = op_name_to_folder_name(op_name)
+        adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
+        kernel_file_path = os.path.join(self.kernels_dir, f"{folder_name}_kernel.py")
+        expected_fn_name = f"{folder_name}_kernel_impl"
+        module_name = f"kernel_agent_{folder_name}"
+
         try:
-            # Adapt the function name for BackendBench compatibility
-            adapted_code = self._adapt_kernel_function_name(kernel_code, op_name)
-
-            # Prepare the code with necessary imports
-            is_triton = "triton.jit" in adapted_code or "@triton.jit" in adapted_code
-            if is_triton:
-                full_code = self._prepare_triton_code(adapted_code)
-            else:
-                full_code = self._prepare_torch_code(adapted_code)
-
-            # Save the kernel to file
-            kernel_file = os.path.join(self.kernels_dir, f"{op_name}_kernel.py")
-            with open(kernel_file, "w") as f:
-                f.write(full_code)
-
-            print(f"Saved KernelAgent kernel to: {kernel_file}")
-
-            # Import and compile the kernel
-            spec = importlib.util.spec_from_file_location(f"kernel_agent_{op_name}", kernel_file)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-
-            # Find the expected function
-            expected_name = f"{op_name}_kernel_impl"
-            if hasattr(module, expected_name):
-                return getattr(module, expected_name)
-            else:
-                available_functions = [
-                    name
-                    for name in dir(module)
-                    if callable(getattr(module, name)) and not name.startswith("_")
-                ]
-                raise ValueError(
-                    f"Expected function '{expected_name}' not found in KernelAgent kernel. "
-                    f"Available: {available_functions}"
-                )
-
+            kernel = compile_kernel_from_string(
+                kernel_code=adapted_code,
+                op_name=op_name,
+                kernel_file_path=kernel_file_path,
+                expected_fn_name=expected_fn_name,
+                module_name=module_name,
+            )
         except Exception as e:
-            raise RuntimeError(f"Failed to compile KernelAgent kernel for {op_name}: {str(e)}")
-
-    def _prepare_triton_code(self, kernel_code: str) -> str:
-        """Prepare Triton kernel code with necessary imports."""
-        imports = """
-import torch
-import triton
-import triton.language as tl
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
-
-    def _prepare_torch_code(self, kernel_code: str) -> str:
-        """Prepare regular PyTorch kernel code with necessary imports."""
-        imports = """
-import torch
-import torch.nn.functional as F
-"""
-        if "import torch" not in kernel_code:
-            kernel_code = imports + kernel_code
-        return kernel_code
+            raise e
+        return kernel
 
     def add_kernel(self, op, kernel_code: str, op_name: str):
         """Add a kernel implementation for a specific operator."""
@@ -249,7 +207,8 @@ import torch.nn.functional as F
         self.compiled_kernels[op] = compiled_kernel
 
         # Save the original KernelAgent code as well
-        original_file = os.path.join(self.kernels_dir, f"{op_name}_original_kernel_agent.py")
+        folder_name = op_name_to_folder_name(op_name)
+        original_file = os.path.join(self.kernels_dir, f"{folder_name}_original_kernel_agent.py")
         with open(original_file, "w") as f:
             f.write(kernel_code)
 
@@ -291,8 +250,9 @@ import torch.nn.functional as F
                 import shutil
 
                 session_name = os.path.basename(result["session_dir"])
+                folder_name = op_name_to_folder_name(op_name)
                 preserved_session = os.path.join(
-                    self.kernels_dir, f"{op_name}_session_{session_name}"
+                    self.kernels_dir, f"{folder_name}_session_{session_name}"
                 )
                 try:
                     shutil.copytree(result["session_dir"], preserved_session)
