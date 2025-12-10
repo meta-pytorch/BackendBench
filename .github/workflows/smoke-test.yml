@@ -23,9 +23,6 @@ jobs:
     
     - name: Install package and dependencies
       run: uv sync --dev
-
-    - name: Install cupy
-      run: uv pip install cupy
     
     - name: Clone FlagGems source
       run: git clone git clone https://github.com/FlagOpen/FlagGems.git
