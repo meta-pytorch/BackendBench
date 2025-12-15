@@ -81,7 +81,8 @@ class FeedbackInfo:
             return 0.0
 
         # we should always have at least one correctness test
-        assert len(self.correctness_results), "No correctness tests ran for this kernel"
+        if len(self.correctness_results) == 0:
+            return 0.0
 
         return (
             sum(1 for r in self.correctness_results if r.is_correct)
