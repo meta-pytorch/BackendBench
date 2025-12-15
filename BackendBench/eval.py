@@ -152,7 +152,6 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
 
 def cpu_bench(fn, num_runs=100):
     """Simple CPU benchmarking using time.perf_counter."""
-    import time
 
     for _ in range(10):
         fn()
@@ -182,12 +181,7 @@ def do_bench_power(
         query_interval: Sampling interval for power measurement (seconds).
 
     Returns:
-        A dictionary with:
-            - mean_latency_ms
-            - latencies_ms
-            - avg_power_watt
-            - total_energy_joule
-            - power_csv (path)
+        total_energy: Total energy consumed by fn() in mJoules.
     """
     os.makedirs(output_dir, exist_ok=True)
 
@@ -198,17 +192,11 @@ def do_bench_power(
 
     for _ in range(warm_ups):
         fn()
-    start = time.perf_counter()
     pm.start()
     for _ in range(num_runs):
         fn()
     pm.stop()
-    end = time.perf_counter()
-    latencies_ms = (end - start) * 1000 / num_runs
     total_energy = pm.finalize() / num_runs
-    print("latencies_ms", latencies_ms)
-    print("total_energy", total_energy)
-
     return total_energy
 
 
