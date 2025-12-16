@@ -290,7 +290,7 @@ class FlagGemsBackend(Backend):
             torch.ops.aten.mse_loss.default: flag_gems.ops.mse_loss,
             torch.ops.aten.eye.default: flag_gems.ops.eye,
             torch.ops.aten.eye.m: flag_gems.ops.eye_m,
-            torch.ops.aten.to.dtype: flag_gems.ops.to_dtype,
+            # torch.ops.aten.to.dtype: flag_gems.ops.to_dtype,  # skip as module 'flag_gems.ops' has no attribute 'to_dtype'
         }
         # Register all operators in the global registry to ensure consistent object identity
         for op in self.ops.keys():
