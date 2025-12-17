@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD 3-Clause license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 import os
 from typing import Optional
 
@@ -77,6 +78,7 @@ export ANTHROPIC_API_KEY=your_api_key_here
         op_description: str,
         dsl: str = "triton",
         feedback: Optional[str] = None,
+        correctness_results: Optional[str] = None,
     ) -> str:
         if feedback:
             prompt = self.template_manager.create_refinement_prompt(
@@ -101,6 +103,20 @@ export ANTHROPIC_API_KEY=your_api_key_here
             print("=== DEBUG: EXTRACTED CODE ===")
             print(extracted_code)
             print("=== END DEBUG ===\n")
+
+            logger = logging.getLogger(__name__)
+            if correctness_results is not None:
+                passed = sum(1 for r in correctness_results if getattr(r, "is_correct", False))
+                total = len(correctness_results)
+                logger.info(f"Correctness results for {op_name}: {passed}/{total} tests passed.")
+                for i, result in enumerate(correctness_results):
+                    logger.info(
+                        f"Test {i + 1}: {'Passed' if getattr(result, 'is_correct', False) else 'Failed'}"
+                        f" args={getattr(result, 'args', None)}, "
+                        f"max_abs_error={getattr(result, 'max_abs_error', None)}, "
+                        f"max_rel_error={getattr(result, 'max_rel_error', None)}, "
+                        f"error_msg={getattr(result, 'error_msg', None)}"
+                    )
 
             return extracted_code
 
