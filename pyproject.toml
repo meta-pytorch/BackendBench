@@ -28,6 +28,7 @@ dependencies = [
     "pandas",
     "datasets",
     "tenacity",
+    "nvidia-cutlass-dsl",
 ]
 
 [project.optional-dependencies]
