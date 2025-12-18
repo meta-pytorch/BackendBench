@@ -29,6 +29,7 @@ dependencies = [
     "datasets",
     "tenacity",
     "ninja",
+    "nvidia-cutlass-dsl",
 ]
 
 [project.optional-dependencies]

@@ -312,12 +312,15 @@ def folder_name_to_op_name(folder_name: str) -> str:
     """
     Convert a filesystem-safe folder name back to a PyTorch operator name.
 
-    Replaces the escape sequence with dots.
+    Replaces the escape sequence with dots. Processes right-to-left to correctly
+    handle in-place operators like add_.Tensor where the trailing underscore
+    precedes the escape sequence (e.g., "add___Tensor" should become "add_.Tensor",
+    not "add._Tensor").
 
     Examples:
         "add__Tensor" → "add.Tensor"
         "nn__functional__relu" → "nn.functional.relu"
-        "aten__add__Tensor" → "aten.add.Tensor"
+        "add___Tensor" → "add_.Tensor"
         "_native_batch_norm" → "_native_batch_norm" (unchanged)
 
     Args:
@@ -326,7 +329,20 @@ def folder_name_to_op_name(folder_name: str) -> str:
     Returns:
         PyTorch operator name with OP_NAME_ESCAPE_SEQUENCE replaced by "."
     """
-    return folder_name.replace(OP_NAME_ESCAPE_SEQUENCE, ".")
+    result = []
+    i = len(folder_name) - 1
+    escape_len = len(OP_NAME_ESCAPE_SEQUENCE)
+    while i >= 0:
+        if (
+            i >= escape_len - 1
+            and folder_name[i - escape_len + 1 : i + 1] == OP_NAME_ESCAPE_SEQUENCE
+        ):
+            result.append(".")
+            i -= escape_len
+        else:
+            result.append(folder_name[i])
+            i -= 1
+    return "".join(reversed(result))
 
 
 def is_overload_folder_name(folder_name: str) -> bool:
@@ -366,6 +382,17 @@ import triton.language as tl
             kernel_code = imports + kernel_code
         return kernel_code
 
+    def _prepare_helion_code(kernel_code: str) -> str:
+        """Prepare Helion kernel code with necessary imports."""
+        imports = """
+import torch
+import helion
+import helion.language as hl
+"""
+        if "import torch" not in kernel_code:
+            kernel_code = imports + kernel_code
+        return kernel_code
+
     def _prepare_torch_code(kernel_code: str) -> str:
         """Prepare regular PyTorch kernel code with necessary imports."""
         imports = """
@@ -377,9 +404,12 @@ import torch.nn.functional as F
         return kernel_code
 
     is_triton = "triton.jit" in kernel_code or "@triton.jit" in kernel_code
+    is_helion = "helion.kernel" in kernel_code or "@helion.kernel" in kernel_code
 
     if is_triton:
         full_code = _prepare_triton_code(kernel_code)
+    elif is_helion:
+        full_code = _prepare_helion_code(kernel_code)
     else:
         full_code = _prepare_torch_code(kernel_code)
 

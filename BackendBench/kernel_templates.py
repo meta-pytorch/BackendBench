@@ -14,6 +14,9 @@ from .prompts import (
     CUTEDSL_EXAMPLE_TEMPLATES,
     CUTEDSL_KERNEL_PROMPT,
     CUTEDSL_OPTIMIZATIONS,
+    HELION_EXAMPLE_TEMPLATES,
+    HELION_KERNEL_PROMPT,
+    HELION_OPTIMIZATIONS,
     PYTORCH_KERNEL_PROMPT,
     TRITON_EXAMPLE_TEMPLATES,
     TRITON_KERNEL_PROMPT,
@@ -114,6 +117,33 @@ class CuTeDSLKernelTemplate(KernelTemplate):
         return CUTEDSL_EXAMPLE_TEMPLATES["default"]
 
 
+class HelionKernelTemplate(KernelTemplate):
+    """Template for Helion kernel generation."""
+
+    def __init__(self):
+        super().__init__("helion", "helion")
+
+    def create_prompt(self, op_name: str, op_signature: str, op_description: str) -> str:
+        optimizations = self._get_optimizations(op_name)
+
+        example = self._get_example_template(op_name)
+
+        return HELION_KERNEL_PROMPT.format(
+            op_name=op_name,
+            folder_name=op_name_to_folder_name(op_name),
+            op_signature=op_signature,
+            op_description=op_description,
+            optimizations=optimizations,
+            example=example,
+        )
+
+    def _get_optimizations(self, op_name: str) -> str:
+        return HELION_OPTIMIZATIONS.get(op_name, HELION_OPTIMIZATIONS["default"])
+
+    def _get_example_template(self, op_name: str) -> str:
+        return HELION_EXAMPLE_TEMPLATES["default"]
+
+
 class KernelTemplateManager:
     """Manages kernel templates for different dsls."""
 
@@ -122,6 +152,7 @@ class KernelTemplateManager:
             "triton": TritonKernelTemplate(),
             "pytorch": PyTorchKernelTemplate(),
             "cutedsl": CuTeDSLKernelTemplate(),
+            "helion": HelionKernelTemplate(),
             # TODO: Add cuda, cutile, whatever we want
         }
 

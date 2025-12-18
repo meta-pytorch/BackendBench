@@ -145,8 +145,13 @@ def setup_logging(log_level):
 @click.option(
     "--dsl",
     default="triton",
-    type=click.Choice(["triton", "pytorch", "cutedsl"]),
+    type=click.Choice(["triton", "pytorch", "cutedsl", "helion"]),
     help="Which DSL to use for LLM backend",
+)
+@click.option(
+    "--daemon/--no-daemon",
+    default=True,
+    help="Use daemon worker processes (default: True). Use --no-daemon for Helion",
 )
 def cli(
     log_level,
@@ -166,6 +171,7 @@ def cli(
     check_overhead_dominated_ops,
     p,
     dsl,
+    daemon,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
@@ -204,11 +210,11 @@ def cli(
     if backend == "llm-relay":
         llm_client = LLMRelayKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts, dsl)
+        backend.generate_kernels(suite, llm_attempts, dsl, daemon=daemon)
     elif backend == "llm":
         llm_client = LLMKernelGenerator(model=llm_model)
         backend = backends.LLMBackend(model=llm_model, llm_client=llm_client)
-        backend.generate_kernels(suite, llm_attempts, dsl)
+        backend.generate_kernels(suite, llm_attempts, dsl, daemon=daemon)
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")
@@ -257,7 +263,10 @@ def cli(
 
             logger.debug(f"max memory allocated: {torch.cuda.max_memory_allocated():,}")
     else:
-        with multiprocessing_eval.MultiprocessingEvaluator(num_workers) as evaluator:
+        with multiprocessing_eval.MultiprocessingEvaluator(
+            num_workers,
+            daemon=daemon,
+        ) as evaluator:
             # Submit all tasks
             for test in suite:
                 if test.op not in backend:

@@ -24,11 +24,17 @@ jobs:
     - name: Install package and dependencies
       run: uv sync --dev
     
+    - name: Clone FlagGems source
+      run: git clone https://github.com/FlagOpen/FlagGems.git
+    
+    - name: Build and install FlagGems
+      run: uv pip install FlagGems/
+    
     - name: Clone FACTO source
       run: git clone https://github.com/pytorch-labs/FACTO.git
     
     - name: Build and install FACTO
-      run: cd FACTO && uv pip install .
+      run: uv pip install FACTO/
     
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
