@@ -15,254 +15,55 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Find and set CUDA_HOME
+    - name: Install CUDA Toolkit
       run: |
-        set +e  # Don't exit on error, we want to try all methods
+        echo "=== Installing CUDA Toolkit ==="
         
-        echo "=== Attempting to find CUDA installation ==="
+        # Detect CUDA version from nvidia-smi
+        CUDA_VERSION="12.4"
+        if command -v nvidia-smi &> /dev/null; then
+          SMI_CUDA=$(nvidia-smi 2>/dev/null | grep -oP "CUDA Version: \K[0-9]+\.[0-9]+")
+          if [ -n "$SMI_CUDA" ]; then
+            echo "Detected CUDA version from nvidia-smi: $SMI_CUDA"
+            CUDA_VERSION="$SMI_CUDA"
+          fi
+        fi
+        
+        # Install CUDA via apt-get (official NVIDIA repository)
+        echo "Installing CUDA toolkit version $CUDA_VERSION via apt-get..."
+        sudo apt-get update
+        sudo apt-get install -y wget
+        
+        # Add NVIDIA CUDA repository
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
+        sudo dpkg -i cuda-keyring_1.1-1_all.deb
+        sudo apt-get update
+        
+        # Install CUDA toolkit
+        CUDA_VERSION_DASHED=$(echo $CUDA_VERSION | tr '.' '-')
+        sudo apt-get install -y cuda-toolkit-${CUDA_VERSION_DASHED} || sudo apt-get install -y cuda-toolkit-12-4 || sudo apt-get install -y cuda-toolkit
+        
+        # Find installed CUDA path
         CUDA_PATH=""
-        
-        # Method 1: Check if CUDA_HOME or CUDA_PATH is already set
-        echo "Method 1: Checking existing environment variables..."
-        if [ -n "$CUDA_HOME" ] && [ -d "$CUDA_HOME" ]; then
-          echo "  Found CUDA_HOME already set: $CUDA_HOME"
-          CUDA_PATH="$CUDA_HOME"
-        elif [ -n "$CUDA_PATH" ] && [ -d "$CUDA_PATH" ]; then
-          echo "  Found CUDA_PATH already set: $CUDA_PATH"
-          CUDA_PATH="$CUDA_PATH"
-        else
-          echo "  No existing CUDA environment variables found"
-        fi
-        
-        # Method 2: Check common installation paths
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 2: Checking common CUDA installation paths..."
-          COMMON_PATHS=(
-            "/usr/local/cuda"
-            "/usr/local/cuda-12"
-            "/usr/local/cuda-12.0"
-            "/usr/local/cuda-12.1"
-            "/usr/local/cuda-12.2"
-            "/usr/local/cuda-12.3"
-            "/usr/local/cuda-12.4"
-            "/usr/local/cuda-12.5"
-            "/usr/local/cuda-12.6"
-            "/usr/local/cuda-11"
-            "/usr/local/cuda-11.8"
-            "/usr/local/cuda-11.7"
-            "/usr/local/cuda-11.6"
-            "/opt/cuda"
-            "/usr/cuda"
-            "/usr/lib/cuda"
-          )
-          for path in "${COMMON_PATHS[@]}"; do
-            if [ -d "$path" ] && [ -f "$path/bin/nvcc" ]; then
-              echo "  Found CUDA at: $path"
-              CUDA_PATH="$path"
-              break
-            fi
-          done
-          if [ -z "$CUDA_PATH" ]; then
-            echo "  No CUDA found in common paths"
+        for path in "/usr/local/cuda" "/usr/local/cuda-${CUDA_VERSION}" "/usr/local/cuda-12.4" "/usr/local/cuda-12"; do
+          if [ -d "$path" ] && [ -f "$path/bin/nvcc" ]; then
+            CUDA_PATH="$path"
+            break
           fi
-        fi
+        done
         
-        # Method 3: Find nvcc in PATH and derive CUDA_HOME
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 3: Looking for nvcc in PATH..."
-          NVCC_PATH=$(which nvcc 2>/dev/null)
-          if [ -n "$NVCC_PATH" ]; then
-            echo "  Found nvcc at: $NVCC_PATH"
-            # nvcc is typically at CUDA_HOME/bin/nvcc
-            CUDA_PATH=$(dirname $(dirname "$NVCC_PATH"))
-            echo "  Derived CUDA_HOME: $CUDA_PATH"
-          else
-            echo "  nvcc not found in PATH"
-          fi
-        fi
-        
-        # Method 4: Use ldconfig to find CUDA libraries
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 4: Searching ldconfig cache for CUDA libraries..."
-          CUDA_LIB=$(ldconfig -p 2>/dev/null | grep -m1 "libcudart.so" | awk '{print $NF}')
-          if [ -n "$CUDA_LIB" ]; then
-            echo "  Found libcudart at: $CUDA_LIB"
-            # Library is typically at CUDA_HOME/lib64/libcudart.so
-            CUDA_PATH=$(dirname $(dirname "$CUDA_LIB"))
-            if [ -f "$CUDA_PATH/bin/nvcc" ]; then
-              echo "  Derived CUDA_HOME: $CUDA_PATH"
-            else
-              echo "  Derived path $CUDA_PATH does not contain nvcc, continuing search..."
-              CUDA_PATH=""
-            fi
-          else
-            echo "  No CUDA libraries found in ldconfig cache"
-          fi
-        fi
-        
-        # Method 5: Search /usr/local for cuda directories
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 5: Searching /usr/local for cuda* directories..."
-          for dir in /usr/local/cuda*; do
-            if [ -d "$dir" ] && [ -f "$dir/bin/nvcc" ]; then
-              echo "  Found CUDA at: $dir"
-              CUDA_PATH="$dir"
-              break
-            fi
-          done
-          if [ -z "$CUDA_PATH" ]; then
-            echo "  No CUDA directories found in /usr/local"
-          fi
-        fi
-        
-        # Method 6: Use find to search for nvcc binary
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 6: Using find to search for nvcc binary..."
-          NVCC_FOUND=$(find /usr /opt -name "nvcc" -type f 2>/dev/null | head -1)
-          if [ -n "$NVCC_FOUND" ]; then
-            echo "  Found nvcc at: $NVCC_FOUND"
-            CUDA_PATH=$(dirname $(dirname "$NVCC_FOUND"))
-            echo "  Derived CUDA_HOME: $CUDA_PATH"
-          else
-            echo "  nvcc binary not found via find"
-          fi
-        fi
-        
-        # Method 7: Check nvidia-smi for driver info and infer CUDA version
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 7: Checking nvidia-smi for CUDA version..."
-          if command -v nvidia-smi &> /dev/null; then
-            CUDA_VERSION=$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)
-            echo "  NVIDIA driver version: $CUDA_VERSION"
-            # Try to find matching CUDA toolkit
-            nvidia-smi 2>/dev/null || true
-          else
-            echo "  nvidia-smi not found"
-          fi
-        fi
-        
-        # Method 8: Check pkg-config for CUDA
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 8: Checking pkg-config for CUDA..."
-          if command -v pkg-config &> /dev/null; then
-            CUDA_PKG=$(pkg-config --variable=cudaroot cudart 2>/dev/null)
-            if [ -n "$CUDA_PKG" ]; then
-              echo "  Found via pkg-config: $CUDA_PKG"
-              CUDA_PATH="$CUDA_PKG"
-            else
-              echo "  CUDA not found via pkg-config"
-            fi
-          else
-            echo "  pkg-config not available"
-          fi
-        fi
-        
-        # Method 9: Check dpkg for CUDA packages (Debian/Ubuntu)
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 9: Checking dpkg for CUDA toolkit packages..."
-          if command -v dpkg &> /dev/null; then
-            CUDA_PKG_PATH=$(dpkg -L cuda-toolkit 2>/dev/null | grep "bin/nvcc" | head -1)
-            if [ -z "$CUDA_PKG_PATH" ]; then
-              # Try alternative package names
-              for pkg in cuda-toolkit-* cuda-nvcc-*; do
-                CUDA_PKG_PATH=$(dpkg -L $pkg 2>/dev/null | grep "bin/nvcc" | head -1)
-                if [ -n "$CUDA_PKG_PATH" ]; then
-                  break
-                fi
-              done
-            fi
-            if [ -n "$CUDA_PKG_PATH" ]; then
-              CUDA_PATH=$(dirname $(dirname "$CUDA_PKG_PATH"))
-              echo "  Found via dpkg: $CUDA_PATH"
-            else
-              echo "  No CUDA packages found via dpkg"
-            fi
-          else
-            echo "  dpkg not available"
-          fi
-        fi
-        
-        # Method 10: Check rpm for CUDA packages (RHEL/CentOS)
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 10: Checking rpm for CUDA packages..."
-          if command -v rpm &> /dev/null; then
-            CUDA_RPM=$(rpm -qa 2>/dev/null | grep -E "^cuda-toolkit" | head -1)
-            if [ -n "$CUDA_RPM" ]; then
-              CUDA_PKG_PATH=$(rpm -ql "$CUDA_RPM" 2>/dev/null | grep "bin/nvcc" | head -1)
-              if [ -n "$CUDA_PKG_PATH" ]; then
-                CUDA_PATH=$(dirname $(dirname "$CUDA_PKG_PATH"))
-                echo "  Found via rpm: $CUDA_PATH"
-              fi
-            else
-              echo "  No CUDA packages found via rpm"
-            fi
-          else
-            echo "  rpm not available"
-          fi
-        fi
-        
-        # Method 11: Search in /opt directory
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 11: Searching /opt for CUDA installations..."
-          for dir in /opt/cuda* /opt/nvidia/cuda* /opt/local/cuda*; do
-            if [ -d "$dir" ] && [ -f "$dir/bin/nvcc" ]; then
-              echo "  Found CUDA at: $dir"
-              CUDA_PATH="$dir"
-              break
-            fi
-          done
-          if [ -z "$CUDA_PATH" ]; then
-            echo "  No CUDA found in /opt"
-          fi
-        fi
-        
-        # Method 12: Check alternatives system (Debian/Ubuntu)
-        if [ -z "$CUDA_PATH" ]; then
-          echo "Method 12: Checking update-alternatives for CUDA..."
-          if command -v update-alternatives &> /dev/null; then
-            CUDA_ALT=$(update-alternatives --query cuda 2>/dev/null | grep "Value:" | awk '{print $2}')
-            if [ -n "$CUDA_ALT" ] && [ -d "$CUDA_ALT" ]; then
-              echo "  Found via alternatives: $CUDA_ALT"
-              CUDA_PATH="$CUDA_ALT"
-            else
-              echo "  No CUDA alternative configured"
-            fi
-          else
-            echo "  update-alternatives not available"
-          fi
-        fi
-        
-        # Final validation and export
-        echo ""
-        echo "=== Final Result ==="
-        if [ -n "$CUDA_PATH" ] && [ -d "$CUDA_PATH" ]; then
-          echo "CUDA_HOME set to: $CUDA_PATH"
+        if [ -n "$CUDA_PATH" ]; then
           echo "CUDA_HOME=$CUDA_PATH" >> $GITHUB_ENV
           echo "$CUDA_PATH/bin" >> $GITHUB_PATH
+          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib64:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
           
-          # Verify the installation
           echo ""
-          echo "=== CUDA Installation Details ==="
-          if [ -f "$CUDA_PATH/version.txt" ]; then
-            echo "Version file contents:"
-            cat "$CUDA_PATH/version.txt"
-          fi
-          if [ -f "$CUDA_PATH/bin/nvcc" ]; then
-            echo "nvcc version:"
-            "$CUDA_PATH/bin/nvcc" --version || true
-          fi
-          ls -la "$CUDA_PATH/" || true
+          echo "=== CUDA Installation Complete ==="
+          echo "CUDA_HOME: $CUDA_PATH"
+          "$CUDA_PATH/bin/nvcc" --version
         else
-          echo "WARNING: Could not find CUDA installation!"
-          echo "Listing potential CUDA-related directories for debugging:"
-          ls -la /usr/local/ 2>/dev/null | grep -i cuda || echo "  No cuda dirs in /usr/local"
-          ls -la /opt/ 2>/dev/null | grep -i cuda || echo "  No cuda dirs in /opt"
-          ls -la /usr/ 2>/dev/null | grep -i cuda || echo "  No cuda dirs in /usr"
-          echo ""
-          echo "Checking for nvidia-related commands:"
-          which nvidia-smi nvcc 2>/dev/null || echo "  No nvidia commands found in PATH"
-          echo ""
-          echo "Current PATH: $PATH"
+          echo "ERROR: CUDA installation failed!"
+          ls -la /usr/local/ | grep cuda || true
           exit 1
         fi
     
