@@ -17,55 +17,12 @@ jobs:
     
     - name: Install CUDA Toolkit
       run: |
-        echo "=== Installing CUDA Toolkit ==="
-        
-        # Detect CUDA version from nvidia-smi
-        CUDA_VERSION="12.4"
-        if command -v nvidia-smi &> /dev/null; then
-          SMI_CUDA=$(nvidia-smi 2>/dev/null | grep -oP "CUDA Version: \K[0-9]+\.[0-9]+")
-          if [ -n "$SMI_CUDA" ]; then
-            echo "Detected CUDA version from nvidia-smi: $SMI_CUDA"
-            CUDA_VERSION="$SMI_CUDA"
-          fi
-        fi
-        
-        # Install CUDA via apt-get (official NVIDIA repository)
-        echo "Installing CUDA toolkit version $CUDA_VERSION via apt-get..."
-        sudo apt-get update
-        sudo apt-get install -y wget
-        
-        # Add NVIDIA CUDA repository
         wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
         sudo dpkg -i cuda-keyring_1.1-1_all.deb
         sudo apt-get update
-        
-        # Install CUDA toolkit
-        CUDA_VERSION_DASHED=$(echo $CUDA_VERSION | tr '.' '-')
-        sudo apt-get install -y cuda-toolkit-${CUDA_VERSION_DASHED} || sudo apt-get install -y cuda-toolkit-12-4 || sudo apt-get install -y cuda-toolkit
-        
-        # Find installed CUDA path
-        CUDA_PATH=""
-        for path in "/usr/local/cuda" "/usr/local/cuda-${CUDA_VERSION}" "/usr/local/cuda-12.4" "/usr/local/cuda-12"; do
-          if [ -d "$path" ] && [ -f "$path/bin/nvcc" ]; then
-            CUDA_PATH="$path"
-            break
-          fi
-        done
-        
-        if [ -n "$CUDA_PATH" ]; then
-          echo "CUDA_HOME=$CUDA_PATH" >> $GITHUB_ENV
-          echo "$CUDA_PATH/bin" >> $GITHUB_PATH
-          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib64:${LD_LIBRARY_PATH:-}" >> $GITHUB_ENV
-          
-          echo ""
-          echo "=== CUDA Installation Complete ==="
-          echo "CUDA_HOME: $CUDA_PATH"
-          "$CUDA_PATH/bin/nvcc" --version
-        else
-          echo "ERROR: CUDA installation failed!"
-          ls -la /usr/local/ | grep cuda || true
-          exit 1
-        fi
+        sudo apt-get install -y cuda-toolkit-12-8
+        echo "CUDA_HOME=/usr/local/cuda-12.8" >> $GITHUB_ENV
+        echo "/usr/local/cuda-12.8/bin" >> $GITHUB_PATH
     
     - name: Install uv
       uses: astral-sh/setup-uv@v3
