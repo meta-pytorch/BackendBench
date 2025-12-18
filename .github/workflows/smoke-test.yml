@@ -48,7 +48,6 @@ jobs:
     - name: Run smoke test
       run: uv run python -m BackendBench.scripts.main --suite smoke --backend aten 
     
-    
     - name: Run FACTO test
       run: uv run python -m BackendBench.scripts.main --suite facto --backend aten --ops "add.Tensor" 
     
