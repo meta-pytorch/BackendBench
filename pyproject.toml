@@ -56,6 +56,8 @@ dev-dependencies = [
     "torch",
     "numpy",
     "pyarrow",
+    "nvidia-ml-py",
+    "matplotlib",
     # cupy-cuda12x is platform specific, install manually if needed
 ]
 

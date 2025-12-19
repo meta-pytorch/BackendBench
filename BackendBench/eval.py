@@ -6,12 +6,15 @@
 
 import logging
 import math
+import os
+import time
 import traceback
 from dataclasses import dataclass
 from typing import List, Tuple
 
 import torch
 
+from BackendBench.power import PowerManager
 from BackendBench.utils import compute_errors, serialize_args, uses_cuda_stream
 
 
@@ -33,6 +36,7 @@ class PerformanceTestResult:
     op_name: str
     args: str
     speedup: float
+    total_energy: float
     benchmark_time_ms: float
     reference_time_ms: float
     error_msg: str = ""
@@ -148,7 +152,6 @@ def eval_correctness(op, impl, tests) -> Tuple[float, List[CorrectnessTestResult
 
 def cpu_bench(fn, num_runs=100):
     """Simple CPU benchmarking using time.perf_counter."""
-    import time
 
     for _ in range(10):
         fn()
@@ -157,6 +160,44 @@ def cpu_bench(fn, num_runs=100):
     for _ in range(num_runs):
         fn()
     return (time.perf_counter() - start) / num_runs
+
+
+def do_bench_power(
+    fn,
+    warm_ups=10,
+    num_runs=10000,
+    output_dir="./bench_power",
+    gpu_id=0,
+    query_interval=0.01,
+):
+    """
+    Benchmark a function while collecting GPU power information.
+
+    Args:
+        fn: The function (e.g., kernel call) to benchmark.
+        num_runs: Number of times to run fn().
+        output_dir: Directory to store results (power.csv, plots).
+        gpu_id: GPU index to monitor.
+        query_interval: Sampling interval for power measurement (seconds).
+
+    Returns:
+        total_energy: Total energy consumed by fn() in mJoules.
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    pm = PowerManager()
+    pm.gpu_id = gpu_id
+    pm.output_dir = output_dir
+    pm.query_interval = query_interval
+
+    for _ in range(warm_ups):
+        fn()
+    pm.start()
+    for _ in range(num_runs):
+        fn()
+    pm.stop()
+    total_energy = pm.finalize() / num_runs
+    return total_energy
 
 
 def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult]]:
@@ -193,11 +234,13 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                     f"Reference and result tensors are not close: max absolute error {abs_error}, max relative error {rel_error}"
                 )
             test_time = bench_fn(lambda: impl(*cached_args, **cached_kwargs))
+            total_energy = do_bench_power(lambda: impl(*cached_args, **cached_kwargs))
             performance_results.append(
                 PerformanceTestResult(
                     op_name=op.__name__,
                     args=args_str,
                     speedup=base_time / test_time,
+                    total_energy=total_energy,
                     successfully_ran=True,
                     benchmark_time_ms=test_time,
                     reference_time_ms=base_time,
@@ -211,6 +254,7 @@ def eval_performance(op, impl, tests) -> Tuple[float, List[PerformanceTestResult
                     args=args_str,
                     successfully_ran=False,
                     speedup=None,
+                    total_energy=None,
                     benchmark_time_ms=None,
                     reference_time_ms=base_time,
                     error_msg=error_msg,
