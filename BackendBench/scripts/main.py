@@ -19,6 +19,7 @@ from BackendBench.llm_client import LLMKernelGenerator, LLMRelayKernelGenerator
 from BackendBench.output import save_results
 from BackendBench.suite import (
     FactoTestSuite,
+    ModelSuite,
     OpInfoTestSuite,
     SmokeTestSuite,
     TorchBenchTestSuite,
@@ -50,7 +51,7 @@ def setup_logging(log_level):
 @click.option(
     "--suite",
     default="smoke",
-    type=click.Choice(["smoke", "opinfo", "torchbench", "facto"]),
+    type=click.Choice(["smoke", "opinfo", "torchbench", "facto", "model"]),
     help="Which suite to run",
 )
 @click.option(
@@ -63,7 +64,13 @@ def setup_logging(log_level):
     "--ops",
     default=None,
     type=str,
-    help="Comma-separated list of ops to run",
+    help="Comma-separated list of ops to run (not supported for model suite)",
+)
+@click.option(
+    "--model-filter",
+    default=None,
+    type=str,
+    help="Comma-separated list of models to run (only for model suite)",
 )
 @click.option(
     "--topn-inputs",
@@ -158,6 +165,7 @@ def cli(
     suite,
     backend,
     ops,
+    model_filter,
     topn_inputs,
     llm_attempts,
     llm_model,
@@ -179,9 +187,22 @@ def cli(
         if check_overhead_dominated_ops:
             raise ValueError("check-overhead-dominated-ops is only supported for torchbench suite")
 
+    if suite == "model":
+        if ops is not None:
+            raise ValueError(
+                "--ops filter is not supported for model suite. Use --model-filter instead"
+            )
+        # remove this in later PR as model suite is supported
+        raise NotImplementedError("Model suite is not supported yet")
+
+    if suite != "model" and model_filter is not None:
+        raise ValueError("--model-filter is only supported for model suite")
+
     setup_logging(log_level)
     if ops:
         ops = ops.split(",")
+    if model_filter:
+        model_filter = model_filter.split(",")
 
     suite = {
         "smoke": lambda: SmokeTestSuite,
@@ -204,6 +225,7 @@ def cli(
             torch.bfloat16,
             filter=ops,
         ),
+        "model": lambda: ModelSuite(filter=model_filter),
     }[suite]()
 
     backend_name = backend
