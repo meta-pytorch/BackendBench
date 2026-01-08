@@ -18,13 +18,14 @@ logger = logging.getLogger(__name__)
 
 
 class DirectoryBackend(Backend):
-    def __init__(self, ops_dir="generated_kernels"):
+    def __init__(self, ops_dir="generated_kernels", load_cpp_source=False):
         super().__init__("directory")
         self.ops_dir = ops_dir
         self.compiled_kernels: Dict[str, Callable] = {}
-        self._load_kernels()
+        self.load_cpp_source = load_cpp_source
+        self._load_kernels(load_cpp_source)
 
-    def _load_kernels(self):
+    def _load_kernels(self, load_cpp_source=False):
         """
         Discovers and loads kernel implementations from the operator directory structure.
 
@@ -61,7 +62,7 @@ class DirectoryBackend(Backend):
 
             try:
                 op_name = folder_name_to_op_name(folder_name)
-                kernel_func = self._load_kernel_from_file(impl_path, folder_name)
+                kernel_func = self._load_kernel_from_file(impl_path, folder_name, load_cpp_source)
 
                 pytorch_op = get_pytorch_op(op_name)
                 if pytorch_op:
@@ -98,7 +99,36 @@ class DirectoryBackend(Backend):
         else:
             raise ValueError(f"No function named {kernel_func_name} found in {file_path}")
 
-    def _load_cuda_kernel(self, file_path: str, folder_name: str) -> Callable:
+    def _generate_cpp_source(self, base_name: str, cuda_source: str) -> str:
+        """
+        Generate C++ source code from a CUDA file.
+
+        Args:
+            file_path: Path to the CUDA implementation file (.cu or .cpp)
+            folder_name: Base name of the operator (e.g., "add__Tensor")
+
+        Returns:
+            str: Generated C++ source code
+        """
+        output_lines = []
+        # Always include the torch extension header
+        output_lines.append("#include <torch/extension.h>\n")
+        # Find the function signature for the given base_name
+        for line in cuda_source.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("at::Tensor") and base_name in stripped:
+                # Remove the function body if present
+                signature = stripped.split("{")[0].rstrip()
+                # Ensure it ends with a semicolon
+                if not signature.endswith(";"):
+                    signature += ";"
+                output_lines.append(signature + "\n")
+                break  # Only one function per file is expected
+        return "".join(output_lines)
+
+    def _load_cuda_kernel(
+        self, file_path: str, folder_name: str, load_cpp_source: bool = False
+    ) -> Callable:
         """
         Load and compile a kernel implementation from CUDA files using load_inline.
 
@@ -117,19 +147,27 @@ class DirectoryBackend(Backend):
         base_name = file_name.rsplit(".", 1)[0]
 
         cu_file = os.path.join(file_dir, f"{base_name}.cu")
-        cpp_file = os.path.join(file_dir, f"{base_name}.cpp")
 
-        cpp_source = ""
         cuda_source = ""
-
-        # Read both files if they exist
+        # Read cuda file if exists
         if os.path.exists(cu_file):
             with open(cu_file, "r") as f:
                 cuda_source = f.read()
 
-        if os.path.exists(cpp_file):
-            with open(cpp_file, "r") as f:
-                cpp_source = f.read()
+        if cuda_source == "" and not load_cpp_source:
+            logger.warning(f"No CUDA source found for {file_path}.")
+            return None
+
+        cpp_source = ""
+        if load_cpp_source:
+            # Read cpp file if exists
+            cpp_file = os.path.join(file_dir, f"{base_name}.cpp")
+            if os.path.exists(cpp_file):
+                with open(cpp_file, "r") as f:
+                    cpp_source = f.read()
+        else:
+            # Generate cpp file from cuda file
+            cpp_source = self._generate_cpp_source(folder_name, cuda_source)
 
         # Use load_inline for all cases
         module_name = f"{folder_name}_cuda_inline"
@@ -148,7 +186,9 @@ class DirectoryBackend(Backend):
                 f"No function named {folder_name} found in compiled CUDA module from {file_path}"
             )
 
-    def _load_kernel_from_file(self, file_path: str, folder_name: str) -> Callable:
+    def _load_kernel_from_file(
+        self, file_path: str, folder_name: str, load_cpp_source: bool = False
+    ) -> Callable:
         """
         Dynamically load a kernel implementation function from a Python or CUDA file.
 
@@ -171,7 +211,7 @@ class DirectoryBackend(Backend):
         if file_ext == ".py":
             return self._load_python_kernel(file_path, folder_name)
         elif file_ext in [".cu", ".cpp"]:
-            return self._load_cuda_kernel(file_path, folder_name)
+            return self._load_cuda_kernel(file_path, folder_name, load_cpp_source)
         else:
             raise ValueError(
                 f"Unsupported file extension {file_ext} for {file_path}. Expected .py, .cu, or .cpp"

@@ -46,10 +46,6 @@ at::Tensor add__Tensor(const at::Tensor& a, const at::Tensor& b) {
     return out;
 }
 """)
-    with open(f"{base_dir}/add__Tensor/add__Tensor_implementation_v1.cpp", "w") as f:
-        f.write("""#include <torch/extension.h>
-
-at::Tensor add__Tensor(const at::Tensor& a, const at::Tensor& b);""")
     logger.info("Created add implementation")
 
 

@@ -153,6 +153,11 @@ def setup_logging(log_level):
     default=True,
     help="Use daemon worker processes (default: True). Use --no-daemon for Helion",
 )
+@click.option(
+    "--load_cpp_source",
+    default=False,
+    help="Load C++ source code for Cuda kernels. When set to False BackendBench will construct cpp source files from the given cuda source code.",
+)
 def cli(
     log_level,
     suite,
@@ -172,6 +177,7 @@ def cli(
     p,
     dsl,
     daemon,
+    load_cpp_source,
 ):
     if suite != "torchbench":
         if topn_inputs is not None:
@@ -219,7 +225,10 @@ def cli(
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")
     elif backend == "directory":
-        backend = backends.DirectoryBackend(ops_directory)
+        if dsl == "cuda":
+            backend = backends.DirectoryBackend(ops_directory, load_cpp_source=load_cpp_source)
+        else:
+            backend = backends.DirectoryBackend(ops_directory)
     else:
         backend = {
             "aten": backends.AtenBackend,
