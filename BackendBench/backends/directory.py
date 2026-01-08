@@ -133,8 +133,9 @@ class DirectoryBackend(Backend):
         Load and compile a kernel implementation from CUDA files using load_inline.
 
         Args:
-            file_path: Path to the CUDA implementation file (.cu or .cpp)
+            file_path: Path to the CUDA implementation file
             folder_name: Base name of the operator (e.g., "add__Tensor")
+            load_cpp_source: Whether to also load the corresponding .cpp file. Defaults to False.
 
         Returns:
             Callable kernel implementation function
@@ -199,6 +200,7 @@ class DirectoryBackend(Backend):
         Args:
             file_path: Path to the implementation file (Python or CUDA)
             op_name: Base name of the operator (e.g., "add", "mul", "conv2d")
+            load_cpp_source: Whether to also load the corresponding .cpp file. Defaults to False.
 
         Returns:
             Callable kernel implementation function
