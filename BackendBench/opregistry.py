@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+from typing import Any, Callable, Dict, Optional
 
 import torch
 
@@ -30,7 +31,7 @@ def _extract_spec_name_from_op(op_obj):
 
 class OpRegistry:
     def __init__(self):
-        self._registry = {}
+        self._registry: Dict[str, Any] = {}
 
     def get_operator(self, input_obj):
         if isinstance(input_obj, str):
@@ -41,7 +42,11 @@ class OpRegistry:
     def _get_operator_from_spec_name(self, spec_name):
         # Return cached operator if available
         if spec_name in self._registry:
-            return self._registry[spec_name]
+            entry = self._registry[spec_name]
+            # If entry is a kernel dict, return forward for compatibility
+            if isinstance(entry, dict) and "forward" in entry:
+                return entry["forward"]
+            return entry
 
         # Parse spec name
         op_parts = spec_name.split(".")
@@ -67,7 +72,10 @@ class OpRegistry:
 
         # Check if we already have this operator registered
         if spec_name in self._registry:
-            return self._registry[spec_name]
+            entry = self._registry[spec_name]
+            # If entry is a kernel dict, return forward for compatibility
+            if isinstance(entry, dict) and "forward" in entry:
+                return entry["forward"]
 
         # Register the provided operator object
         self._registry[spec_name] = op_obj
@@ -76,6 +84,39 @@ class OpRegistry:
 
     def register_operator(self, op_obj):
         return self._get_operator_from_object(op_obj)
+
+    def register_kernel(
+        self,
+        spec_name: str,
+        forward: Callable,
+        *,
+        backward: Optional[Callable] = None,
+        param_update: Optional[Callable] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._registry[spec_name] = {
+            "forward": forward,
+            "backward": backward,
+            "param_update": param_update,
+            "metadata": metadata or {},
+        }
+
+    def get_kernel(self, spec_name: str) -> Dict[str, Any]:
+        if spec_name not in self._registry:
+            raise KeyError(f"Operator {spec_name} is not registered")
+        entry = self._registry[spec_name]
+        if isinstance(entry, dict) and "forward" in entry:
+            return entry
+        # legacy operator object present -> wrap as forward-only kernel
+        return {"forward": entry, "backward": None, "param_update": None, "metadata": {}}
+
+    def has_backward(self, spec_name: str) -> bool:
+        entry = self._registry.get(spec_name)
+        if not entry:
+            return False
+        if isinstance(entry, dict):
+            return entry.get("backward") is not None
+        return False
 
     def get_all_registered_ops(self):
         return self._registry.copy()
@@ -106,5 +147,22 @@ def register_operator(op_obj):
     return _op_registry.register_operator(op_obj)
 
 
-def get_registry():
-    return _op_registry
+def register_kernel(
+    spec_name: str,
+    forward: Callable,
+    *,
+    backward: Optional[Callable] = None,
+    param_update: Optional[Callable] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+) -> None:
+    return _op_registry.register_kernel(
+        spec_name, forward, backward=backward, param_update=param_update, metadata=metadata
+    )
+
+
+def get_kernel(spec_name: str) -> Dict[str, Any]:
+    return _op_registry.get_kernel(spec_name)
+
+
+def has_backward(spec_name: str) -> bool:
+    return _op_registry.has_backward(spec_name)
