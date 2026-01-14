@@ -20,6 +20,8 @@ import torch
 from datasets import load_dataset
 from tqdm import tqdm
 
+from BackendBench.utils import extract_operator_name
+
 # constants for downloading the test set from huggingface
 # you can explore the dataset here
 # https://huggingface.co/datasets/GPUMODE/backendbench_tests
@@ -224,9 +226,10 @@ def _load_from_parquet(
         table = pq.read_table(source)
 
     df = table.to_pandas()
-    # Apply filter if provided
+    # Apply filter if provided - use exact matching on extracted operator names
+    # e.g., "relu.default" should match "aten.relu.default" but NOT "aten.leaky_relu.default"
     if filter:
-        mask = df["op_name"].apply(lambda op: any(f in op for f in filter))
+        mask = df["op_name"].apply(lambda op: extract_operator_name(op) in filter)
         df = df[mask]
 
     return df.to_dict("records")

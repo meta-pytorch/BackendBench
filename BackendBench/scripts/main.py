@@ -224,6 +224,8 @@ def cli(
     elif backend == "kernel_agent":
         if backends.KernelAgentBackend is None:
             raise NotImplementedError("KernelAgent backend is for internal use only")
+        backend = backends.KernelAgentBackend()
+        backend.generate_kernels(suite, daemon=daemon)
     elif backend == "directory":
         if dsl == "cuda":
             backend = backends.DirectoryBackend(ops_directory, load_cpp_source=load_cpp_source)
@@ -233,7 +235,6 @@ def cli(
         backend = {
             "aten": backends.AtenBackend,
             "flag_gems": backends.FlagGemsBackend,
-            "kernel_agent": backends.KernelAgentBackend,
             "directory": backends.DirectoryBackend,
         }[backend]()
 
@@ -253,6 +254,7 @@ def cli(
 
     if num_workers is None:
         for test in suite:
+            print(test.op)
             if test.op not in backend:
                 continue
 
