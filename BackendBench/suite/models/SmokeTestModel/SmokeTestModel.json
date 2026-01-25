@@ -1,0 +1,25 @@
+{
+  "model_config": {
+    "init_args": {
+      "input_dim": 128,
+      "hidden_dim": 128,
+      "output_dim": 128
+    }
+  },
+  "ops": {
+    "forward": [
+      "aten.mm.default"
+    ],
+    "backward": [
+      "aten.mm.default"
+    ]
+  },
+  "model_tests": {
+    "small_batch": "([], {'x': T([2, 128], f32)})",
+    "medium_batch": "([], {'x': T([16, 128], f32)})",
+    "large_batch": "([], {'x': T([32, 128], f32)})"
+  },
+  "metadata": {
+    "description": "Smoke test model focused on matrix multiplication operations (mm) in forward and backward passes"
+  }
+}
